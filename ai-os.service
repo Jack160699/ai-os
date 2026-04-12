@@ -1,0 +1,32 @@
+# systemd unit for ai-os (Gunicorn).
+#
+# Before enabling:
+#   1. Clone repo to /opt/ai-os (or change paths below to match your install).
+#   2. Run: ./deploy.sh   (creates .venv and installs deps)
+#   3. sudo cp ai-os.service /etc/systemd/system/
+#   4: sudo systemctl daemon-reload && sudo systemctl enable --now ai-os
+#
+# Logs: journalctl -u ai-os -f
+
+[Unit]
+Description=ai-os WhatsApp webhook (Gunicorn + Flask)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/ai-os
+Environment=PYTHONUNBUFFERED=1
+# Optional: uncomment if you prefer systemd to inject secrets instead of .env
+# EnvironmentFile=/opt/ai-os/.env
+ExecStart=/opt/ai-os/.venv/bin/gunicorn -c /opt/ai-os/gunicorn.conf.py run:app
+Restart=on-failure
+RestartSec=5
+
+# Hardening (adjust if you add writable paths outside the repo)
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
