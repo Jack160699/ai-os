@@ -1,4 +1,6 @@
-flask>=3.0
-openai>=1.0
-requests>=2.28
-python-dotenv>=1.0
+# Python 3.10+ (Ubuntu EC2)
+flask>=3.0,<4
+gunicorn>=22.0,<24
+openai>=1.0,<2
+requests>=2.28,<3
+python-dotenv>=1.0,<2

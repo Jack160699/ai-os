@@ -75,6 +75,7 @@ class Settings:
         print(f"[ai-os env] WHATSAPP_PHONE_NUMBER_ID={wa_phone_id}")
         print(f"[ai-os env] WHATSAPP_ACCESS_TOKEN (masked): {_mask_secret(wa_token)}")
         print(f"[ai-os env] WHATSAPP_VERIFY_TOKEN length={len(wa_verify)}")
+        print(f"[ai-os env] REPO_ROOT={REPO_ROOT} (memory.json / .env resolved here)")
 
         return Settings(
             openai_api_key=openai_key,
