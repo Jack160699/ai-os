@@ -23,7 +23,9 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-python3 -m venv .venv
+if [[ ! -d .venv ]]; then
+  python3 -m venv .venv
+fi
 # shellcheck source=/dev/null
 source .venv/bin/activate
 python -m pip install --upgrade pip wheel
