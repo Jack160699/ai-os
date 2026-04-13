@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app.config import REPO_ROOT
@@ -73,3 +74,55 @@ def get_lead_events() -> list[dict]:
     memory = load_memory()
     events = memory.get("lead_events", [])
     return events if isinstance(events, list) else []
+
+
+def iter_state_phone_numbers() -> list[str]:
+    """All phones with persisted conversation state (values under `state:{phone}` keys)."""
+    memory = load_memory()
+    out: list[str] = []
+    for key in memory:
+        if isinstance(key, str) and key.startswith("state:"):
+            out.append(key[6:])
+    return out
+
+
+def get_all_states() -> dict[str, dict]:
+    """Return all phone->state mappings from memory."""
+    memory = load_memory()
+    out: dict[str, dict] = {}
+    for key, value in memory.items():
+        if isinstance(key, str) and key.startswith("state:") and isinstance(value, dict):
+            out[key[6:]] = value
+    return out
+
+
+def _thread_key(phone: str) -> str:
+    return f"thread:{phone}"
+
+
+def append_thread_message(phone: str, role: str, text: str) -> None:
+    """Append one chat line (user / assistant) to the per-phone transcript."""
+    memory = load_memory()
+    key = _thread_key(phone)
+    rows = memory.get(key)
+    if not isinstance(rows, list):
+        rows = []
+    line = (text or "").strip()
+    if not line:
+        return
+    rows.append(
+        {
+            "role": role,
+            "text": line,
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+    memory[key] = rows[-500:]
+    save_memory(memory)
+
+
+def get_thread_messages(phone: str) -> list[dict]:
+    memory = load_memory()
+    key = _thread_key(phone)
+    rows = memory.get(key)
+    return rows if isinstance(rows, list) else []

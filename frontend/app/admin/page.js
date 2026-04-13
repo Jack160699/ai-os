@@ -62,6 +62,147 @@ function KpiCard({ label, value, hint }) {
   );
 }
 
+function MiniBars({ title, points, emptyHint = "No data yet." }) {
+  const list = Array.isArray(points) ? points : [];
+  const max = Math.max(1, ...list.map((d) => Number(d.count) || 0));
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+      <p className="text-sm font-semibold text-white">{title}</p>
+      {list.length === 0 ? (
+        <p className="mt-4 text-sm text-slate-400">{emptyHint}</p>
+      ) : (
+        <div className="mt-4 flex h-40 items-end gap-2 sm:gap-3">
+          {list.map((point) => (
+            <div key={String(point.date)} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+              <div className="flex w-full flex-1 items-end">
+                <div
+                  className="w-full rounded-t-md bg-gradient-to-t from-[#7C3AED] to-[#A78BFA]"
+                  style={{ height: `${Math.max(8, ((Number(point.count) || 0) / max) * 100)}%` }}
+                />
+              </div>
+              <span className="text-[11px] text-slate-400">{point.date}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FunnelBars({ title, items }) {
+  const list = Array.isArray(items) ? items : [];
+  const max = Math.max(1, ...list.map((d) => Number(d.count) || 0));
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+      <p className="text-sm font-semibold text-white">{title}</p>
+      {list.length === 0 ? (
+        <p className="mt-4 text-sm text-slate-400">No funnel data.</p>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {list.map((step) => (
+            <div key={String(step.label)}>
+              <div className="mb-1.5 flex items-center justify-between text-xs text-slate-300">
+                <span>{step.label}</span>
+                <span>{step.count ?? 0}</span>
+              </div>
+              <div className="h-2 rounded-full bg-white/10">
+                <div
+                  className="h-2 rounded-full bg-gradient-to-r from-[#F97316] to-[#FB923C]"
+                  style={{ width: `${Math.max(5, ((Number(step.count) || 0) / max) * 100)}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const PIE_COLORS = ["#F97316", "#38BDF8", "#94A3B8"];
+
+function ScorePie({ title, segments }) {
+  const list = Array.isArray(segments) ? segments : [];
+  const total = list.reduce((s, x) => s + (Number(x.count) || 0), 0);
+  if (total <= 0) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+        <p className="text-sm font-semibold text-white">{title}</p>
+        <p className="mt-4 text-sm text-slate-400">No score distribution yet.</p>
+      </div>
+    );
+  }
+  let acc = 0;
+  const parts = [];
+  for (let i = 0; i < list.length; i++) {
+    const c = Number(list[i].count) || 0;
+    const deg = (c / total) * 360;
+    const start = acc;
+    acc += deg;
+    parts.push(`${PIE_COLORS[i % PIE_COLORS.length]} ${start.toFixed(2)}deg ${acc.toFixed(2)}deg`);
+  }
+  const gradient = `conic-gradient(from -90deg, ${parts.join(", ")})`;
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+      <p className="text-sm font-semibold text-white">{title}</p>
+      <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-center sm:gap-8">
+        <div
+          className="h-36 w-36 shrink-0 rounded-full border border-white/10 shadow-[0_0_0_10px_rgba(255,255,255,0.04)_inset]"
+          style={{ background: gradient }}
+        />
+        <ul className="w-full max-w-xs space-y-2 text-sm">
+          {list.map((x, i) => (
+            <li key={String(x.label)} className="flex items-center justify-between gap-2 text-slate-300">
+              <span className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                {x.label}
+              </span>
+              <span className="text-slate-400">{x.count ?? 0}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function mergeRecentTableRows(data) {
+  const pipeline = Array.isArray(data?.recent_pipeline) ? data.recent_pipeline : [];
+  const completed = Array.isArray(data?.recent_leads) ? data.recent_leads : [];
+  const rows = [];
+
+  for (const r of pipeline) {
+    rows.push({
+      phone: r.phone ?? "-",
+      business_type: r.business_type ?? "-",
+      pain_point: r.pain_point ?? "-",
+      intent: r.intent ?? "-",
+      intent_score: r.intent_score ?? "-",
+      urgency: r.urgency ?? "-",
+      summary: r.summary ?? "-",
+      followup_stage: r.followup_stage ?? "-",
+      status: r.status ?? "-",
+      sort_ts: r.last_reply_time || "",
+    });
+  }
+  for (const e of completed) {
+    rows.push({
+      phone: e.phone ?? "-",
+      business_type: e.business_type ?? "-",
+      pain_point: e.pain_point ?? "-",
+      intent: e.intent ?? "-",
+      intent_score: e.intent_score ?? "-",
+      urgency: e.urgency ?? "-",
+      summary: e.summary ?? "-",
+      followup_stage: "-",
+      status: "completed",
+      sort_ts: e.timestamp_utc || "",
+    });
+  }
+  rows.sort((a, b) => String(b.sort_ts).localeCompare(String(a.sort_ts)));
+  return rows.slice(0, 35);
+}
+
 export default async function AdminPage() {
   const expectedPassword = process.env.ADMIN_DASHBOARD_PASSWORD || "";
   const cookieStore = await cookies();
@@ -104,10 +245,16 @@ export default async function AdminPage() {
   const summary = data?.summary || {};
   const trend = Array.isArray(data?.trend_7d) ? data.trend_7d : [];
   const painPoints = Array.isArray(data?.top_pain_points) ? data.top_pain_points : [];
-  const recentLeads = Array.isArray(data?.recent_leads) ? data.recent_leads : [];
   const hotLeads = Array.isArray(data?.hot_leads) ? data.hot_leads : [];
+  const followupsByDay = Array.isArray(data?.followups_by_day) ? data.followups_by_day : [];
+  const funnel = Array.isArray(data?.funnel) ? data.funnel : [];
+  const scorePie = Array.isArray(data?.score_pie) ? data.score_pie : [];
+  const recentRows = data ? mergeRecentTableRows(data) : [];
+
   const trendMax = Math.max(1, ...trend.map((d) => d.count || 0));
   const painMax = Math.max(1, ...painPoints.map((d) => d.count || 0));
+
+  const conversionPct = summary.conversion_rate_pct ?? summary.conversion_rate ?? 0;
 
   return (
     <main className="min-h-screen bg-[#0B1220] text-slate-100">
@@ -116,7 +263,7 @@ export default async function AdminPage() {
           <div>
             <Logo variant="dark" />
             <h1 className="mt-4 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">Lead Analytics Dashboard</h1>
-            <p className="mt-1 text-sm text-slate-400">Real-time lead capture and conversion metrics.</p>
+            <p className="mt-1 text-sm text-slate-400">Real-time lead capture, follow-ups, and conversion.</p>
           </div>
           <form action={logoutAction}>
             <button className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/[0.05]">
@@ -131,11 +278,27 @@ export default async function AdminPage() {
           </div>
         ) : null}
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+          <KpiCard label="Follow-ups sent" value={summary.followups_sent ?? 0} hint="Automated nudges logged" />
+          <KpiCard label="Replied after follow-up" value={summary.replied_after_followup ?? 0} hint="Re-opened threads" />
+          <KpiCard label="Revival conversions" value={summary.revival_conversions ?? 0} hint="Reply after a nudge" />
+          <KpiCard label="Hot leads" value={summary.hot_leads_count ?? 0} hint="Priority preview list size" />
+          <KpiCard label="Active leads" value={summary.active_leads ?? 0} hint="In funnel (open)" />
+          <KpiCard label="Cold leads" value={summary.cold_leads ?? 0} hint="Inactive / final pool" />
+          <KpiCard label="Conversion rate" value={`${conversionPct}%`} hint="Booked calls / total leads" />
+        </section>
+
+        <section className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard label="Daily Leads" value={summary.daily_leads ?? 0} hint={`30-day total: ${summary.total_30d ?? 0}`} />
-          <KpiCard label="Hot Leads" value={summary.hot_leads_count ?? 0} hint="High intent and priority pain points" />
+          <KpiCard label="Hot score (heuristic)" value={summary.hot_score_count ?? 0} hint="Completed leads scored Hot" />
           <KpiCard label="Booking Rate" value={`${summary.booking_rate ?? 0}%`} hint={`Bookings: ${summary.bookings_total ?? 0}`} />
           <KpiCard label="Completion Rate" value={`${summary.completion_rate ?? 0}%`} hint={`Drop-off: ${summary.drop_off ?? 0}`} />
+        </section>
+
+        <section className="mt-4 grid gap-3 lg:grid-cols-3">
+          <MiniBars title="Follow-ups by day (7d)" points={followupsByDay} />
+          <FunnelBars title="Leads funnel" items={funnel} />
+          <ScorePie title="Hot / Warm / Cold" segments={scorePie} />
         </section>
 
         <section className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -185,36 +348,51 @@ export default async function AdminPage() {
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
             <div className="border-b border-white/10 px-4 py-3 sm:px-5">
               <p className="text-sm font-semibold text-white">Recent Leads</p>
+              <p className="mt-0.5 text-xs text-slate-400">Pipeline + latest completed (merged, newest first)</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
+              <table className="min-w-[920px] text-left text-sm">
                 <thead className="text-[11px] uppercase tracking-[0.12em] text-slate-400">
                   <tr>
                     <th className="px-4 py-3 sm:px-5">Phone</th>
-                    <th className="px-4 py-3 sm:px-5">Business Type</th>
-                    <th className="px-4 py-3 sm:px-5">Pain Point</th>
+                    <th className="px-4 py-3 sm:px-5">Business</th>
+                    <th className="px-4 py-3 sm:px-5">Pain</th>
                     <th className="px-4 py-3 sm:px-5">Intent</th>
-                    <th className="px-4 py-3 sm:px-5">Time</th>
+                    <th className="px-4 py-3 sm:px-5">Intent score</th>
+                    <th className="px-4 py-3 sm:px-5">Urgency</th>
+                    <th className="px-4 py-3 sm:px-5">Summary</th>
+                    <th className="px-4 py-3 sm:px-5">Follow-up</th>
+                    <th className="px-4 py-3 sm:px-5">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {recentLeads.length === 0 ? (
+                  {recentRows.length === 0 ? (
                     <tr>
-                      <td className="px-4 py-4 text-slate-400 sm:px-5" colSpan={5}>
+                      <td className="px-4 py-4 text-slate-400 sm:px-5" colSpan={9}>
                         No leads yet.
                       </td>
                     </tr>
                   ) : (
-                    recentLeads.map((lead, i) => (
-                      <tr key={`${lead.phone || "p"}-${lead.timestamp_utc || i}`} className="border-t border-white/5">
-                        <td className="px-4 py-3 sm:px-5">{lead.phone || "-"}</td>
-                        <td className="px-4 py-3 text-slate-300 sm:px-5">{lead.business_type || "-"}</td>
-                        <td className="px-4 py-3 text-slate-300 sm:px-5">{lead.pain_point || "-"}</td>
-                        <td className="px-4 py-3 sm:px-5">
-                          <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-slate-200">{lead.intent || "-"}</span>
+                    recentRows.map((lead, i) => (
+                      <tr key={`${lead.phone}-${lead.sort_ts || "x"}-${i}`} className="border-t border-white/5">
+                        <td className="px-4 py-3 sm:px-5">{lead.phone}</td>
+                        <td className="px-4 py-3 text-slate-300 sm:px-5">{lead.business_type}</td>
+                        <td className="max-w-[140px] truncate px-4 py-3 text-slate-300 sm:px-5" title={lead.pain_point}>
+                          {lead.pain_point}
                         </td>
+                        <td className="px-4 py-3 sm:px-5">
+                          <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-slate-200">{lead.intent}</span>
+                        </td>
+                        <td className="px-4 py-3 sm:px-5">
+                          <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-slate-200">{lead.intent_score}</span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-300 sm:px-5">{lead.urgency}</td>
+                        <td className="max-w-[200px] truncate px-4 py-3 text-slate-400 sm:px-5" title={lead.summary}>
+                          {lead.summary}
+                        </td>
+                        <td className="px-4 py-3 text-slate-300 sm:px-5">{String(lead.followup_stage)}</td>
                         <td className="px-4 py-3 text-slate-400 sm:px-5">
-                          {String(lead.timestamp_utc || "-").slice(0, 16).replace("T", " ")}
+                          <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs capitalize">{lead.status}</span>
                         </td>
                       </tr>
                     ))
@@ -237,7 +415,8 @@ export default async function AdminPage() {
                       {lead.business_type || "-"} · {lead.pain_point || "-"}
                     </p>
                     <p className="mt-1 text-xs text-slate-400">
-                      Intent: {lead.intent || "-"} · {String(lead.timestamp_utc || "-").slice(0, 16).replace("T", " ")}
+                      Intent: {lead.intent || "-"} · Score: {lead.intent_score || "-"} ·{" "}
+                      {String(lead.timestamp_utc || "-").slice(0, 16).replace("T", " ")}
                     </p>
                   </li>
                 ))
@@ -249,4 +428,3 @@ export default async function AdminPage() {
     </main>
   );
 }
-

@@ -54,6 +54,7 @@ class Settings:
     google_sheets_webhook_url: str
     admin_alert_number: str
     dashboard_password: str
+    followup_cron_secret: str
 
     @staticmethod
     def load() -> "Settings":
@@ -110,4 +111,5 @@ class Settings:
             ),
             admin_alert_number=_normalize_env_value(os.getenv("ADMIN_ALERT_NUMBER", "")),
             dashboard_password=_normalize_env_value(os.getenv("DASHBOARD_PASSWORD", "")),
+            followup_cron_secret=_normalize_env_value(os.getenv("FOLLOWUP_CRON_SECRET", "")),
         )

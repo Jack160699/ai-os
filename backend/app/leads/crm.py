@@ -17,8 +17,9 @@ def build_lead_payload(
     pain_point: str,
     intent: str,
     preferred_time: str,
+    **extra: object,
 ) -> dict:
-    return {
+    payload = {
         "phone": phone,
         "business_type": business_type,
         "pain_point": pain_point,
@@ -26,6 +27,10 @@ def build_lead_payload(
         "preferred_time": preferred_time,
         "timestamp_utc": utc_now_iso(),
     }
+    for k, v in extra.items():
+        if v is not None and v != "":
+            payload[k] = v
+    return payload
 
 
 def send_to_google_sheets(settings: Settings, payload: dict) -> None:

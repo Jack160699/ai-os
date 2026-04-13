@@ -53,3 +53,40 @@ def generate_lead_recommendation(
         ],
     )
     return (response.choices[0].message.content or "").strip()
+
+
+def generate_lead_one_line_summary(
+    settings: Settings,
+    business_type: str,
+    pain_point: str,
+    transcript_excerpt: str,
+) -> str:
+    """One-line executive summary for owner alerts."""
+    excerpt = (transcript_excerpt or "").strip()
+    if len(excerpt) > 800:
+        excerpt = excerpt[:800] + "…"
+
+    client = OpenAI(api_key=settings.openai_api_key)
+    response = client.chat.completions.create(
+        model=settings.openai_model,
+        temperature=0.35,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Write exactly one sentence (max 220 characters) summarizing the lead for a founder. "
+                    "No emojis, no quotes, no markdown."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Business: {business_type}\n"
+                    f"Need: {pain_point}\n"
+                    f"User messages (may be noisy):\n{excerpt or '(none)'}"
+                ),
+            },
+        ],
+    )
+    line = (response.choices[0].message.content or "").strip().split("\n")[0].strip()
+    return line[:220] if line else "Lead interested in AI systems and automation."
