@@ -1,0 +1,119 @@
+/* Admin segment: spacing scale, surfaces, tables, skeletons (Stripe-like, minimal) */
+.admin-font-root {
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+.admin-app {
+  --admin-space-1: 0.25rem;
+  --admin-space-2: 0.5rem;
+  --admin-space-3: 0.75rem;
+  --admin-space-4: 1rem;
+  --admin-space-5: 1.25rem;
+  --admin-space-6: 1.5rem;
+  --admin-space-8: 2rem;
+  --admin-space-10: 2.5rem;
+  --admin-radius-sm: 0.5rem;
+  --admin-radius-md: 0.75rem;
+  --admin-radius-lg: 1rem;
+  --admin-radius-xl: 1.25rem;
+  --admin-radius-2xl: 1.5rem;
+  --admin-border: rgba(255, 255, 255, 0.06);
+  --admin-border-hover: rgba(255, 255, 255, 0.11);
+  --admin-surface-0: #05070c;
+  --admin-surface-1: #0c0f16;
+  --admin-surface-2: #11151f;
+  --admin-surface-3: rgba(255, 255, 255, 0.025);
+  --admin-surface-hover: rgba(255, 255, 255, 0.045);
+  --admin-text: #f1f5f9;
+  --admin-muted: #94a3b8;
+  --admin-subtle: #64748b;
+}
+
+.admin-table-shell {
+  border-radius: var(--admin-radius-xl);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-3);
+  overflow: hidden;
+}
+
+.admin-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.7rem 1.25rem;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--admin-subtle);
+  background: rgba(12, 15, 22, 0.94);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-table tbody td {
+  padding: 0.85rem 1.25rem;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  vertical-align: middle;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.admin-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--admin-radius-md);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.admin-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  animation: admin-skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+@keyframes admin-skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-skeleton::after {
+    animation: none;
+  }
+}
