@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { assertAdminRequest } from "@/app/admin/_lib/adminApiGate";
 import { adminApiHeaders, backendBase } from "@/app/admin/_lib/backendFetch";
 
+export const dynamic = "force-dynamic";
+
+/**
+ * Proxies Flask `GET /inbox.json` for the admin live inbox conversation list.
+ */
 export async function GET(request) {
   const denied = assertAdminRequest(request);
   if (denied) return denied;
