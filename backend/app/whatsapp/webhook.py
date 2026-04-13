@@ -14,6 +14,13 @@ from app.leads.followups import (
     clear_followup_on_user_inbound,
     process_due_followups,
 )
+from app.inbox.service import (
+    apply_inbox_action,
+    build_inbox_detail,
+    build_inbox_list,
+    bump_inbox_unread,
+    mark_inbox_read,
+)
 from app.memory.store import (
     get_all_states,
     append_thread_message,
@@ -348,6 +355,66 @@ def create_app(settings: Settings) -> Flask:
         rows = get_thread_messages(digits)
         return jsonify({"phone": digits, "transcript": rows}), 200
 
+    @app.route("/inbox.json", methods=["GET"])
+    def inbox_json():
+        if settings.dashboard_password and not _is_dashboard_authed(settings):
+            return jsonify({"error": "unauthorized"}), 401
+        q = request.args.get("q", "") or ""
+        temperature = request.args.get("temperature", "all") or "all"
+        unread_only = str(request.args.get("unread_only", "")).lower() in ("1", "true", "yes")
+        return jsonify(build_inbox_list(q=q, temperature=temperature, unread_only=unread_only)), 200
+
+    @app.route("/inbox/lead/<path:phone>", methods=["GET"])
+    def inbox_lead_detail(phone: str):
+        if settings.dashboard_password and not _is_dashboard_authed(settings):
+            return jsonify({"error": "unauthorized"}), 401
+        detail = build_inbox_detail(phone)
+        if not detail:
+            return jsonify({"error": "not_found"}), 404
+        return jsonify(detail), 200
+
+    @app.route("/inbox/mark-read", methods=["POST"])
+    def inbox_mark_read_route():
+        if settings.dashboard_password and not _is_dashboard_authed(settings):
+            return jsonify({"error": "unauthorized"}), 401
+        data = request.get_json(silent=True) or {}
+        if mark_inbox_read(str(data.get("phone", ""))):
+            return jsonify({"ok": True}), 200
+        return jsonify({"ok": False}), 400
+
+    @app.route("/inbox/action", methods=["POST"])
+    def inbox_action_route():
+        if settings.dashboard_password and not _is_dashboard_authed(settings):
+            return jsonify({"error": "unauthorized"}), 401
+        data = request.get_json(silent=True) or {}
+        out = apply_inbox_action(str(data.get("phone", "")), str(data.get("action", "")), data.get("payload"))
+        return jsonify(out), (200 if out.get("ok") else 400)
+
+    @app.route("/inbox/reply", methods=["POST"])
+    def inbox_reply_route():
+        if settings.dashboard_password and not _is_dashboard_authed(settings):
+            return jsonify({"error": "unauthorized"}), 401
+        data = request.get_json(silent=True) or {}
+        text = (data.get("text") or "").strip()
+        digits = "".join(c for c in str(data.get("phone", "") or "") if c.isdigit())
+        if not digits or not text or len(text) > 4000:
+            return jsonify({"ok": False, "error": "invalid_body"}), 400
+        resp = send_whatsapp_text(settings, digits, text)
+        if not resp.ok:
+            return jsonify({"ok": False, "error": (resp.text or "")[:500]}), 502
+        append_thread_message(digits, "assistant", text)
+        return jsonify({"ok": True}), 200
+
+    @app.route("/inbox/suggest", methods=["POST"])
+    def inbox_suggest_route():
+        if settings.dashboard_password and not _is_dashboard_authed(settings):
+            return jsonify({"error": "unauthorized"}), 401
+        data = request.get_json(silent=True) or {}
+        detail = build_inbox_detail(str(data.get("phone", "")))
+        if not detail:
+            return jsonify({"suggestions": []}), 404
+        return jsonify({"suggestions": detail.get("suggestions") or []}), 200
+
     @app.route("/internal/followups", methods=["POST"])
     def internal_followups():
         if not settings.followup_cron_secret:
@@ -479,6 +546,7 @@ def create_app(settings: Settings) -> Flask:
             else:
                 clear_followup_on_user_inbound(sender, inbound)
                 append_thread_message(sender, "user", inbound)
+                bump_inbox_unread(sender)
                 profile_name = _profile_name_for_sender(value, sender)
                 reply = handle_lead_message(
                     settings, sender, inbound, profile_name=profile_name
