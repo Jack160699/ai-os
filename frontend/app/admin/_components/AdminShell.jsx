@@ -13,21 +13,23 @@ const NAV_ITEMS = [
 
 export function AdminShell({ activePath = "/admin", title, subtitle, children }) {
   return (
-    <main className="min-h-screen bg-[#090E1A] text-slate-100">
-      <div className="mx-auto flex w-full max-w-[1400px] gap-4 px-3 py-3 sm:px-5 sm:py-5 lg:gap-6">
-        <aside className="sticky top-3 hidden h-[calc(100vh-24px)] w-[240px] shrink-0 rounded-3xl border border-white/10 bg-[#0C1325] p-4 lg:block">
-          <Logo variant="dark" />
-          <nav className="mt-6 space-y-1">
+    <main className="admin-app min-h-screen bg-[#05070c] text-slate-100">
+      <div className="mx-auto flex w-full max-w-[1440px] gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:gap-8">
+        <aside className="sticky top-4 hidden h-[calc(100vh-32px)] w-[248px] shrink-0 flex-col rounded-2xl border border-white/[0.06] bg-[#0c0f16] p-5 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] lg:flex lg:flex-col">
+          <div className="flex items-center gap-2">
+            <Logo variant="dark" />
+          </div>
+          <nav className="mt-8 space-y-1">
             {NAV_ITEMS.map((item) => {
               const active = activePath === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`block rounded-xl px-3 py-2.5 text-sm transition ${
+                  className={`block rounded-xl px-3 py-2.5 text-[13px] font-medium tracking-tight transition-colors duration-150 ${
                     active
-                      ? "bg-white/10 text-white shadow-[0_8px_24px_rgba(69,196,255,0.10)]"
-                      : "text-slate-400 hover:bg-white/[0.06] hover:text-slate-100"
+                      ? "border border-white/[0.08] bg-white/[0.08] text-white shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
+                      : "border border-transparent text-slate-400 hover:border-white/[0.06] hover:bg-white/[0.04] hover:text-slate-100"
                   }`}
                 >
                   {item.label}
@@ -35,35 +37,40 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children })
               );
             })}
           </nav>
-          <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-            <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Quick Status</p>
-            <p className="mt-2 text-sm text-slate-200">System healthy. Real-time ingestion active.</p>
+          <div className="mt-auto rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Status</p>
+            <p className="mt-2 text-[13px] leading-snug text-slate-300">Ingestion live. Dashboard refreshes on navigation.</p>
           </div>
         </aside>
 
-        <div className="min-w-0 flex-1 rounded-3xl border border-white/10 bg-[#0C1325]">
-          <header className="border-b border-white/10 px-4 py-4 sm:px-6 sm:py-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.15em] text-slate-500">Admin Console</p>
-                <h1 className="mt-1 text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">{title}</h1>
-                {subtitle ? <p className="mt-1 text-sm text-slate-400">{subtitle}</p> : null}
+        <div className="min-w-0 flex-1 rounded-2xl border border-white/[0.06] bg-[#0c0f16] shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
+          <header className="border-b border-white/[0.06] px-5 py-5 sm:px-8 sm:py-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Admin</p>
+                <h1 className="mt-1.5 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-[1.65rem]">{title}</h1>
+                {subtitle ? <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-slate-500">{subtitle}</p> : null}
               </div>
-              <form action={logoutAction}>
-                <button className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/[0.05]">
-                  Logout
+              <form action={logoutAction} className="shrink-0">
+                <button
+                  type="submit"
+                  className="rounded-lg border border-white/[0.1] bg-white/[0.03] px-3.5 py-2 text-[12px] font-semibold text-slate-200 transition-colors duration-150 hover:border-white/[0.14] hover:bg-white/[0.06]"
+                >
+                  Log out
                 </button>
               </form>
             </div>
-            <nav className="mt-4 flex gap-2 overflow-x-auto lg:hidden">
+            <nav className="mt-5 flex gap-2 overflow-x-auto pb-0.5 lg:hidden">
               {NAV_ITEMS.map((item) => {
                 const active = activePath === item.href;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs transition ${
-                      active ? "bg-white/10 text-white" : "bg-white/[0.03] text-slate-400"
+                    className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors duration-150 ${
+                      active
+                        ? "border-white/[0.1] bg-white/[0.08] text-white"
+                        : "border-transparent bg-white/[0.03] text-slate-400 hover:border-white/[0.06] hover:text-slate-200"
                     }`}
                   >
                     {item.label}
@@ -72,7 +79,7 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children })
               })}
             </nav>
           </header>
-          <section className="p-4 sm:p-6">{children}</section>
+          <section className="space-y-8 p-5 sm:p-8">{children}</section>
         </div>
       </div>
     </main>

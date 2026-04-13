@@ -1,49 +1,19 @@
+import Link from "next/link";
 import { Logo } from "@/app/components/Logo";
 import { AdminShell } from "@/app/admin/_components/AdminShell";
+import { EmptyState } from "@/app/admin/_components/EmptyState";
+import { KpiStatCard } from "@/app/admin/_components/KpiStatCard";
+import { MiniBarsClient } from "@/app/admin/_components/MiniBarsClient";
+import { StaggerFeed } from "@/app/admin/_components/StaggerFeed";
+import { SurfaceCard } from "@/app/admin/_components/SurfaceCard";
 import { getAdminAuthState, loginAction } from "@/app/admin/_lib/auth";
 import { getBackendDashboardUrl, getDashboardData } from "@/app/admin/_lib/data";
+import { activeShareTrend, bookedTrend, hotTrend, seriesHalfMomentum } from "@/app/admin/_lib/trends";
 
 export const metadata = {
   title: "Admin Dashboard - Stratxcel",
   robots: { index: false, follow: false },
 };
-
-function KpiCard({ label, value, hint }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition duration-300 hover:-translate-y-0.5 hover:bg-white/[0.05] sm:p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
-      <p className="mt-1.5 text-2xl font-semibold tracking-[-0.03em] text-white sm:text-[1.85rem]">{value}</p>
-      <p className="mt-1 text-[12px] text-slate-400">{hint}</p>
-    </div>
-  );
-}
-
-function MiniBars({ title, points, emptyHint = "No data yet." }) {
-  const list = Array.isArray(points) ? points : [];
-  const max = Math.max(1, ...list.map((d) => Number(d.count) || 0));
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
-      <p className="text-sm font-semibold text-white">{title}</p>
-      {list.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-400">{emptyHint}</p>
-      ) : (
-        <div className="mt-4 flex h-40 items-end gap-2 sm:gap-3">
-          {list.map((point) => (
-            <div key={String(point.date)} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-              <div className="flex w-full flex-1 items-end">
-                <div
-                  className="w-full rounded-t-md bg-gradient-to-t from-[#7C3AED] to-[#A78BFA]"
-                  style={{ height: `${Math.max(8, ((Number(point.count) || 0) / max) * 100)}%` }}
-                />
-              </div>
-              <span className="text-[11px] text-slate-400">{point.date}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function mergeRecentTableRows(data) {
   const pipeline = Array.isArray(data?.recent_pipeline) ? data.recent_pipeline : [];
@@ -87,23 +57,23 @@ export default async function AdminPage() {
 
   if (!authed) {
     return (
-      <main className="min-h-screen bg-[#0B1220] px-4 py-14 text-slate-100 sm:px-6">
-        <div className="mx-auto w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-6 sm:p-7">
+      <main className="min-h-screen bg-[#05070c] px-4 py-16 text-slate-100 sm:px-6">
+        <div className="mx-auto w-full max-w-md rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:p-8">
           <Logo variant="dark" />
-          <h1 className="mt-6 text-2xl font-semibold tracking-[-0.03em]">Admin Dashboard</h1>
-          <p className="mt-2 text-sm text-slate-400">Internal access only.</p>
-          <form action={loginAction} className="mt-5 space-y-3">
+          <h1 className="mt-8 text-2xl font-semibold tracking-[-0.03em]">Admin</h1>
+          <p className="mt-2 text-[13px] leading-relaxed text-slate-500">Internal workspace. Sign in to continue.</p>
+          <form action={loginAction} className="mt-6 space-y-3">
             <input
               name="password"
               type="password"
               placeholder="Password"
-              className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.05] px-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-white/30"
+              className="h-11 w-full rounded-xl border border-white/[0.1] bg-white/[0.04] px-3.5 text-sm text-white outline-none placeholder:text-slate-600 focus:border-white/[0.2] focus:ring-2 focus:ring-white/[0.06]"
             />
             <button
               type="submit"
-              className="h-11 w-full rounded-xl bg-gradient-to-r from-[#45C4FF] to-[#1E3A8A] text-sm font-semibold text-white transition hover:brightness-110"
+              className="h-11 w-full rounded-xl bg-gradient-to-r from-[#6366f1] to-[#2563eb] text-sm font-semibold text-white transition-[filter] duration-150 hover:brightness-110"
             >
-              Open Dashboard
+              Continue
             </button>
           </form>
         </div>
@@ -127,106 +97,159 @@ export default async function AdminPage() {
   const painMax = Math.max(1, ...painPoints.map((d) => d.count || 0));
 
   const conversionPct = summary.conversion_rate_pct ?? summary.conversion_rate ?? 0;
+  const leadMomentum = seriesHalfMomentum(trend);
+  const activeTrend = activeShareTrend(summary);
+  const bookedT = bookedTrend(summary);
+  const hotT = hotTrend(summary);
+
+  const activityItems = recentRows.slice(0, 7).map((item, idx) => ({
+    id: `${item.phone}-${idx}`,
+    title: item.phone,
+    subtitle: item.business_type,
+    badge: item.status,
+  }));
+
+  const hotItems = hotLeads.slice(0, 6).map((lead, idx) => ({
+    id: `${lead.phone || "hot"}-${idx}`,
+    title: lead.phone || "—",
+    subtitle: [lead.business_type, lead.pain_point, lead.intent_score].filter(Boolean).join(" · ") || undefined,
+  }));
 
   return (
     <AdminShell
       activePath="/admin"
       title="Dashboard"
-      subtitle="High-signal operating view. Deep analytics and workflows are in dedicated modules."
+      subtitle="High-signal operating view. Deep analytics and workflows live in dedicated modules."
     >
       {error ? (
-        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-          Could not load `{getBackendDashboardUrl()}`: {error}
+        <div className="rounded-xl border border-rose-500/25 bg-rose-500/[0.08] px-4 py-3 text-[13px] text-rose-100">
+          Could not load <span className="font-mono text-[12px] text-rose-200/90">{getBackendDashboardUrl()}</span>
+          <span className="mt-1 block text-rose-200/80">{error}</span>
         </div>
       ) : null}
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="Total Leads" value={summary.total_leads ?? 0} hint="Unique conversations started" />
-        <KpiCard label="Active Leads" value={summary.active_leads ?? 0} hint="Open pipeline requiring follow-up" />
-        <KpiCard label="Booked Calls" value={summary.booked_calls ?? 0} hint={`Conversion: ${conversionPct}%`} />
-        <KpiCard label="Hot Leads" value={summary.hot_leads_count ?? 0} hint="Priority prospects to action now" />
+        <KpiStatCard
+          index={0}
+          label="Total leads"
+          value={String(summary.total_leads ?? 0)}
+          hint="Unique conversations started"
+          trend={leadMomentum}
+        />
+        <KpiStatCard
+          index={1}
+          label="Active leads"
+          value={String(summary.active_leads ?? 0)}
+          hint="Open pipeline requiring follow-up"
+          trend={activeTrend}
+        />
+        <KpiStatCard
+          index={2}
+          label="Booked calls"
+          value={String(summary.booked_calls ?? 0)}
+          hint={`Conversion ${conversionPct}%`}
+          trend={bookedT}
+        />
+        <KpiStatCard
+          index={3}
+          label="Hot leads"
+          value={String(summary.hot_leads_count ?? 0)}
+          hint="Priority prospects to action now"
+          trend={hotT}
+        />
       </section>
 
-      <section className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-        <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.06] p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-200/80">Needs Attention</p>
-          <ul className="mt-3 space-y-2 text-sm text-amber-100">
-            <li>• {summary.hot_leads_count ?? 0} hot leads need immediate outreach.</li>
-            <li>• {summary.active_leads ?? 0} active leads are awaiting next touchpoint.</li>
-            <li>• {summary.cold_leads ?? 0} leads moved cold; consider revival workflows.</li>
+      <section className="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
+        <SurfaceCard
+          className="border-amber-400/20 bg-gradient-to-b from-amber-400/[0.06] to-transparent p-6 hover:border-amber-400/28"
+          delay={0.04}
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-amber-200/75">Needs attention</p>
+          <ul className="mt-4 space-y-2.5 text-[13px] leading-relaxed text-amber-50/95">
+            <li className="flex gap-2">
+              <span className="select-none text-amber-200/50">•</span>
+              <span>{summary.hot_leads_count ?? 0} hot leads need immediate outreach.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="select-none text-amber-200/50">•</span>
+              <span>{summary.active_leads ?? 0} active leads await the next touchpoint.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="select-none text-amber-200/50">•</span>
+              <span>{summary.cold_leads ?? 0} leads moved cold; consider revival workflows.</span>
+            </li>
           </ul>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Quick Actions</p>
-          <div className="mt-3 grid gap-2">
-            <a href="/admin/leads" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200 transition hover:bg-white/[0.08]">
-              Review lead queue
-            </a>
-            <a href="/admin/pipeline" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200 transition hover:bg-white/[0.08]">
-              Open pipeline board
-            </a>
-            <a href="/admin/automation" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200 transition hover:bg-white/[0.08]">
-              Tune follow-up automations
-            </a>
+        </SurfaceCard>
+
+        <SurfaceCard className="p-6" delay={0.06}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Quick actions</p>
+          <div className="mt-4 grid gap-2">
+            {[
+              { href: "/admin/leads", label: "Review lead queue" },
+              { href: "/admin/pipeline", label: "Open pipeline board" },
+              { href: "/admin/automation", label: "Tune automations" },
+            ].map((a) => (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-3.5 py-2.5 text-[13px] font-medium text-slate-200 transition-colors duration-150 hover:border-white/[0.11] hover:bg-white/[0.05]"
+              >
+                {a.label}
+              </Link>
+            ))}
           </div>
-        </div>
+        </SurfaceCard>
       </section>
 
-      <section className="mt-5 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <p className="text-sm font-semibold text-white">Live Activity Feed</p>
-          <ul className="mt-3 space-y-2">
-            {recentRows.slice(0, 7).map((item, idx) => (
-              <li key={`${item.phone}-${idx}`} className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm">
-                <span className="text-slate-200">{item.phone}</span>
-                <span className="text-slate-400"> · {item.business_type}</span>
-                <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-xs text-slate-300">{item.status}</span>
-              </li>
-            ))}
-            {recentRows.length === 0 ? <li className="text-sm text-slate-400">No recent activity.</li> : null}
-          </ul>
-        </div>
+      <section className="grid gap-6 lg:grid-cols-2">
+        <SurfaceCard className="p-6" delay={0.05}>
+          <p className="text-sm font-semibold tracking-tight text-white">Live activity</p>
+          <StaggerFeed
+            items={activityItems}
+            emptyTitle="No recent activity"
+            emptyDescription="When pipeline and completed leads update, they will stream in here."
+          />
+        </SurfaceCard>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <p className="text-sm font-semibold text-white">Recent Hot Leads</p>
-          <ul className="mt-3 space-y-2">
-            {hotLeads.slice(0, 6).map((lead, idx) => (
-              <li key={`${lead.phone || "hot"}-${idx}`} className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
-                <p className="text-sm font-medium text-white">{lead.phone || "-"}</p>
-                <p className="mt-0.5 text-xs text-slate-400">
-                  {lead.business_type || "-"} · {lead.pain_point || "-"} · {lead.intent_score || "-"}
-                </p>
-              </li>
-            ))}
-            {hotLeads.length === 0 ? <li className="text-sm text-slate-400">No hot leads right now.</li> : null}
-          </ul>
-        </div>
+        <SurfaceCard className="p-6" delay={0.07}>
+          <p className="text-sm font-semibold tracking-tight text-white">Recent hot leads</p>
+          <StaggerFeed
+            items={hotItems}
+            emptyTitle="No hot leads"
+            emptyDescription="Scored hot prospects will surface here for fast follow-up."
+          />
+        </SurfaceCard>
       </section>
 
-      <section className="mt-5 grid gap-4 lg:grid-cols-2">
-        <MiniBars title="7 Day Leads Pulse" points={trend} />
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <p className="text-sm font-semibold text-white">Top Pain Points</p>
-          <div className="mt-4 space-y-3">
+      <section className="grid gap-6 lg:grid-cols-2">
+        <MiniBarsClient title="7-day leads pulse" points={trend} emptyHint="No trend data yet" />
+        <SurfaceCard className="p-6" delay={0.08}>
+          <p className="text-sm font-semibold tracking-tight text-white">Top pain points</p>
+          <div className="mt-5 space-y-4">
             {painPoints.length === 0 ? (
-              <p className="text-sm text-slate-400">No data yet.</p>
+              <EmptyState
+                title="No pain-point clusters yet"
+                description="When transcripts accumulate, themes rank here automatically."
+                className="py-10"
+              />
             ) : (
               painPoints.map((item) => (
-                <div key={item.label}>
-                  <div className="mb-1.5 flex items-center justify-between text-xs text-slate-300">
-                    <span>{item.label}</span>
-                    <span>{item.count}</span>
+                <div key={String(item.label)}>
+                  <div className="mb-1.5 flex items-center justify-between text-[12px] text-slate-400">
+                    <span className="font-medium text-slate-300">{item.label}</span>
+                    <span className="tabular-nums text-slate-500">{item.count}</span>
                   </div>
-                  <div className="h-2 rounded-full bg-white/10">
+                  <div className="h-2 rounded-full bg-white/[0.06]">
                     <div
-                      className="h-2 rounded-full bg-gradient-to-r from-[#45C4FF] to-[#1E3A8A]"
-                      style={{ width: `${Math.max(5, ((item.count || 0) / painMax) * 100)}%` }}
+                      className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-sky-400"
+                      style={{ width: `${Math.max(6, ((item.count || 0) / painMax) * 100)}%` }}
                     />
                   </div>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </SurfaceCard>
       </section>
     </AdminShell>
   );

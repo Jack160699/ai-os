@@ -1,32 +1,9 @@
 import { AdminShell } from "@/app/admin/_components/AdminShell";
+import { EmptyState } from "@/app/admin/_components/EmptyState";
+import { MiniBarsClient } from "@/app/admin/_components/MiniBarsClient";
+import { SurfaceCard } from "@/app/admin/_components/SurfaceCard";
 import { requireAdminAuth } from "@/app/admin/_lib/auth";
 import { getDashboardData } from "@/app/admin/_lib/data";
-
-function Bars({ title, points, from = "#1E3A8A", to = "#45C4FF" }) {
-  const list = Array.isArray(points) ? points : [];
-  const max = Math.max(1, ...list.map((d) => Number(d.count) || 0));
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <p className="text-sm font-semibold text-white">{title}</p>
-      <div className="mt-4 flex h-40 items-end gap-2">
-        {list.map((p) => (
-          <div key={String(p.date)} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-            <div className="flex w-full flex-1 items-end">
-              <div
-                className="w-full rounded-t-md"
-                style={{
-                  height: `${Math.max(8, ((Number(p.count) || 0) / max) * 100)}%`,
-                  background: `linear-gradient(to top, ${from}, ${to})`,
-                }}
-              />
-            </div>
-            <span className="text-[11px] text-slate-400">{p.date}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default async function AdminAnalyticsPage() {
   await requireAdminAuth();
@@ -47,22 +24,35 @@ export default async function AdminAnalyticsPage() {
       title="Analytics"
       subtitle="Deep performance trends, funnel behavior, and quality distribution."
     >
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Bars title="Leads by Day" points={leadsByDay} />
-        <Bars title="Follow-ups by Day" points={followupsByDay} from="#7C3AED" to="#A78BFA" />
-        <Bars title="Bookings by Day" points={bookingsByDay} from="#F97316" to="#FB923C" />
+      <div className="grid gap-6 lg:grid-cols-3">
+        <MiniBarsClient title="Leads by day" points={leadsByDay} from="#1e3a8a" to="#60a5fa" />
+        <MiniBarsClient title="Follow-ups by day" points={followupsByDay} from="#6d28d9" to="#a78bfa" />
+        <MiniBarsClient title="Bookings by day" points={bookingsByDay} from="#c2410c" to="#fb923c" />
       </div>
-      <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-        <p className="text-sm font-semibold text-white">Hot / Warm / Cold Distribution</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          {scorePie.map((s) => (
-            <div key={String(s.label)} className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-400">{s.label}</p>
-              <p className="mt-1 text-xl font-semibold text-white">{s.count ?? 0}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      <SurfaceCard className="p-6 sm:p-8" delay={0.06}>
+        <p className="text-sm font-semibold tracking-tight text-white">Hot / warm / cold distribution</p>
+        {scorePie.length === 0 ? (
+          <div className="mt-5">
+            <EmptyState
+              title="No score distribution"
+              description="Intent scoring outputs will aggregate into this view once volume builds."
+              className="py-10"
+            />
+          </div>
+        ) : (
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            {scorePie.map((s) => (
+              <div
+                key={String(s.label)}
+                className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5 transition-[border-color,background-color] duration-150 hover:border-white/[0.11] hover:bg-white/[0.04]"
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">{s.label}</p>
+                <p className="mt-1.5 text-xl font-semibold tabular-nums tracking-tight text-white">{s.count ?? 0}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </SurfaceCard>
     </AdminShell>
   );
 }

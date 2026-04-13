@@ -1,4 +1,5 @@
 import { AdminShell } from "@/app/admin/_components/AdminShell";
+import { EmptyState } from "@/app/admin/_components/EmptyState";
 import { requireAdminAuth } from "@/app/admin/_lib/auth";
 import { getDashboardData } from "@/app/admin/_lib/data";
 
@@ -18,39 +19,45 @@ export default async function AdminLeadsPage() {
       title="Leads"
       subtitle="Structured lead records, intent signals, and qualification details."
     >
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03]">
-        <div className="border-b border-white/10 px-5 py-4">
-          <p className="text-sm font-semibold text-white">Lead Registry</p>
+      <div className="admin-table-shell">
+        <div className="border-b border-white/[0.06] px-6 py-4 sm:px-8">
+          <p className="text-sm font-semibold tracking-tight text-white">Lead registry</p>
+          <p className="mt-1 text-[12px] text-slate-500">Latest structured captures from your funnel.</p>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-[840px] text-left text-sm">
-            <thead className="text-[11px] uppercase tracking-[0.12em] text-slate-400">
+        <div className="admin-table-scroll">
+          <table className="admin-table">
+            <thead>
               <tr>
-                <th className="px-5 py-3">Phone</th>
-                <th className="px-5 py-3">Business</th>
-                <th className="px-5 py-3">Pain Point</th>
-                <th className="px-5 py-3">Intent Score</th>
-                <th className="px-5 py-3">Urgency</th>
-                <th className="px-5 py-3">Summary</th>
+                <th>Phone</th>
+                <th>Business</th>
+                <th>Pain point</th>
+                <th>Intent score</th>
+                <th>Urgency</th>
+                <th>Summary</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-4 text-slate-400">
-                    No lead records yet.
+                  <td colSpan={6} className="border-none p-0">
+                    <div className="p-6 sm:p-8">
+                      <EmptyState
+                        title="No lead records yet"
+                        description="When new leads qualify through your assistant, they will appear in this registry."
+                      />
+                    </div>
                   </td>
                 </tr>
               ) : (
                 rows.map((row, i) => (
-                  <tr key={`${row.phone || "lead"}-${row.timestamp_utc || i}`} className="border-t border-white/5">
-                    <td className="px-5 py-3">{row.phone || "-"}</td>
-                    <td className="px-5 py-3 text-slate-300">{row.business_type || "-"}</td>
-                    <td className="px-5 py-3 text-slate-300">{row.pain_point || "-"}</td>
-                    <td className="px-5 py-3 text-slate-300">{row.intent_score || "-"}</td>
-                    <td className="px-5 py-3 text-slate-300">{row.urgency || "-"}</td>
-                    <td className="max-w-[260px] truncate px-5 py-3 text-slate-400" title={row.summary || "-"}>
-                      {row.summary || "-"}
+                  <tr key={`${row.phone || "lead"}-${row.timestamp_utc || i}`}>
+                    <td className="font-medium text-slate-100">{row.phone || "—"}</td>
+                    <td className="text-slate-400">{row.business_type || "—"}</td>
+                    <td className="text-slate-400">{row.pain_point || "—"}</td>
+                    <td className="tabular-nums text-slate-400">{row.intent_score ?? "—"}</td>
+                    <td className="text-slate-400">{row.urgency || "—"}</td>
+                    <td className="max-w-[280px] truncate text-slate-500" title={row.summary || ""}>
+                      {row.summary || "—"}
                     </td>
                   </tr>
                 ))

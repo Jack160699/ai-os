@@ -1,19 +1,20 @@
 import { AdminShell } from "@/app/admin/_components/AdminShell";
+import { SurfaceCard } from "@/app/admin/_components/SurfaceCard";
 import { requireAdminAuth } from "@/app/admin/_lib/auth";
 
 const modules = [
   {
-    title: "Follow-up Sequences",
-    text: "Manage multi-stage outreach cadences with safe send limits and stop rules.",
+    title: "Follow-up sequences",
+    text: "Multi-stage outreach cadences with send limits and stop rules.",
     status: "Live",
   },
   {
-    title: "Intent Routing",
-    text: "Prioritize high-intent leads and assign action playbooks by score and urgency.",
+    title: "Intent routing",
+    text: "Prioritize high-intent leads and assign playbooks by score and urgency.",
     status: "Live",
   },
   {
-    title: "Revival Campaigns",
+    title: "Revival campaigns",
     text: "Re-engage dormant leads with controlled, value-first sequences.",
     status: "Configurable",
   },
@@ -27,15 +28,17 @@ export default async function AdminAutomationPage() {
       title="Automation"
       subtitle="Operational controls for sequences, routing, and autonomous lead actions."
     >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {modules.map((m) => (
-          <div key={m.title} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:bg-white/[0.06]">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-white">{m.title}</p>
-              <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-slate-300">{m.status}</span>
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {modules.map((m, i) => (
+          <SurfaceCard key={m.title} className="p-6" delay={i * 0.05}>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-semibold tracking-tight text-white">{m.title}</p>
+              <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.05] px-2.5 py-0.5 text-[11px] font-semibold text-slate-300">
+                {m.status}
+              </span>
             </div>
-            <p className="mt-2 text-sm text-slate-400">{m.text}</p>
-          </div>
+            <p className="mt-3 text-[13px] leading-relaxed text-slate-500">{m.text}</p>
+          </SurfaceCard>
         ))}
       </div>
     </AdminShell>
