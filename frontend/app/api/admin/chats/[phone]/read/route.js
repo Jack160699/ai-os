@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { assertAdminRequest } from "@/app/admin/_lib/adminApiGate";
-import { adminApiHeaders, backendBase } from "@/app/admin/_lib/backendFetch";
+import { adminApiHeaders } from "@/app/admin/_lib/backendFetch";
+import { flaskBotBase } from "@/app/admin/_lib/flaskBotBase";
 
 export async function POST(request, { params }) {
   const denied = assertAdminRequest(request);
@@ -12,7 +13,7 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "invalid_phone" }, { status: 400 });
   }
 
-  const res = await fetch(`${backendBase()}/inbox/mark-read`, {
+  const res = await fetch(`${flaskBotBase()}/inbox/mark-read`, {
     method: "POST",
     headers: adminApiHeaders(),
     body: JSON.stringify({ phone: digits }),

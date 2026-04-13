@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { assertAdminRequest } from "@/app/admin/_lib/adminApiGate";
-import { adminApiHeaders, backendBase } from "@/app/admin/_lib/backendFetch";
+import { adminApiHeaders } from "@/app/admin/_lib/backendFetch";
+import { flaskBotBase } from "@/app/admin/_lib/flaskBotBase";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Proxies Flask `GET /inbox.json` for the admin live inbox conversation list.
+ * Proxies Flask `GET /api/chats` (conversations from server-side memory.json).
  */
 export async function GET(request) {
   const denied = assertAdminRequest(request);
@@ -16,7 +17,7 @@ export async function GET(request) {
   const temperature = searchParams.get("temperature") || "all";
   const unreadOnly = searchParams.get("unread_only") || "";
 
-  const url = new URL(`${backendBase()}/inbox.json`);
+  const url = new URL(`${flaskBotBase()}/api/chats`);
   if (q) url.searchParams.set("q", q);
   if (temperature) url.searchParams.set("temperature", temperature);
   if (unreadOnly) url.searchParams.set("unread_only", unreadOnly);

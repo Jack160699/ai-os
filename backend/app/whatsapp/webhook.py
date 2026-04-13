@@ -364,6 +364,16 @@ def create_app(settings: Settings) -> Flask:
         unread_only = str(request.args.get("unread_only", "")).lower() in ("1", "true", "yes")
         return jsonify(build_inbox_list(q=q, temperature=temperature, unread_only=unread_only)), 200
 
+    @app.route("/api/chats", methods=["GET"])
+    def api_chats():
+        """Stable JSON path for hosted bot (e.g. Vercel admin proxies here; reads memory.json on server)."""
+        if settings.dashboard_password and not _is_dashboard_authed(settings):
+            return jsonify({"error": "unauthorized"}), 401
+        q = request.args.get("q", "") or ""
+        temperature = request.args.get("temperature", "all") or "all"
+        unread_only = str(request.args.get("unread_only", "")).lower() in ("1", "true", "yes")
+        return jsonify(build_inbox_list(q=q, temperature=temperature, unread_only=unread_only)), 200
+
     @app.route("/inbox/lead/<path:phone>", methods=["GET"])
     def inbox_lead_detail(phone: str):
         if settings.dashboard_password and not _is_dashboard_authed(settings):

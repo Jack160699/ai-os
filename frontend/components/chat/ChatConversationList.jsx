@@ -2,6 +2,21 @@
 
 import { formatFullTime, formatTime, tempBadgeClass } from "@/components/chat/format";
 
+function InboxEmpty() {
+  return (
+    <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-2xl text-slate-400">
+        ···
+      </div>
+      <p className="mt-5 text-sm font-semibold tracking-tight text-slate-200">Inbox is quiet</p>
+      <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-slate-500">
+        When WhatsApp messages arrive, threads appear here automatically. Nothing is stored in the browser—only on
+        your bot.
+      </p>
+    </div>
+  );
+}
+
 export function ChatConversationList({
   rows,
   selected,
@@ -14,6 +29,8 @@ export function ChatConversationList({
   onUnreadOnlyToggle,
   updatedAt,
   loadingList,
+  listError,
+  onRetry,
   mobileTab,
 }) {
   return (
@@ -59,16 +76,25 @@ export function ChatConversationList({
         </p>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
-        {loadingList && rows.length === 0 ? (
+        {listError ? (
+          <div className="mx-2 my-4 rounded-xl border border-rose-500/20 bg-rose-500/[0.07] px-4 py-5 text-center">
+            <p className="text-[13px] leading-relaxed text-rose-100">{listError}</p>
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-4 rounded-lg border border-white/[0.12] bg-white/[0.06] px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-white/[0.1]"
+            >
+              Retry
+            </button>
+          </div>
+        ) : loadingList && rows.length === 0 ? (
           <div className="space-y-2 p-2">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="h-16 animate-pulse rounded-xl bg-white/[0.06]" />
             ))}
           </div>
         ) : rows.length === 0 ? (
-          <div className="px-3 py-10 text-center text-[13px] text-slate-500">
-            No conversations yet. Inbound WhatsApp will land here.
-          </div>
+          <InboxEmpty />
         ) : (
           <ul className="space-y-1">
             {rows.map((c) => {

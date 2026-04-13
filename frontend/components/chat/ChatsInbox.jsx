@@ -18,6 +18,8 @@ export function ChatsInbox() {
   const [reply, setReply] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
+  const [listError, setListError] = useState("");
+  const [listRetryKey, setListRetryKey] = useState(0);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -39,24 +41,45 @@ export function ChatsInbox() {
   }, [debouncedQ, temperature, unreadOnly]);
 
   const fetchList = useCallback(async () => {
+    setLoadingList(true);
+    setListError("");
     try {
       const res = await fetch(`/api/admin/chats${listQuery}`, { credentials: "include", cache: "no-store" });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
       if (!res.ok) {
-        if (res.status === 401) setError("Session expired — refresh and sign in again.");
-        else setError("Could not load inbox.");
+        if (res.status === 401) {
+          setListError("Your admin session expired. Refresh the page and sign in again.");
+        } else if (data?.error === "unauthorized") {
+          setListError("Bot rejected the dashboard password. Set BACKEND_DASHBOARD_PASSWORD on Vercel to match DASHBOARD_PASSWORD on the bot host.");
+        } else {
+          setListError(`Could not load inbox (${res.status}). Check BOT_API_URL / bot deployment.`);
+        }
         setRows([]);
         return;
       }
-      setError("");
-      const data = await res.json();
-      setRows(Array.isArray(data.conversations) ? data.conversations : []);
+      if (!Array.isArray(data.conversations)) {
+        setListError("Unexpected response from inbox API.");
+        setRows([]);
+        return;
+      }
+      setRows(data.conversations);
       setUpdatedAt(data.updated_at || "");
     } catch {
-      setError("Network error loading inbox.");
+      setListError("Network error — check your connection or try again.");
+      setRows([]);
     } finally {
       setLoadingList(false);
     }
-  }, [listQuery]);
+  }, [listQuery, listRetryKey]);
+
+  const retryList = useCallback(() => {
+    setListRetryKey((k) => k + 1);
+  }, []);
 
   const fetchDetail = useCallback(async (phone) => {
     if (!phone) {
@@ -100,9 +123,10 @@ export function ChatsInbox() {
   }, [fetchList]);
 
   useEffect(() => {
+    if (listError) return;
     const id = setInterval(fetchList, POLL_MS);
     return () => clearInterval(id);
-  }, [fetchList]);
+  }, [fetchList, listError]);
 
   useEffect(() => {
     if (!selected) return;
@@ -241,6 +265,8 @@ export function ChatsInbox() {
           onUnreadOnlyToggle={() => setUnreadOnly((v) => !v)}
           updatedAt={updatedAt}
           loadingList={loadingList}
+          listError={listError}
+          onRetry={retryList}
           mobileTab={mobileTab}
         />
 
