@@ -17,12 +17,14 @@ export default async function AdminLeadsPage() {
     <AdminShell
       activePath="/admin/leads"
       title="Leads"
-      subtitle="Structured lead records, intent signals, and qualification details."
+      subtitle="Structured captures with intent, urgency, and the story behind each thread."
     >
-      <div className="admin-table-shell">
-        <div className="border-b border-white/[0.06] px-6 py-4 sm:px-8">
-          <p className="text-sm font-semibold tracking-tight text-white">Lead registry</p>
-          <p className="mt-1 text-[12px] text-slate-500">Latest structured captures from your funnel.</p>
+      <div className="admin-table-shell shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
+        <div className="border-b border-white/[0.06] px-6 py-4 sm:px-8 sm:py-5">
+          <p className="text-sm font-semibold tracking-tight text-white">Registry</p>
+          <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-slate-500">
+            Sortable columns follow your backend order—use search in the header to jump by phone or keyword.
+          </p>
         </div>
         <div className="admin-table-scroll">
           <table className="admin-table">
@@ -31,7 +33,7 @@ export default async function AdminLeadsPage() {
                 <th>Phone</th>
                 <th>Business</th>
                 <th>Pain point</th>
-                <th>Intent score</th>
+                <th>Intent</th>
                 <th>Urgency</th>
                 <th>Summary</th>
               </tr>
@@ -42,15 +44,15 @@ export default async function AdminLeadsPage() {
                   <td colSpan={6} className="border-none p-0">
                     <div className="p-6 sm:p-8">
                       <EmptyState
-                        title="No lead records yet"
-                        description="When new leads qualify through your assistant, they will appear in this registry."
+                        title="No rows yet"
+                        description="Qualified leads land here automatically—check pipeline if conversations are still in flight."
                       />
                     </div>
                   </td>
                 </tr>
               ) : (
                 rows.map((row, i) => (
-                  <tr key={`${row.phone || "lead"}-${row.timestamp_utc || i}`}>
+                  <tr key={`${row.phone || "lead"}-${row.timestamp_utc || i}`} className="cursor-default">
                     <td className="font-medium text-slate-100">{row.phone || "—"}</td>
                     <td className="text-slate-400">{row.business_type || "—"}</td>
                     <td className="text-slate-400">{row.pain_point || "—"}</td>

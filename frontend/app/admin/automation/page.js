@@ -5,17 +5,17 @@ import { requireAdminAuth } from "@/app/admin/_lib/auth";
 const modules = [
   {
     title: "Follow-up sequences",
-    text: "Multi-stage outreach cadences with send limits and stop rules.",
+    text: "Cadence-based outreach with caps, quiet hours, and clean stop conditions.",
     status: "Live",
   },
   {
     title: "Intent routing",
-    text: "Prioritize high-intent leads and assign playbooks by score and urgency.",
+    text: "Route hotter threads to the right playbooks using score and urgency together.",
     status: "Live",
   },
   {
     title: "Revival campaigns",
-    text: "Re-engage dormant leads with controlled, value-first sequences.",
+    text: "Warm dormant leads with tight copy and conservative pacing—safety first.",
     status: "Configurable",
   },
 ];
@@ -26,11 +26,11 @@ export default async function AdminAutomationPage() {
     <AdminShell
       activePath="/admin/automation"
       title="Automation"
-      subtitle="Operational controls for sequences, routing, and autonomous lead actions."
+      subtitle="Operational levers for sequences and routing—treat this as your control room, not a script editor."
     >
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-5 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
         {modules.map((m, i) => (
-          <SurfaceCard key={m.title} className="p-6" delay={i * 0.05}>
+          <SurfaceCard key={m.title} className="p-6" delay={i * 0.045}>
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm font-semibold tracking-tight text-white">{m.title}</p>
               <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.05] px-2.5 py-0.5 text-[11px] font-semibold text-slate-300">

@@ -22,20 +22,21 @@ export default async function AdminAnalyticsPage() {
     <AdminShell
       activePath="/admin/analytics"
       title="Analytics"
-      subtitle="Deep performance trends, funnel behavior, and quality distribution."
+      subtitle="Volume, follow-through, and bookings—same data as the API, tuned for reading at a glance."
     >
-      <div className="grid gap-6 lg:grid-cols-3">
-        <MiniBarsClient title="Leads by day" points={leadsByDay} from="#1e3a8a" to="#60a5fa" />
-        <MiniBarsClient title="Follow-ups by day" points={followupsByDay} from="#6d28d9" to="#a78bfa" />
-        <MiniBarsClient title="Bookings by day" points={bookingsByDay} from="#c2410c" to="#fb923c" />
+      <div className="grid gap-5 sm:gap-6 lg:grid-cols-3">
+        <MiniBarsClient title="Leads / day" points={leadsByDay} from="#172554" to="#38bdf8" />
+        <MiniBarsClient title="Follow-ups / day" points={followupsByDay} from="#4c1d95" to="#c4b5fd" />
+        <MiniBarsClient title="Bookings / day" points={bookingsByDay} from="#7c2d12" to="#fdba74" />
       </div>
       <SurfaceCard className="p-6 sm:p-8" delay={0.06}>
-        <p className="text-sm font-semibold tracking-tight text-white">Hot / warm / cold distribution</p>
+        <p className="text-sm font-semibold tracking-tight text-white">Score mix</p>
+        <p className="mt-1 text-[12px] text-slate-500">How urgency buckets balance across scored traffic.</p>
         {scorePie.length === 0 ? (
           <div className="mt-5">
             <EmptyState
-              title="No score distribution"
-              description="Intent scoring outputs will aggregate into this view once volume builds."
+              title="No distribution yet"
+              description="Once scoring runs at volume, hot / warm / cold splits land in this panel."
               className="py-10"
             />
           </div>
@@ -44,7 +45,7 @@ export default async function AdminAnalyticsPage() {
             {scorePie.map((s) => (
               <div
                 key={String(s.label)}
-                className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5 transition-[border-color,background-color] duration-150 hover:border-white/[0.11] hover:bg-white/[0.04]"
+                className="cursor-default rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5 shadow-[0_1px_0_rgba(255,255,255,0.03)_inset] transition-[border-color,background-color,box-shadow] duration-150 hover:border-white/[0.11] hover:bg-white/[0.04] hover:shadow-[0_14px_40px_rgba(0,0,0,0.35)]"
               >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">{s.label}</p>
                 <p className="mt-1.5 text-xl font-semibold tabular-nums tracking-tight text-white">{s.count ?? 0}</p>

@@ -18,7 +18,9 @@ export function KpiStatCard({ label, value, hint, trend, index = 0 }) {
       initial={reduce ? undefined : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={reduce ? { duration: 0 } : { duration: 0.24, ease: [0.22, 1, 0.36, 1], delay: index * 0.045 }}
-      className="group rounded-[14px] border border-white/[0.07] bg-white/[0.022] p-5 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] transition-[border-color,background-color,transform,box-shadow] duration-200 hover:-translate-y-px hover:border-white/[0.12] hover:bg-white/[0.035] hover:shadow-[0_16px_48px_rgba(0,0,0,0.38)]"
+      whileHover={reduce ? undefined : { y: -2 }}
+      whileTap={reduce ? undefined : { scale: 0.995 }}
+      className="admin-card-surface group rounded-[14px] border border-white/[0.07] bg-white/[0.022] p-5 transition-[border-color,background-color,transform,box-shadow] duration-200 hover:border-white/[0.12] hover:bg-white/[0.034]"
     >
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
       <p className="mt-2 text-[1.75rem] font-semibold tracking-[-0.04em] text-white sm:text-[1.9rem]">{value}</p>
