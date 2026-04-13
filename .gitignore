@@ -1,8 +1,13 @@
 .env
-.venv/
+backend/.venv/
 venv/
 __pycache__/
 *.py[cod]
 .Python
 desktop.ini
 *.log
+node_modules/
+frontend/node_modules/
+frontend/.next/
+backend/__pycache__/
+memory.json

@@ -1,0 +1,15 @@
+{
+  "name": "ai-os",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently -n frontend,backend -c cyan,green \"npm --prefix frontend run dev\" \"python backend/run.py\"",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "python backend/run.py",
+    "build": "npm --prefix frontend run build",
+    "start:frontend": "npm --prefix frontend run start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+:root {
+  --sx-ink: #0b1220;
+  --sx-brand: #1e3a8a;
+  --sx-accent: #3b82f6;
+  --sx-surface: #f8fafc;
+  --sx-white: #ffffff;
+  --background: var(--sx-surface);
+  --foreground: var(--sx-ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-sx-float,
+  .sx-cta-glow,
+  .sx-dash-animate {
+    animation: none !important;
+  }
+
+  .animate-sx-float {
+    transform: none;
+  }
+}
+
+::selection {
+  background: color-mix(in srgb, var(--sx-accent) 28%, transparent);
+  color: var(--sx-ink);
+}
+
+/* Dashboard mock — calm float */
+@keyframes sx-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(0.15deg);
+  }
+}
+
+.animate-sx-float {
+  animation: sx-float 7s ease-in-out infinite;
+}
+
+/* CTA edge glow — subtle pulse */
+@keyframes sx-cta-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+.sx-cta-glow {
+  animation: sx-cta-glow 5s ease-in-out infinite;
+}
+
+@keyframes sx-dash-shift {
+  to {
+    stroke-dashoffset: -80;
+  }
+}
+
+.sx-dash-animate {
+  animation: sx-dash-shift 14s linear infinite;
+}
