@@ -10,8 +10,11 @@ import { getAdminAuthState, loginAction } from "@/app/admin/_lib/auth";
 import { getBackendDashboardUrl, getDashboardData } from "@/app/admin/_lib/data";
 import { activeShareTrend, bookedTrend, hotTrend, seriesHalfMomentum } from "@/app/admin/_lib/trends";
 import { AgentCenter } from "@/components/dashboard/AgentCenter";
+import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
+import { QuickActions } from "@/components/dashboard/QuickActions";
 import { SmartSuggestions } from "@/components/dashboard/SmartSuggestions";
+import { SyncStatus } from "@/components/dashboard/SyncStatus";
 import { UsageCostCard } from "@/components/dashboard/UsageCostCard";
 import { getAgentCenterItems } from "@/lib/agents";
 import { estimateUsageAndCost } from "@/lib/costEstimator";
@@ -132,7 +135,9 @@ export default async function AdminPage() {
       activePath="/admin"
       title="Dashboard"
       subtitle="A calm, high-signal overview—open modules on the left when you need depth."
+      headerRight={<QuickActions />}
     >
+      <SyncStatus syncedAt={data?.updated_at || data?.summary?.updated_at || new Date().toISOString()} />
       {error ? (
         <div className="rounded-xl border border-rose-500/25 bg-rose-500/[0.08] px-4 py-3 text-[13px] text-rose-100">
           <span className="font-medium">We couldn&apos;t reach the metrics service.</span>
@@ -141,7 +146,8 @@ export default async function AdminPage() {
         </div>
       ) : null}
 
-      <section className="grid gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
+      <CollapsibleSection title="Overview" defaultOpen>
+        <section className="grid gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
         <KpiStatCard
           index={0}
           label="Total leads"
@@ -174,26 +180,30 @@ export default async function AdminPage() {
           trend={hotT}
           href="/admin/chats?segment=hot"
         />
-      </section>
+        </section>
+      </CollapsibleSection>
 
-      <section className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
-        <UsageCostCard data={usageCostData} />
-        <SmartSuggestions items={smartSuggestions} loading={!data && !error} />
-      </section>
+      <CollapsibleSection title="AI Intelligence" defaultOpen>
+        <section className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
+          <UsageCostCard data={usageCostData} />
+          <SmartSuggestions items={smartSuggestions} loading={!data && !error} />
+        </section>
+        <section>
+          <OnboardingChecklist />
+        </section>
+      </CollapsibleSection>
 
-      <section>
-        <OnboardingChecklist />
-      </section>
+      <CollapsibleSection title="Operations" defaultOpen={false}>
+        <section>
+          <AgentCenter agents={agentStatuses} loading={!data && !error} />
+        </section>
 
-      <section>
-        <AgentCenter agents={agentStatuses} loading={!data && !error} />
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-[1.12fr_1fr] lg:gap-7">
+        <section className="grid gap-6 lg:grid-cols-[1.12fr_1fr] lg:gap-7">
         <SurfaceCard
           className="border-amber-400/22 bg-gradient-to-b from-amber-400/[0.07] to-transparent p-6 hover:border-amber-400/30"
           delay={0.04}
           hover={false}
+          href="/admin/pipeline"
         >
           <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-amber-200/80">Needs attention</p>
           <ul className="mt-4 space-y-2.5 text-[13px] leading-relaxed text-amber-50/95">
@@ -236,10 +246,10 @@ export default async function AdminPage() {
             ))}
           </div>
         </SurfaceCard>
-      </section>
+        </section>
 
-      <section className="grid gap-6 lg:grid-cols-2 lg:gap-7">
-        <SurfaceCard className="p-6" delay={0.05}>
+        <section className="grid gap-6 lg:grid-cols-2 lg:gap-7">
+        <SurfaceCard className="p-6" delay={0.05} href="/admin/pipeline">
           <p className="text-sm font-semibold tracking-tight text-white">Live activity</p>
           <p className="mt-1 text-[12px] text-slate-500">Newest touches across pipeline and completions.</p>
           <StaggerFeed
@@ -249,7 +259,7 @@ export default async function AdminPage() {
           />
         </SurfaceCard>
 
-        <SurfaceCard className="p-6" delay={0.07}>
+        <SurfaceCard className="p-6" delay={0.07} href="/admin/chats?segment=hot">
           <p className="text-sm font-semibold tracking-tight text-white">Hot queue</p>
           <p className="mt-1 text-[12px] text-slate-500">Highest intent—work from the top down.</p>
           <StaggerFeed
@@ -258,16 +268,19 @@ export default async function AdminPage() {
             emptyDescription="When scoring flags urgency, those leads appear here for immediate follow-up."
           />
         </SurfaceCard>
-      </section>
+        </section>
+      </CollapsibleSection>
 
-      <section className="grid gap-6 lg:grid-cols-2 lg:gap-7">
+      <CollapsibleSection title="Analytics" defaultOpen={false}>
+        <section className="grid gap-6 lg:grid-cols-2 lg:gap-7">
         <MiniBarsClient
           title="7-day pulse"
           points={trend}
           emptyHint="No windowed trend yet"
           emptyDescription="Give it a few days of traffic—this sparkline will tell the week-over-week story."
+          href="/admin/analytics"
         />
-        <SurfaceCard className="p-6" delay={0.08}>
+        <SurfaceCard className="p-6" delay={0.08} href="/admin/analytics">
           <p className="text-sm font-semibold tracking-tight text-white">Pain themes</p>
           <p className="mt-1 text-[12px] text-slate-500">What prospects say hurts—weighted by frequency.</p>
           <div className="mt-5 space-y-4">
@@ -295,7 +308,8 @@ export default async function AdminPage() {
             )}
           </div>
         </SurfaceCard>
-      </section>
+        </section>
+      </CollapsibleSection>
     </AdminShell>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { EmptyState } from "@/app/admin/_components/EmptyState";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
@@ -11,9 +12,12 @@ export function MiniBarsClient({
   emptyDescription = "Once events flow in, this chart will populate automatically.",
   from = "#1e3a8a",
   to = "#45c4ff",
+  href,
 }) {
   const list = Array.isArray(points) ? points : [];
   const reduce = useReducedMotion();
+  const router = useRouter();
+  const actionable = Boolean(href);
   const chartId = `chart-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   const stroke = to;
   const glow = withAlpha(to, 0.24);
@@ -24,7 +28,24 @@ export function MiniBarsClient({
   }));
 
   return (
-    <div className="admin-card-surface rounded-2xl border border-white/[0.07] bg-white/[0.022] p-5 transition-[border-color,background-color] duration-200 hover:border-white/[0.11] hover:bg-white/[0.03]">
+    <div
+      className={`admin-card-surface rounded-2xl border border-white/[0.07] bg-white/[0.022] p-5 transition-[border-color,background-color] duration-200 hover:border-white/[0.11] hover:bg-white/[0.03] ${
+        actionable ? "cursor-pointer" : ""
+      }`}
+      role={actionable ? "button" : undefined}
+      tabIndex={actionable ? 0 : undefined}
+      onClick={actionable ? () => router.push(href) : undefined}
+      onKeyDown={
+        actionable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                router.push(href);
+              }
+            }
+          : undefined
+      }
+    >
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-semibold tracking-tight text-white">{title}</p>
         <span className="hidden text-[11px] font-medium text-slate-500 sm:inline">Volume</span>

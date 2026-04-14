@@ -3,7 +3,7 @@ import { Logo } from "@/app/components/Logo";
 import { AdminTopBar } from "@/app/admin/_components/AdminTopBar";
 import { ADMIN_NAV } from "@/app/admin/_lib/nav";
 import { logoutAction } from "@/app/admin/_lib/auth";
-import { GlobalAssistant } from "@/components/dashboard/GlobalAssistant";
+import { AssistantWidget } from "@/components/assistant/AssistantWidget";
 import { getCurrentRole, getVisibleAdminNav } from "@/lib/roles";
 
 function navLinkClass(active) {
@@ -13,7 +13,7 @@ function navLinkClass(active) {
   return "relative border border-transparent text-slate-400 before:pointer-events-none before:absolute before:left-0 before:top-1/2 before:h-0 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-sky-400/0 before:opacity-0 before:transition-all before:duration-200 before:content-[''] hover:border-white/[0.06] hover:bg-white/[0.04] hover:text-slate-100 hover:before:h-4 hover:before:bg-sky-400/55 hover:before:opacity-100";
 }
 
-export function AdminShell({ activePath = "/admin", title, subtitle, children }) {
+export function AdminShell({ activePath = "/admin", title, subtitle, children, headerRight = null }) {
   const role = getCurrentRole();
   const navItems = getVisibleAdminNav(ADMIN_NAV, role);
 
@@ -67,13 +67,14 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children })
                   <h1 className="text-2xl font-semibold tracking-[-0.035em] text-white sm:text-[1.7rem]">{title}</h1>
                   {subtitle ? <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-slate-500">{subtitle}</p> : null}
                 </div>
+                {headerRight ? <div className="flex shrink-0 items-center">{headerRight}</div> : null}
               </div>
             </div>
           </header>
           <section className="space-y-7 p-5 sm:space-y-8 sm:p-7 lg:p-8">{children}</section>
         </div>
       </div>
-      <GlobalAssistant />
+      <AssistantWidget />
     </main>
   );
 }

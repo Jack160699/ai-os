@@ -66,7 +66,7 @@ function AgentSkeleton() {
 
 export function AgentCenter({ agents = [], loading = false }) {
   return (
-    <SurfaceCard className="p-6" delay={0.08}>
+    <SurfaceCard className="p-6" delay={0.08} href="/admin/team">
       <p className="text-sm font-semibold tracking-tight text-white">Agent Center</p>
       <p className="mt-1 text-[12px] text-slate-500">Status, throughput quality, and ownership across AI ops agents.</p>
 

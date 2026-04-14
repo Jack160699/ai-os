@@ -180,15 +180,15 @@
 }
 
 :root[data-admin-theme="light"] .admin-app {
-  --admin-border: rgba(15, 23, 42, 0.08);
+  --admin-border: #e2e8f0;
   --admin-border-hover: rgba(37, 99, 235, 0.28);
-  --admin-surface-0: #eef2ff;
-  --admin-surface-1: #f8fafc;
+  --admin-surface-0: #f8fafc;
+  --admin-surface-1: #ffffff;
   --admin-surface-2: #f1f5f9;
   --admin-surface-3: rgba(15, 23, 42, 0.02);
   --admin-surface-hover: rgba(37, 99, 235, 0.06);
   --admin-text: #0f172a;
-  --admin-muted: #334155;
+  --admin-muted: #475569;
   --admin-subtle: #64748b;
   --admin-shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.95) inset, 0 22px 60px rgba(30, 64, 175, 0.1);
   --admin-shadow-card-hover: 0 18px 42px rgba(15, 23, 42, 0.13);
@@ -196,7 +196,7 @@
 
 :root[data-admin-theme="light"] .admin-app,
 :root[data-admin-theme="light"] .admin-app * {
-  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+  transition: background-color 300ms ease, border-color 300ms ease, color 300ms ease, box-shadow 300ms ease;
 }
 
 :root[data-admin-theme="light"] .admin-app main,
@@ -238,6 +238,14 @@
 :root[data-admin-theme="light"] .admin-app .border-white\/\[0\.08\],
 :root[data-admin-theme="light"] .admin-app .border-white\/\[0\.1\] {
   border-color: var(--admin-border) !important;
+}
+
+:root[data-admin-theme="light"] .admin-app .bg-white\/\[0\.08\] {
+  background: rgba(37, 99, 235, 0.14) !important;
+}
+
+:root[data-admin-theme="light"] .admin-app nav [class*="before:bg-sky-400"]::before {
+  background-color: #2563eb !important;
 }
 
 :root[data-admin-theme="light"] .admin-app .hover\:bg-white\/\[0\.05\]:hover,
