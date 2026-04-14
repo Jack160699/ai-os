@@ -1,5 +1,5 @@
 import { AdminShell } from "@/app/admin/_components/AdminShell";
-import { ChatsInbox } from "@/components/chat/ChatsInbox";
+import { LiveInbox } from "@/components/inbox/LiveInbox";
 import { requireAdminAuth } from "@/app/admin/_lib/auth";
 
 export const metadata = {
@@ -15,9 +15,9 @@ export default async function AdminChatsPage() {
     <AdminShell
       activePath="/admin/chats"
       title="Live inbox"
-      subtitle="WhatsApp threads from memory.json—polled every few seconds; replies send through Cloud API."
+      subtitle="Premium conversation workspace for response speed, lead quality, and owner assignment."
     >
-      <ChatsInbox />
+      <LiveInbox />
     </AdminShell>
   );
 }

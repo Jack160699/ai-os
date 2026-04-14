@@ -1,27 +1,4 @@
-const ROLE_ORDER = ["admin", "manager", "agent", "viewer"];
-
-const ADMIN_NAV_BY_ROLE = {
-  admin: [
-    "/admin",
-    "/admin/chats",
-    "/admin/leads",
-    "/admin/pipeline",
-    "/admin/analytics",
-    "/admin/automation",
-    "/admin/billing",
-    "/admin/partners",
-    "/admin/branding",
-    "/admin/settings",
-  ],
-  manager: ["/admin", "/admin/chats", "/admin/leads", "/admin/pipeline", "/admin/analytics", "/admin/automation", "/admin/partners", "/admin/branding"],
-  agent: ["/admin/chats", "/admin/leads", "/admin/pipeline"],
-  viewer: ["/admin/analytics"],
-};
-
-function normalizeRole(value) {
-  const role = String(value || "").toLowerCase().trim();
-  return ROLE_ORDER.includes(role) ? role : "admin";
-}
+import { canAccessNavPath, normalizeRole } from "@/lib/permissions";
 
 export function getCurrentRole() {
   return normalizeRole(process.env.NEXT_PUBLIC_ADMIN_ROLE || process.env.ADMIN_ROLE || "admin");
@@ -29,11 +6,25 @@ export function getCurrentRole() {
 
 export function getAllowedNavPathsForRole(role) {
   const normalized = normalizeRole(role);
-  return ADMIN_NAV_BY_ROLE[normalized] || ADMIN_NAV_BY_ROLE.admin;
+  const all = [
+    "/admin",
+    "/admin/chats",
+    "/admin/leads",
+    "/admin/pipeline",
+    "/admin/analytics",
+    "/admin/automation",
+    "/admin/payments",
+    "/admin/team",
+    "/admin/partners",
+    "/admin/branding",
+    "/admin/settings",
+    "/admin/billing",
+  ];
+  return all.filter((path) => canAccessNavPath(normalized, path));
 }
 
 export function canAccessPath(role, path) {
-  return getAllowedNavPathsForRole(role).includes(path);
+  return canAccessNavPath(role, path);
 }
 
 export function getVisibleAdminNav(navItems, role) {
