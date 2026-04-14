@@ -35,6 +35,12 @@ from app.whatsapp.copy_variants import (
 
 BOOKING_YES_NO = (("booking_yes", "Yes"), ("booking_no", "No"))
 
+_SMART_DEFAULT_BODY = (
+    "Hey 👋 Welcome to StratXcel AI\n\n"
+    "We help you start, scale & automate businesses 🚀\n\n"
+    "What are you looking for today?"
+)
+
 
 @dataclass(frozen=True)
 class ListMenuSpec:
@@ -197,6 +203,13 @@ def handle_lead_message(
         state = get_conversation_state(sender)
 
     display_name = (state.get("profile_name") or profile_name or "").strip()
+    preview_state = {**state, "transcript_lines": lines}
+
+    hit = try_handle(settings, sender, message, preview_state, display_name)
+    if hit is not None:
+        merged = {**get_conversation_state(sender), "transcript_lines": lines}
+        set_conversation_state(sender, merged)
+        return hit
 
     if step == "start":
         _record_lead_event("started", sender)
@@ -229,10 +242,6 @@ def handle_lead_message(
     step = state.get("step", "start")
     transcript = "\n".join(state.get("transcript_lines") or [])
     display_name = (state.get("profile_name") or profile_name or "").strip()
-
-    hit = try_handle(settings, sender, message, state, display_name)
-    if hit is not None:
-        return hit
 
     if step == "await_business":
         business = classify_business_type(message)
@@ -510,9 +519,7 @@ def handle_lead_message(
                 },
             )
             return _welcome_reply()
-        return LeadFlowReply(
-            body="Thanks — we have your details. If anything changes, message us here anytime.",
-        )
+        return LeadFlowReply(body=_SMART_DEFAULT_BODY)
 
     set_conversation_state(
         sender,

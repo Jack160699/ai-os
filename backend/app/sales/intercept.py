@@ -34,7 +34,8 @@ def try_handle(
 
     step = str(state.get("step", "start"))
     txt = (message or "").strip()
-    if not txt or step == "start":
+    print("INTERCEPT ACTIVE:", txt[:500] if txt else "(empty)")
+    if not txt:
         return None
 
     digits = normalize_phone_digits(sender)
