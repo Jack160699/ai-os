@@ -1,0 +1,66 @@
+# Auto-deploy StratXcel backend (Gunicorn + systemd on EC2, e.g. bot.stratxcel.ai).
+#
+# Required GitHub repository secrets:
+#   DEPLOY_HOST     — EC2 hostname or IP (no user@ prefix)
+#   DEPLOY_USER     — SSH user (e.g. ubuntu)
+#   DEPLOY_SSH_KEY  — private key (full PEM, including BEGIN/END lines)
+# Optional:
+#   DEPLOY_PORT     — SSH port (default 22)
+#   DEPLOY_APP_ROOT — repo path on server (default /opt/ai-os)
+#
+# Server one-time: clone repo to APP_ROOT, run backend/deploy.sh, install ai-os.service,
+#   grant deploy user passwordless sudo for: systemctl reload|restart ai-os
+#
+# Note: WhatsApp Cloud API webhooks tolerate brief worker handoff during Gunicorn HUP;
+#   for hard zero-downtime use ALB + two instances or blue/green.
+
+name: Deploy backend (EC2)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "scripts/deploy-remote.sh"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-stratxcel-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (for deploy script)
+        uses: actions/checkout@v4
+
+      - name: Deploy over SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_APP_ROOT: ${{ secrets.DEPLOY_APP_ROOT }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SSH_PRIVATE_KEY:-}" || -z "${DEPLOY_HOST:-}" || -z "${DEPLOY_USER:-}" ]]; then
+            echo "Missing required secrets: DEPLOY_SSH_KEY, DEPLOY_HOST, DEPLOY_USER" >&2
+            exit 1
+          fi
+          PORT="${DEPLOY_PORT:-22}"
+          APP_ROOT="${DEPLOY_APP_ROOT:-/opt/ai-os}"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_stratxcel
+          chmod 600 ~/.ssh/deploy_stratxcel
+          ssh-keyscan -p "$PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          echo "Connecting to ${DEPLOY_USER}@${DEPLOY_HOST}:${PORT} APP_ROOT=${APP_ROOT}"
+          ssh -i ~/.ssh/deploy_stratxcel \
+            -p "$PORT" \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "export APP_ROOT='${APP_ROOT}'; export GIT_BRANCH=main; bash -s" \
+            < scripts/deploy-remote.sh

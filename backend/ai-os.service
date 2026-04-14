@@ -22,6 +22,8 @@ Environment=PYTHONUNBUFFERED=1
 # Optional: uncomment if you prefer systemd to inject secrets instead of .env
 # EnvironmentFile=/opt/ai-os/.env
 ExecStart=/opt/ai-os/backend/.venv/bin/gunicorn -c /opt/ai-os/backend/gunicorn.conf.py run:app
+# Graceful reload for deploys: workers cycle without dropping the listen socket long.
+ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=5
 

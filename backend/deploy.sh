@@ -44,4 +44,4 @@ echo "  5. sudo cp ${ROOT}/nginx.conf /etc/nginx/sites-available/ai-os && sudo l
 echo "  6. sudo nginx -t && sudo systemctl reload nginx"
 echo ""
 echo "Redeploy after git pull:"
-echo "  git pull && ./deploy.sh && sudo systemctl restart ai-os"
+echo "  git pull && ./deploy.sh && sudo systemctl reload ai-os   # graceful (HUP); else: restart ai-os"
