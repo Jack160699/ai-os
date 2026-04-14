@@ -23,7 +23,6 @@ import { buildSmartSuggestions } from "@/lib/suggestions";
 const MiniBarsClient = dynamic(
   () => import("@/app/admin/_components/MiniBarsClient").then((m) => m.MiniBarsClient),
   {
-    ssr: false,
     loading: () => (
       <div className="admin-card-surface rounded-2xl border border-white/[0.07] bg-white/[0.022] p-5">
         <div className="admin-skeleton mb-3 h-4 w-36" />
