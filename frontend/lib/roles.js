@@ -17,6 +17,8 @@ export function getAllowedNavPathsForRole(role) {
     "/admin/team",
     "/admin/partners",
     "/admin/branding",
+    "/admin/my-ai",
+    "/admin/ai-control",
     "/admin/settings",
     "/admin/billing",
   ];

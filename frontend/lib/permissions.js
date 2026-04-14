@@ -1,18 +1,20 @@
-const ROLE_ORDER = ["admin", "manager", "agent", "finance", "viewer"];
+const ROLE_ORDER = ["owner", "admin", "manager", "agent", "finance", "viewer"];
 
 const NAV_ACCESS = {
-  "/admin": ["admin", "manager"],
-  "/admin/chats": ["admin", "manager", "agent"],
-  "/admin/leads": ["admin", "manager", "agent"],
-  "/admin/pipeline": ["admin", "manager"],
-  "/admin/analytics": ["admin", "manager", "viewer"],
-  "/admin/automation": ["admin", "manager"],
-  "/admin/payments": ["admin", "finance"],
-  "/admin/team": ["admin", "manager"],
-  "/admin/partners": ["admin", "manager"],
-  "/admin/branding": ["admin"],
-  "/admin/settings": ["admin"],
-  "/admin/billing": ["admin", "finance"],
+  "/admin": ["owner", "admin", "manager"],
+  "/admin/chats": ["owner", "admin", "manager", "agent"],
+  "/admin/leads": ["owner", "admin", "manager", "agent"],
+  "/admin/pipeline": ["owner", "admin", "manager"],
+  "/admin/analytics": ["owner", "admin", "manager", "viewer"],
+  "/admin/automation": ["owner", "admin", "manager"],
+  "/admin/payments": ["owner", "admin", "finance"],
+  "/admin/team": ["owner", "admin", "manager"],
+  "/admin/partners": ["owner", "admin", "manager"],
+  "/admin/branding": ["owner", "admin"],
+  "/admin/settings": ["owner", "admin"],
+  "/admin/billing": ["owner", "admin", "finance"],
+  "/admin/my-ai": ["owner", "admin", "manager", "agent", "finance", "viewer"],
+  "/admin/ai-control": ["owner", "admin"],
 };
 
 export function normalizeRole(value) {

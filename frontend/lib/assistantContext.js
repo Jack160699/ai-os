@@ -1,11 +1,19 @@
 export function getAssistantPageLabel(pathname = "") {
   const path = String(pathname || "");
   if (path.startsWith("/admin/chats")) return "Inbox";
-  if (path.startsWith("/admin/payments")) return "Payments";
+  if (path.startsWith("/admin/payments") || path.startsWith("/admin/billing")) return "Payments";
   if (path.startsWith("/admin/team")) return "Team";
   if (path.startsWith("/admin/leads")) return "Leads";
   if (path.startsWith("/admin/analytics")) return "Analytics";
-  return "Dashboard";
+  if (path.startsWith("/admin/automation")) return "Automation";
+  if (path.startsWith("/admin/partners")) return "Partners";
+  if (path.startsWith("/admin/branding")) return "Branding";
+  if (path.startsWith("/admin/pipeline")) return "Pipeline";
+  if (path.startsWith("/admin/my-ai")) return "My AI Workspace";
+  if (path.startsWith("/admin/ai-control")) return "AI Control Center";
+  if (path.startsWith("/admin/settings")) return "Settings";
+  if (path === "/admin" || path.startsWith("/admin?")) return "Dashboard";
+  return "Console";
 }
 
 export function buildAssistantReply(input, pathname = "") {

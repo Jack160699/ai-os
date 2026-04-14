@@ -9,5 +9,7 @@ export const ADMIN_NAV = [
   { href: "/admin/team", label: "Team" },
   { href: "/admin/partners", label: "Partners" },
   { href: "/admin/branding", label: "Branding" },
+  { href: "/admin/my-ai", label: "My AI Workspace" },
+  { href: "/admin/ai-control", label: "AI Control Center" },
   { href: "/admin/settings", label: "Settings" },
 ];
