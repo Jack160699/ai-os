@@ -66,7 +66,7 @@ export function AdminTopBar({ activePath, navItems, logoutSlot }) {
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-300 transition-[border-color,background-color,color,box-shadow] duration-150 hover:border-white/[0.12] hover:bg-white/[0.07] hover:text-white hover:shadow-[0_8px_28px_rgba(0,0,0,0.35)] lg:hidden"
+            className="admin-button-glow flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-300 transition-[border-color,background-color,color,box-shadow] duration-150 hover:border-white/[0.12] hover:bg-white/[0.07] hover:text-white hover:shadow-[0_8px_28px_rgba(0,0,0,0.35)] lg:hidden"
             aria-expanded={menuOpen}
             aria-controls="admin-mobile-nav"
             onClick={() => setMenuOpen((o) => !o)}
@@ -100,10 +100,17 @@ export function AdminTopBar({ activePath, navItems, logoutSlot }) {
                   type="button"
                   onClick={() => setFilter(f.id)}
                   aria-pressed={on}
-                  className={`rounded-lg px-2.5 py-1.5 text-[11px] font-semibold tracking-wide transition-[background-color,color,box-shadow] duration-150 ${
-                    on ? "bg-white/[0.1] text-white shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]" : "text-slate-500 hover:text-slate-300"
+                  className={`relative rounded-lg px-2.5 py-1.5 text-[11px] font-semibold tracking-wide transition-[color] duration-200 ${
+                    on ? "text-white" : "text-slate-500 hover:text-slate-300"
                   }`}
                 >
+                  {on ? (
+                    <motion.span
+                      layoutId="admin-filter-pill"
+                      transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                      className="absolute inset-0 -z-10 rounded-lg bg-white/[0.1] shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]"
+                    />
+                  ) : null}
                   {f.label}
                 </button>
               );
@@ -114,7 +121,7 @@ export function AdminTopBar({ activePath, navItems, logoutSlot }) {
             <ThemeToggle />
             <button
               type="button"
-              className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-slate-400 transition-[border-color,background-color,color,box-shadow] duration-150 hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-slate-100 hover:shadow-[0_10px_32px_rgba(0,0,0,0.38)]"
+              className="admin-button-glow relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-slate-400 transition-[border-color,background-color,color,box-shadow] duration-150 hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-slate-100 hover:shadow-[0_10px_32px_rgba(0,0,0,0.38)]"
               aria-label="Notifications"
             >
               <BellIcon />

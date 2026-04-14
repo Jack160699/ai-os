@@ -33,11 +33,34 @@
 }
 
 .admin-card-surface {
+  transform: translateY(0);
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 220ms ease;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 14px 44px rgba(0, 0, 0, 0.35);
 }
 
 .admin-card-surface:hover {
+  transform: translateY(-2px);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, var(--admin-shadow-card-hover);
+}
+
+.admin-button-glow {
+  position: relative;
+}
+
+.admin-button-glow::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease;
+  background: radial-gradient(55% 70% at 50% 100%, rgba(56, 189, 248, 0.22), transparent 75%);
+}
+
+.admin-button-glow:hover::after,
+.admin-button-glow:focus-visible::after {
+  opacity: 1;
 }
 
 .admin-table-shell {
@@ -224,6 +247,16 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .admin-card-surface {
+    transform: none !important;
+    transition: border-color 0ms, background-color 0ms, box-shadow 0ms !important;
+  }
+  .admin-card-surface:hover {
+    transform: none !important;
+  }
+  .admin-button-glow::after {
+    transition: none;
+  }
   .admin-skeleton::after {
     animation: none;
   }
