@@ -1,5 +1,6 @@
 import { Inter } from "next/font/google";
 import "./admin.css";
+import { getInitialThemeScript } from "@/lib/theme";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -9,6 +10,9 @@ const inter = Inter({
 
 export default function AdminLayout({ children }) {
   return (
-    <div className={`${inter.variable} ${inter.className} admin-font-root antialiased`}>{children}</div>
+    <>
+      <script dangerouslySetInnerHTML={{ __html: getInitialThemeScript() }} />
+      <div className={`${inter.variable} ${inter.className} admin-font-root antialiased`}>{children}</div>
+    </>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ThemeToggle } from "@/components/dashboard/ThemeToggle";
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -110,6 +111,7 @@ export function AdminTopBar({ activePath, navItems, logoutSlot }) {
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <ThemeToggle />
             <button
               type="button"
               className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-slate-400 transition-[border-color,background-color,color,box-shadow] duration-150 hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-slate-100 hover:shadow-[0_10px_32px_rgba(0,0,0,0.38)]"

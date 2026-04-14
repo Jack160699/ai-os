@@ -9,9 +9,10 @@ import { SurfaceCard } from "@/app/admin/_components/SurfaceCard";
 import { getAdminAuthState, loginAction } from "@/app/admin/_lib/auth";
 import { getBackendDashboardUrl, getDashboardData } from "@/app/admin/_lib/data";
 import { activeShareTrend, bookedTrend, hotTrend, seriesHalfMomentum } from "@/app/admin/_lib/trends";
-import { AgentStatusPanel } from "@/components/dashboard/AgentStatusPanel";
-import { SuggestionsPanel } from "@/components/dashboard/SuggestionsPanel";
+import { AgentCenter } from "@/components/dashboard/AgentCenter";
+import { SmartSuggestions } from "@/components/dashboard/SmartSuggestions";
 import { UsageCostCard } from "@/components/dashboard/UsageCostCard";
+import { getAgentCenterItems } from "@/lib/agents";
 import { estimateUsageAndCost } from "@/lib/costEstimator";
 import { buildSmartSuggestions } from "@/lib/suggestions";
 
@@ -110,41 +111,7 @@ export default async function AdminPage() {
   const hotT = hotTrend(summary);
   const usageCostData = estimateUsageAndCost(summary);
   const smartSuggestions = buildSmartSuggestions(summary);
-
-  const agentStatuses = [
-    {
-      name: "Chat Agent",
-      status: "online",
-      statusLabel: "Online",
-      currentTask: "Reply drafting for high-intent inbox threads",
-      successRate: "97%",
-      lastActive: "Just now",
-    },
-    {
-      name: "Calling Agent",
-      status: "busy",
-      statusLabel: "Busy",
-      currentTask: "Queued follow-up call sequence",
-      successRate: "91%",
-      lastActive: "2 min ago",
-    },
-    {
-      name: "Finance Agent",
-      status: "offline",
-      statusLabel: "Offline",
-      currentTask: "Cost reconciliation sync pending",
-      successRate: "94%",
-      lastActive: "14 min ago",
-    },
-    {
-      name: "Tech Agent",
-      status: "online",
-      statusLabel: "Online",
-      currentTask: "Monitoring delivery + webhook health",
-      successRate: "99%",
-      lastActive: "Just now",
-    },
-  ];
+  const agentStatuses = getAgentCenterItems();
 
   const activityItems = recentRows.slice(0, 7).map((item, idx) => ({
     id: `${item.phone}-${idx}`,
@@ -206,11 +173,11 @@ export default async function AdminPage() {
 
       <section className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
         <UsageCostCard data={usageCostData} />
-        <SuggestionsPanel items={smartSuggestions} />
+        <SmartSuggestions items={smartSuggestions} loading={!data && !error} />
       </section>
 
       <section>
-        <AgentStatusPanel agents={agentStatuses} />
+        <AgentCenter agents={agentStatuses} loading={!data && !error} />
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1.12fr_1fr] lg:gap-7">
