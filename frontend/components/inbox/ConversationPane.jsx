@@ -29,6 +29,7 @@ export function ConversationPane({
   listError,
   onRetry,
   mobileTab,
+  liveEmpty = false,
 }) {
   return (
     <aside
@@ -85,7 +86,14 @@ export function ConversationPane({
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-2xl text-slate-400">
               ···
             </div>
-            <p className="mt-5 text-sm font-semibold tracking-tight text-slate-200">No matching chats</p>
+            <p className="mt-5 text-sm font-semibold tracking-tight text-slate-200">
+              {liveEmpty ? "No live conversations yet." : "No matching chats"}
+            </p>
+            {liveEmpty ? (
+              <p className="mt-2 max-w-xs text-[12px] leading-relaxed text-slate-500">
+                When WhatsApp delivers to your connected number, threads land here within a few seconds.
+              </p>
+            ) : null}
           </div>
         ) : (
           <ul className="space-y-1">

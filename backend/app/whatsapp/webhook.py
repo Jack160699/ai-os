@@ -1,5 +1,6 @@
 import json
 import hmac
+import os
 from datetime import datetime, timezone
 
 from flask import Flask, g, jsonify, make_response, request
@@ -27,6 +28,7 @@ from app.memory.store import (
     get_conversation_state,
     get_lead_events,
     get_thread_messages,
+    normalize_phone_digits,
     set_conversation_state,
 )
 from app.whatsapp.lead_flow import LeadFlowReply, handle_lead_message
@@ -35,6 +37,69 @@ from app.whatsapp.messaging import (
     send_interactive_list,
     send_whatsapp_text,
 )
+
+
+def _wa_timestamp_iso(msg_data: dict) -> str | None:
+    ts = msg_data.get("timestamp")
+    if ts is None:
+        return None
+    try:
+        sec = int(str(ts).strip())
+        return datetime.fromtimestamp(sec, tz=timezone.utc).isoformat()
+    except (TypeError, ValueError, OSError):
+        return None
+
+
+def _inbound_auto_reply_enabled() -> bool:
+    return os.getenv("WHATSAPP_INBOUND_AUTO_REPLY", "1").strip().lower() not in ("0", "false", "no", "off")
+
+
+def _extract_message_payload(msg_data: dict) -> tuple[str, str, str]:
+    """Return (display_text, raw_interactive_id, msg_type)."""
+    msg_type = str(msg_data.get("type") or "unknown")
+    raw_interactive_id = ""
+    message = ""
+    if msg_type == "text":
+        message = (msg_data.get("text") or {}).get("body") or ""
+    elif msg_type == "interactive":
+        inter = msg_data.get("interactive") or {}
+        itype = inter.get("type")
+        if itype == "button_reply":
+            br = inter.get("button_reply") or {}
+            raw_interactive_id = (br.get("id") or "").strip()
+            message = (br.get("title") or raw_interactive_id or "[Button reply]").strip()
+        elif itype == "list_reply":
+            lr = inter.get("list_reply") or {}
+            raw_interactive_id = (lr.get("id") or "").strip()
+            message = (lr.get("title") or raw_interactive_id or "[List reply]").strip()
+        else:
+            message = f"[interactive:{itype or 'unknown'}]"
+    elif msg_type == "image":
+        cap = (msg_data.get("image") or {}).get("caption") or ""
+        message = cap.strip() or "[Image]"
+    elif msg_type == "video":
+        message = (msg_data.get("video") or {}).get("caption") or "[Video]"
+    elif msg_type == "audio":
+        message = "[Audio]"
+    elif msg_type == "document":
+        doc = msg_data.get("document") or {}
+        cap = (doc.get("caption") or "").strip()
+        fname = (doc.get("filename") or "file").strip()
+        message = cap or f"[Document: {fname}]"
+    elif msg_type == "sticker":
+        message = "[Sticker]"
+    elif msg_type == "location":
+        loc = msg_data.get("location") or {}
+        lat, lon = loc.get("latitude"), loc.get("longitude")
+        message = f"[Location {lat},{lon}]" if lat is not None and lon is not None else "[Location]"
+    elif msg_type == "contacts":
+        message = "[Contacts shared]"
+    elif msg_type == "button":
+        btn = msg_data.get("button") or {}
+        message = (btn.get("text") or btn.get("payload") or "[Button]").strip()
+    else:
+        message = f"[{msg_type}]"
+    return (message or "").strip(), raw_interactive_id, msg_type
 
 
 def _profile_name_for_sender(value: dict, sender: str) -> str:
@@ -491,91 +556,144 @@ def create_app(settings: Settings) -> Flask:
 
         try:
             value = data["entry"][0]["changes"][0]["value"]
+        except (KeyError, IndexError, TypeError) as e:
+            print("[wa-webhook] parse error (no entry/changes/value):", e)
+            return "ok", 200
 
-            if "messages" not in value:
-                return "ok", 200
+        metadata = value.get("metadata") or {}
+        phone_number_id = str(metadata.get("phone_number_id") or "").strip()
+        messages = value.get("messages") or []
+        print(
+            "[wa-webhook] received messages=",
+            len(messages) if isinstance(messages, list) else 0,
+            "phone_number_id=",
+            phone_number_id or "(none)",
+            "has_statuses=",
+            bool(value.get("statuses")),
+        )
 
-            msg_data = value["messages"][0]
-            sender = msg_data["from"]
-            wa_mid = msg_data.get("id") or ""
+        if not isinstance(messages, list) or not messages:
+            return "ok", 200
 
-            st0 = get_conversation_state(sender)
-            if wa_mid and st0.get("last_wa_mid") == wa_mid:
-                return "ok", 200
+        owner_digits = normalize_phone_digits(OWNER_NUMBER)
+        auto_reply = _inbound_auto_reply_enabled()
 
-            msg_type = msg_data.get("type")
-            message = ""
-            raw_interactive_id = ""
-            if msg_type == "text":
-                message = (msg_data.get("text") or {}).get("body") or ""
-            elif msg_type == "interactive":
-                inter = msg_data.get("interactive") or {}
-                itype = inter.get("type")
-                if itype == "button_reply":
-                    br = inter.get("button_reply") or {}
-                    raw_interactive_id = (br.get("id") or "").strip()
-                    message = (br.get("title") or raw_interactive_id or "").strip()
-                elif itype == "list_reply":
-                    lr = inter.get("list_reply") or {}
-                    raw_interactive_id = (lr.get("id") or "").strip()
-                    message = (lr.get("title") or raw_interactive_id or "").strip()
-                else:
-                    return "ok", 200
-            else:
-                return "ok", 200
+        for msg_data in messages:
+            if not isinstance(msg_data, dict):
+                continue
+            try:
+                raw_from = str(msg_data.get("from") or "")
+                sender = normalize_phone_digits(raw_from)
+                wa_mid = str(msg_data.get("id") or "")
+                ts_iso = _wa_timestamp_iso(msg_data)
 
-            step = st0.get("step", "start")
-            inbound = (message or "").strip()
-            if raw_interactive_id:
-                if step == "await_business":
-                    mapped = map_business_interactive_id(raw_interactive_id)
-                    if mapped:
-                        inbound = mapped
-                elif step == "await_booking_answer" and raw_interactive_id in (
-                    "booking_yes",
-                    "booking_no",
-                ):
-                    inbound = "yes" if raw_interactive_id == "booking_yes" else "no"
+                if not sender:
+                    print("[wa-webhook] skip empty sender id=", wa_mid)
+                    continue
 
-            if not inbound:
-                return "ok", 200
+                st0 = get_conversation_state(sender)
 
-            mode = "ceo" if sender == OWNER_NUMBER else "client"
-            g.ai_os_mode = mode
+                message, raw_interactive_id, msg_type = _extract_message_payload(msg_data)
+                step = st0.get("step", "start")
+                inbound = (message or "").strip()
+                if raw_interactive_id:
+                    if step == "await_business":
+                        mapped = map_business_interactive_id(raw_interactive_id)
+                        if mapped:
+                            inbound = mapped
+                    elif step == "await_booking_answer" and raw_interactive_id in (
+                        "booking_yes",
+                        "booking_no",
+                    ):
+                        inbound = "yes" if raw_interactive_id == "booking_yes" else "no"
 
-            print("User:", inbound)
+                if not inbound:
+                    print("[wa-webhook] skip empty inbound type=", msg_type, "id=", wa_mid)
+                    continue
 
-            if mode == "ceo":
-                reply_text = get_ai_reply(settings, inbound, wa_user_id=sender, mode=mode)
-                print("Bot:", reply_text)
-                resp = send_whatsapp_text(settings, sender, reply_text)
-                if wa_mid and resp.ok:
-                    st1 = get_conversation_state(sender)
-                    st1["last_wa_mid"] = wa_mid
-                    set_conversation_state(sender, st1)
-            else:
+                if phone_number_id:
+                    try:
+                        st_meta = get_conversation_state(sender)
+                        if st_meta.get("wa_phone_number_id") != phone_number_id:
+                            st_meta["wa_phone_number_id"] = phone_number_id
+                            set_conversation_state(sender, st_meta)
+                            print("[wa-webhook] workspace sender=", sender, "phone_number_id=", phone_number_id)
+                    except Exception as e:
+                        print("[wa-webhook] workspace map error:", e)
+
+                mode = "ceo" if sender == owner_digits else "client"
+                g.ai_os_mode = mode
+
+                print("[wa-webhook] inbound type=", msg_type, "from=", sender, "text=", inbound[:120])
+
+                if mode == "ceo":
+                    if wa_mid and get_conversation_state(sender).get("last_wa_mid") == wa_mid:
+                        print("[wa-webhook] ceo dedupe wa_mid=", wa_mid)
+                        continue
+                    if not auto_reply:
+                        if wa_mid:
+                            st_skip = get_conversation_state(sender)
+                            st_skip["last_wa_mid"] = wa_mid
+                            set_conversation_state(sender, st_skip)
+                        print("[wa-webhook] ceo inbound skipped (auto-reply off)")
+                        continue
+                    reply_text = get_ai_reply(settings, inbound, wa_user_id=sender, mode=mode)
+                    print("[wa-webhook] bot reply (ceo):", (reply_text or "")[:200])
+                    resp = send_whatsapp_text(settings, sender, reply_text)
+                    if wa_mid and resp.ok:
+                        st1 = get_conversation_state(sender)
+                        st1["last_wa_mid"] = wa_mid
+                        set_conversation_state(sender, st1)
+                    print("[wa-webhook] STATUS:", getattr(resp, "status_code", "?"))
+                    continue
+
                 clear_followup_on_user_inbound(sender, inbound)
-                append_thread_message(sender, "user", inbound)
-                bump_inbox_unread(sender)
-                profile_name = _profile_name_for_sender(value, sender)
-                reply = handle_lead_message(
-                    settings, sender, inbound, profile_name=profile_name
+                added = append_thread_message(
+                    sender,
+                    "user",
+                    inbound,
+                    wa_message_id=wa_mid,
+                    timestamp_utc=ts_iso,
                 )
-                print("Bot:", reply.body)
+                if added:
+                    bump_inbox_unread(sender)
+                    print("[wa-webhook] saved message sender=", sender, "wa_mid=", wa_mid)
+                else:
+                    print("[wa-webhook] duplicate inbound storage wa_mid=", wa_mid, "sender=", sender)
+
+                profile_name = _profile_name_for_sender(value, sender)
+                st_profile = get_conversation_state(sender)
+                if profile_name and not (st_profile.get("profile_name") or "").strip():
+                    st_profile["profile_name"] = profile_name.strip()
+                    set_conversation_state(sender, st_profile)
+
+                if not auto_reply:
+                    if wa_mid:
+                        st_done = get_conversation_state(sender)
+                        st_done["last_wa_mid"] = wa_mid
+                        set_conversation_state(sender, st_done)
+                    print("[wa-webhook] conversation updated (client, auto-reply off — inbox only)")
+                    continue
+
+                if wa_mid and get_conversation_state(sender).get("last_bot_inbound_mid") == wa_mid:
+                    print("[wa-webhook] skip bot already sent for wa_mid=", wa_mid)
+                    continue
+
+                reply = handle_lead_message(settings, sender, inbound, profile_name=profile_name)
+                print("[wa-webhook] bot reply (client):", (reply.body or "")[:200])
                 resp = _send_lead_flow_reply(settings, sender, reply)
                 if wa_mid and resp.ok:
                     st1 = get_conversation_state(sender)
                     st1["last_wa_mid"] = wa_mid
+                    st1["last_bot_inbound_mid"] = wa_mid
                     set_conversation_state(sender, st1)
                     append_thread_message(sender, "assistant", reply.body)
                     arm_followup_after_bot_send(sender)
-            print("STATUS:", resp.status_code)
-            print("RESPONSE:", resp.text)
-
-        except (KeyError, IndexError, TypeError) as e:
-            print("Webhook parse error:", e)
-        except Exception as e:
-            print("Webhook error:", str(e))
+                    print("[wa-webhook] conversation updated + assistant appended")
+                else:
+                    print("[wa-webhook] outbound failed STATUS=", getattr(resp, "status_code", "?"), "body=", getattr(resp, "text", "")[:300])
+            except Exception as e:
+                print("[wa-webhook] message loop error:", e)
 
         return "ok", 200
 

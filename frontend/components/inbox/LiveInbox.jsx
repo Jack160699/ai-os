@@ -8,8 +8,29 @@ import { ConversationPane } from "@/components/inbox/ConversationPane";
 function applyFilter(rows, filter) {
   if (filter === "unread") return rows.filter((r) => (r.unread || 0) > 0);
   if (filter === "hot") return rows.filter((r) => String(r.temperature || "").toLowerCase() === "hot");
-  if (filter === "closed") return rows.filter((r) => String(r.status || "").toLowerCase() === "closed" || (r.tags || []).includes("closed"));
+  if (filter === "closed")
+    return rows.filter((r) => String(r.status || "").toLowerCase() === "closed" || (r.tags || []).includes("closed"));
   return rows;
+}
+
+function playSubtlePing() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 740;
+    gain.gain.value = 0.04;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.07);
+    window.setTimeout(() => ctx.close(), 200);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function LiveInbox() {
@@ -30,6 +51,9 @@ export function LiveInbox() {
   const [filter, setFilter] = useState("all");
   const [ownerMap, setOwnerMap] = useState({});
   const scrollRef = useRef(null);
+  const initialListDoneRef = useRef(false);
+  const prevUnreadRef = useRef(0);
+  const inboxReadyRef = useRef(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQ(q.trim()), 200);
@@ -44,23 +68,54 @@ export function LiveInbox() {
   }, [debouncedQ]);
 
   const fetchList = useCallback(async () => {
-    setLoadingList(true);
+    if (!initialListDoneRef.current) setLoadingList(true);
     setListError("");
     try {
       const res = await fetch(`/api/admin/chats${listQuery}`, { credentials: "include", cache: "no-store" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !Array.isArray(data.conversations)) {
-        setListError("Could not load inbox. Using retry can recover temporary API issues.");
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+      if (!res.ok) {
+        if (res.status === 401) {
+          setListError("Your admin session expired. Refresh the page and sign in again.");
+        } else if (data?.error === "unauthorized") {
+          setListError(
+            "Bot rejected the dashboard password. Set BACKEND_DASHBOARD_PASSWORD on the app host to match DASHBOARD_PASSWORD on the Flask bot.",
+          );
+        } else {
+          setListError(`Could not load inbox (${res.status}). Check BOT_API_URL and that the bot is reachable.`);
+        }
         setRows([]);
         return;
       }
-      setRows(data.conversations);
+      if (!Array.isArray(data.conversations)) {
+        setListError("Unexpected response from inbox API.");
+        setRows([]);
+        return;
+      }
+      const conv = data.conversations;
+      const totalUnread = conv.reduce((acc, r) => acc + (Number(r.unread) || 0), 0);
+      if (inboxReadyRef.current && totalUnread > prevUnreadRef.current) {
+        playSubtlePing();
+      }
+      inboxReadyRef.current = true;
+      prevUnreadRef.current = totalUnread;
+
+      if (typeof window !== "undefined" && window.localStorage?.getItem("sx_inbox_debug") === "1") {
+        console.info("[inbox] refreshed threads=", conv.length, "unread_total=", totalUnread);
+      }
+
+      setRows(conv);
       setUpdatedAt(data.updated_at || "");
     } catch {
       setListError("Network error — check your connection.");
       setRows([]);
     } finally {
       setLoadingList(false);
+      initialListDoneRef.current = true;
     }
   }, [listQuery, listRetryKey]);
 
@@ -102,6 +157,8 @@ export function LiveInbox() {
 
   const filteredRows = useMemo(() => applyFilter(rows, filter), [rows, filter]);
   const selectedRow = useMemo(() => rows.find((item) => item.phone === selected) || null, [rows, selected]);
+
+  const liveEmpty = !listError && !loadingList && rows.length === 0 && !debouncedQ && filter === "all";
 
   async function sendReply() {
     const text = reply.trim();
@@ -169,6 +226,7 @@ export function LiveInbox() {
           listError={listError}
           onRetry={() => setListRetryKey((k) => k + 1)}
           mobileTab={mobileTab}
+          liveEmpty={liveEmpty}
         />
         <ActiveChatPanel
           selected={selected}
@@ -188,4 +246,3 @@ export function LiveInbox() {
     </div>
   );
 }
-

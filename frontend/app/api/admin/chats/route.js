@@ -24,5 +24,9 @@ export async function GET(request) {
 
   const res = await fetch(url.toString(), { cache: "no-store", headers: adminApiHeaders() });
   const data = await res.json().catch(() => ({}));
+  if (process.env.INBOX_DEBUG === "1") {
+    const n = Array.isArray(data?.conversations) ? data.conversations.length : -1;
+    console.info("[inbox-api] proxy /api/chats status=", res.status, "threads=", n);
+  }
   return NextResponse.json(data, { status: res.status });
 }

@@ -28,9 +28,13 @@ def _all_inbox_phones(memory: dict) -> list[str]:
         if not isinstance(k, str):
             continue
         if k.startswith("thread:"):
-            phones.add(k[7:])
+            d = _normalize_phone(k[7:])
+            if d:
+                phones.add(d)
         elif k.startswith("state:"):
-            phones.add(k[6:])
+            d = _normalize_phone(k[6:])
+            if d:
+                phones.add(d)
     return list(phones)
 
 

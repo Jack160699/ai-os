@@ -7,6 +7,11 @@ from app.config import REPO_ROOT
 MEMORY_FILE = REPO_ROOT / "memory.json"
 
 
+def normalize_phone_digits(phone: str) -> str:
+    """E.164-ish digits only (no +), consistent thread/state keys for inbox + webhooks."""
+    return "".join(c for c in (phone or "") if c.isdigit())
+
+
 def load_memory() -> dict:
     if not MEMORY_FILE.is_file():
         return {}
@@ -37,7 +42,8 @@ def get_fix(error_key: str):
 def get_conversation_state(phone_number: str) -> dict:
     """Return persisted conversation state for a WhatsApp number."""
     memory = load_memory()
-    key = f"state:{phone_number}"
+    digits = normalize_phone_digits(phone_number)
+    key = f"state:{digits}"
     state = memory.get(key, {})
     return state if isinstance(state, dict) else {}
 
@@ -45,14 +51,16 @@ def get_conversation_state(phone_number: str) -> dict:
 def set_conversation_state(phone_number: str, state: dict) -> None:
     """Persist conversation state for a WhatsApp number."""
     memory = load_memory()
-    memory[f"state:{phone_number}"] = state
+    digits = normalize_phone_digits(phone_number)
+    memory[f"state:{digits}"] = state
     save_memory(memory)
 
 
 def clear_conversation_state(phone_number: str) -> None:
     """Remove conversation state for a WhatsApp number."""
     memory = load_memory()
-    key = f"state:{phone_number}"
+    digits = normalize_phone_digits(phone_number)
+    key = f"state:{digits}"
     if key in memory:
         del memory[key]
         save_memory(memory)
@@ -82,7 +90,7 @@ def iter_state_phone_numbers() -> list[str]:
     out: list[str] = []
     for key in memory:
         if isinstance(key, str) and key.startswith("state:"):
-            out.append(key[6:])
+            out.append(normalize_phone_digits(key[6:]))
     return out
 
 
@@ -92,16 +100,23 @@ def get_all_states() -> dict[str, dict]:
     out: dict[str, dict] = {}
     for key, value in memory.items():
         if isinstance(key, str) and key.startswith("state:") and isinstance(value, dict):
-            out[key[6:]] = value
+            out[normalize_phone_digits(key[6:])] = value
     return out
 
 
 def _thread_key(phone: str) -> str:
-    return f"thread:{phone}"
+    return f"thread:{normalize_phone_digits(phone)}"
 
 
-def append_thread_message(phone: str, role: str, text: str) -> None:
-    """Append one chat line (user / assistant) to the per-phone transcript."""
+def append_thread_message(
+    phone: str,
+    role: str,
+    text: str,
+    *,
+    wa_message_id: str = "",
+    timestamp_utc: str | None = None,
+) -> bool:
+    """Append one chat line (user / assistant) to the per-phone transcript. Returns True if a new row was stored."""
     memory = load_memory()
     key = _thread_key(phone)
     rows = memory.get(key)
@@ -109,16 +124,24 @@ def append_thread_message(phone: str, role: str, text: str) -> None:
         rows = []
     line = (text or "").strip()
     if not line:
-        return
-    rows.append(
-        {
-            "role": role,
-            "text": line,
-            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
-        }
-    )
+        return False
+    mid = (wa_message_id or "").strip()
+    if mid:
+        for existing in rows:
+            if str(existing.get("wa_message_id", "")) == mid:
+                return False
+    ts = (timestamp_utc or "").strip() or datetime.now(timezone.utc).isoformat()
+    row: dict = {
+        "role": role,
+        "text": line,
+        "timestamp_utc": ts,
+    }
+    if mid:
+        row["wa_message_id"] = mid
+    rows.append(row)
     memory[key] = rows[-500:]
     save_memory(memory)
+    return True
 
 
 def get_thread_messages(phone: str) -> list[dict]:
