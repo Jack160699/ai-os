@@ -32,14 +32,31 @@
   --admin-shadow-card-hover: 0 22px 70px rgba(0, 0, 0, 0.55);
 }
 
+.admin-assistant-root {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.admin-assistant-root > .pointer-events-auto {
+  pointer-events: auto;
+}
+
 .admin-card-surface {
-  transform: translateY(0);
-  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 220ms ease;
+  transform: translateZ(0) translateY(0);
+  will-change: transform;
+  transition: transform 0.2s ease-in-out, border-color 0.2s ease-in-out, background-color 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 14px 44px rgba(0, 0, 0, 0.35);
 }
 
 .admin-card-surface:hover {
-  transform: translateY(-2px);
+  transform: translateZ(0) translateY(-2px);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, var(--admin-shadow-card-hover);
 }
 
@@ -77,7 +94,7 @@
 
 .admin-table {
   width: 100%;
-  min-width: 760px;
+  min-width: min(100%, 760px);
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.8125rem;
@@ -188,7 +205,7 @@
   --admin-surface-3: rgba(15, 23, 42, 0.02);
   --admin-surface-hover: rgba(37, 99, 235, 0.06);
   --admin-text: #0f172a;
-  --admin-muted: #475569;
+  --admin-muted: #334155;
   --admin-subtle: #64748b;
   --admin-shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.95) inset, 0 22px 60px rgba(30, 64, 175, 0.1);
   --admin-shadow-card-hover: 0 18px 42px rgba(15, 23, 42, 0.13);
@@ -216,7 +233,7 @@
 :root[data-admin-theme="light"] .admin-app .bg-white\/\[0\.02\],
 :root[data-admin-theme="light"] .admin-app .bg-white\/\[0\.03\],
 :root[data-admin-theme="light"] .admin-app .bg-white\/\[0\.04\] {
-  background: rgba(255, 255, 255, 0.8) !important;
+  background: #ffffff !important;
   border-color: var(--admin-border) !important;
 }
 
@@ -227,10 +244,19 @@
   color: #0f172a !important;
 }
 
-:root[data-admin-theme="light"] .admin-app .text-slate-400,
+:root[data-admin-theme="light"] .admin-app .text-slate-400 {
+  color: #334155 !important;
+}
+
 :root[data-admin-theme="light"] .admin-app .text-slate-500,
 :root[data-admin-theme="light"] .admin-app .text-slate-600 {
-  color: #475569 !important;
+  color: #64748b !important;
+}
+
+:root[data-admin-theme="light"] .admin-app .recharts-cartesian-axis-tick-value,
+:root[data-admin-theme="light"] .admin-app .recharts-legend-item-text {
+  fill: #334155 !important;
+  color: #334155 !important;
 }
 
 :root[data-admin-theme="light"] .admin-app .border-white\/\[0\.06\],
@@ -257,11 +283,17 @@
 :root[data-admin-theme="light"] .admin-assistant-widget .text-white,
 :root[data-admin-theme="light"] .admin-assistant-widget .text-slate-100,
 :root[data-admin-theme="light"] .admin-assistant-widget .text-slate-200,
-:root[data-admin-theme="light"] .admin-assistant-widget .text-slate-300,
-:root[data-admin-theme="light"] .admin-assistant-widget .text-slate-400,
+:root[data-admin-theme="light"] .admin-assistant-widget .text-slate-300 {
+  color: #0f172a !important;
+}
+
+:root[data-admin-theme="light"] .admin-assistant-widget .text-slate-400 {
+  color: #334155 !important;
+}
+
 :root[data-admin-theme="light"] .admin-assistant-widget .text-slate-500,
 :root[data-admin-theme="light"] .admin-assistant-widget .text-slate-600 {
-  color: #0f172a !important;
+  color: #64748b !important;
 }
 
 :root[data-admin-theme="light"] .admin-app .hover\:bg-white\/\[0\.05\]:hover,
@@ -270,9 +302,21 @@
   background: rgba(37, 99, 235, 0.08) !important;
 }
 
+:root[data-admin-theme="light"] .admin-app .admin-table thead th {
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: #64748b !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+:root[data-admin-theme="light"] .admin-app .admin-table tbody td {
+  color: #0f172a !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .admin-card-surface {
     transform: none !important;
+    will-change: auto !important;
     transition: border-color 0ms, background-color 0ms, box-shadow 0ms !important;
   }
   .admin-card-surface:hover {

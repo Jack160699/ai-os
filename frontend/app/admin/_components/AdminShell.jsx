@@ -3,7 +3,6 @@ import { Logo } from "@/app/components/Logo";
 import { AdminTopBar } from "@/app/admin/_components/AdminTopBar";
 import { ADMIN_NAV } from "@/app/admin/_lib/nav";
 import { logoutAction } from "@/app/admin/_lib/auth";
-import { AssistantWidget } from "@/components/assistant/AssistantWidget";
 import { getCurrentRole, getVisibleAdminNav } from "@/lib/roles";
 
 function navLinkClass(active) {
@@ -29,9 +28,9 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children, h
   );
 
   return (
-    <main className="admin-app min-h-screen bg-[#05070c] text-slate-100">
-      <div className="mx-auto flex w-full max-w-[1440px] gap-5 px-4 py-4 sm:gap-6 sm:px-5 sm:py-5 lg:gap-8 lg:px-6 lg:py-6">
-        <aside className="sticky top-4 hidden h-[calc(100vh-32px)] w-[252px] shrink-0 flex-col rounded-2xl border border-white/[0.06] bg-[#0c0f16] p-5 shadow-[var(--admin-shadow-panel)] lg:flex lg:flex-col">
+    <main className="admin-app min-h-screen overflow-x-hidden bg-[#05070c] text-slate-100">
+      <div className="mx-auto flex min-w-0 w-full max-w-[min(100%,1440px)] gap-5 px-4 py-4 sm:gap-6 sm:px-5 sm:py-5 lg:gap-8 lg:px-6 lg:py-6">
+        <aside className="sticky top-4 hidden h-[calc(100vh-32px)] w-[min(252px,100%)] max-w-[252px] shrink-0 flex-col rounded-2xl border border-white/[0.06] bg-[#0c0f16] p-5 shadow-[var(--admin-shadow-panel)] lg:flex lg:flex-col">
           <div className="flex items-center gap-2">
             <Logo variant="dark" />
           </div>
@@ -74,7 +73,6 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children, h
           <section className="space-y-7 p-5 sm:space-y-8 sm:p-7 lg:p-8">{children}</section>
         </div>
       </div>
-      <AssistantWidget />
     </main>
   );
 }

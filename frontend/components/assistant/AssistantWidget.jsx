@@ -51,15 +51,17 @@ export function AssistantWidget() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-[120] max-sm:bottom-4 max-sm:right-4" ref={shellRef}>
+    <div className="admin-assistant-root" ref={shellRef}>
+      <div className="flex flex-col items-end gap-0 pointer-events-auto">
       <AnimatePresence>
         {open ? (
           <motion.section
-            initial={{ opacity: 0, y: 14, scale: 0.985 }}
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.985 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="admin-assistant-widget mb-3 flex h-[520px] w-[360px] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0b1019]/90 shadow-[0_28px_90px_rgba(0,0,0,0.5)] backdrop-blur md:max-w-[360px] max-sm:fixed max-sm:inset-2 max-sm:mb-0 max-sm:h-auto"
+            exit={{ opacity: 0, y: 8, scale: 0.98 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            style={{ willChange: "transform, opacity" }}
+            className="admin-assistant-widget mb-3 flex max-h-[min(520px,calc(100dvh-120px))] w-[min(360px,calc(100vw-48px))] max-w-[min(360px,calc(100vw-48px))] flex-col overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0b1019]/90 shadow-[0_28px_90px_rgba(0,0,0,0.5)] backdrop-blur max-sm:fixed max-sm:inset-2 max-sm:mb-0 max-sm:max-h-[min(85dvh,calc(100dvh-32px))] max-sm:w-auto max-sm:max-w-none"
           >
             <header className="border-b border-white/[0.08] px-3.5 py-3">
               <div className="flex items-center justify-between">
@@ -84,10 +86,12 @@ export function AssistantWidget() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="rounded-full border border-sky-400/35 bg-gradient-to-r from-[#1e3a8a] to-[#0ea5e9] px-4 py-2.5 text-[12px] font-semibold text-white shadow-[0_16px_48px_rgba(14,165,233,0.35)] transition-[transform,filter] duration-150 hover:-translate-y-0.5 hover:brightness-110"
+        className="rounded-full border border-sky-400/35 bg-gradient-to-r from-[#1e3a8a] to-[#0ea5e9] px-4 py-2.5 text-[12px] font-semibold text-white shadow-[0_16px_48px_rgba(14,165,233,0.35)] transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:brightness-110"
+        style={{ willChange: "transform" }}
       >
         Ask StratXcel AI
       </button>
+      </div>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Logo } from "@/app/components/Logo";
 import { AdminShell } from "@/app/admin/_components/AdminShell";
 import { EmptyState } from "@/app/admin/_components/EmptyState";
 import { KpiStatCard } from "@/app/admin/_components/KpiStatCard";
-import { MiniBarsClient } from "@/app/admin/_components/MiniBarsClient";
 import { StaggerFeed } from "@/app/admin/_components/StaggerFeed";
 import { SurfaceCard } from "@/app/admin/_components/SurfaceCard";
 import { getAdminAuthState, loginAction } from "@/app/admin/_lib/auth";
@@ -19,6 +19,19 @@ import { UsageCostCard } from "@/components/dashboard/UsageCostCard";
 import { getAgentCenterItems } from "@/lib/agents";
 import { estimateUsageAndCost } from "@/lib/costEstimator";
 import { buildSmartSuggestions } from "@/lib/suggestions";
+
+const MiniBarsClient = dynamic(
+  () => import("@/app/admin/_components/MiniBarsClient").then((m) => m.MiniBarsClient),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="admin-card-surface rounded-2xl border border-white/[0.07] bg-white/[0.022] p-5">
+        <div className="admin-skeleton mb-3 h-4 w-36" />
+        <div className="admin-skeleton h-48 w-full rounded-xl" />
+      </div>
+    ),
+  },
+);
 
 export const metadata = {
   title: "Admin Dashboard - Stratxcel",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ThemeToggle } from "@/components/dashboard/ThemeToggle";
@@ -45,6 +45,8 @@ function BellIcon({ className }) {
 export function AdminTopBar({ activePath, navItems, logoutSlot }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef(null);
   const reduce = useReducedMotion();
 
   useEffect(() => {
@@ -58,7 +60,19 @@ export function AdminTopBar({ activePath, navItems, logoutSlot }) {
 
   useEffect(() => {
     setMenuOpen(false);
+    setNotifOpen(false);
   }, [activePath]);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    const onDoc = (e) => {
+      const target = e.target;
+      if (!(target instanceof Node)) return;
+      if (notifRef.current && !notifRef.current.contains(target)) setNotifOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [notifOpen]);
 
   return (
     <>
@@ -117,16 +131,33 @@ export function AdminTopBar({ activePath, navItems, logoutSlot }) {
             })}
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="relative z-[90] flex items-center gap-1.5 sm:gap-2">
             <ThemeToggle />
+            <div ref={notifRef} className="relative">
             <button
               type="button"
-              className="admin-button-glow relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-slate-400 transition-[border-color,background-color,color,box-shadow] duration-150 hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-slate-100 hover:shadow-[0_10px_32px_rgba(0,0,0,0.38)]"
+              onClick={() => setNotifOpen((v) => !v)}
+              className="admin-button-glow relative z-[91] flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-slate-400 pointer-events-auto transition-all duration-200 ease-in-out hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-slate-100 hover:shadow-[0_10px_32px_rgba(0,0,0,0.38)]"
               aria-label="Notifications"
+              aria-expanded={notifOpen}
             >
               <BellIcon />
-              <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.65)]" />
+              <span
+                className="pointer-events-none absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.65)]"
+                aria-hidden
+              />
             </button>
+            {notifOpen ? (
+              <div
+                role="dialog"
+                aria-label="Notifications"
+                className="absolute right-0 top-full z-[92] mt-2 w-72 max-w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-white/[0.1] bg-[#0c1119] p-3 text-left text-[12px] text-slate-300 shadow-xl"
+              >
+                <p className="font-semibold text-white">No new alerts</p>
+                <p className="mt-1 text-slate-500">You are all caught up. We will surface hot leads and payment events here.</p>
+              </div>
+            ) : null}
+            </div>
 
             <div
               className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.1] bg-gradient-to-br from-slate-500/90 to-slate-900 text-[11px] font-semibold text-white shadow-[0_8px_28px_rgba(0,0,0,0.45)]"
