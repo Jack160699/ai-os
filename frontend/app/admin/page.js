@@ -10,6 +10,7 @@ import { getAdminAuthState, loginAction } from "@/app/admin/_lib/auth";
 import { getBackendDashboardUrl, getDashboardData } from "@/app/admin/_lib/data";
 import { activeShareTrend, bookedTrend, hotTrend, seriesHalfMomentum } from "@/app/admin/_lib/trends";
 import { AgentCenter } from "@/components/dashboard/AgentCenter";
+import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { SmartSuggestions } from "@/components/dashboard/SmartSuggestions";
 import { UsageCostCard } from "@/components/dashboard/UsageCostCard";
 import { getAgentCenterItems } from "@/lib/agents";
@@ -178,6 +179,10 @@ export default async function AdminPage() {
       <section className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
         <UsageCostCard data={usageCostData} />
         <SmartSuggestions items={smartSuggestions} loading={!data && !error} />
+      </section>
+
+      <section>
+        <OnboardingChecklist />
       </section>
 
       <section>

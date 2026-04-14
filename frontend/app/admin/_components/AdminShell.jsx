@@ -3,6 +3,7 @@ import { Logo } from "@/app/components/Logo";
 import { AdminTopBar } from "@/app/admin/_components/AdminTopBar";
 import { ADMIN_NAV } from "@/app/admin/_lib/nav";
 import { logoutAction } from "@/app/admin/_lib/auth";
+import { GlobalAssistant } from "@/components/dashboard/GlobalAssistant";
 import { getCurrentRole, getVisibleAdminNav } from "@/lib/roles";
 
 function navLinkClass(active) {
@@ -72,6 +73,7 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children })
           <section className="space-y-7 p-5 sm:space-y-8 sm:p-7 lg:p-8">{children}</section>
         </div>
       </div>
+      <GlobalAssistant />
     </main>
   );
 }

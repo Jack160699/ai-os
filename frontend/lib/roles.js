@@ -1,8 +1,19 @@
 const ROLE_ORDER = ["admin", "manager", "agent", "viewer"];
 
 const ADMIN_NAV_BY_ROLE = {
-  admin: ["/admin", "/admin/chats", "/admin/leads", "/admin/pipeline", "/admin/analytics", "/admin/automation", "/admin/settings"],
-  manager: ["/admin", "/admin/chats", "/admin/leads", "/admin/pipeline", "/admin/analytics", "/admin/automation"],
+  admin: [
+    "/admin",
+    "/admin/chats",
+    "/admin/leads",
+    "/admin/pipeline",
+    "/admin/analytics",
+    "/admin/automation",
+    "/admin/billing",
+    "/admin/partners",
+    "/admin/branding",
+    "/admin/settings",
+  ],
+  manager: ["/admin", "/admin/chats", "/admin/leads", "/admin/pipeline", "/admin/analytics", "/admin/automation", "/admin/partners", "/admin/branding"],
   agent: ["/admin/chats", "/admin/leads", "/admin/pipeline"],
   viewer: ["/admin/analytics"],
 };
