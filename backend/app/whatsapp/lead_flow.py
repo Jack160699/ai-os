@@ -23,7 +23,6 @@ from app.memory.store import (
     set_conversation_state,
 )
 from app.sales import states as S
-from app.sales.intercept import try_handle
 from app.whatsapp.copy_variants import (
     pick_booking_question,
     pick_challenge_prompt,
@@ -203,13 +202,6 @@ def handle_lead_message(
         state = get_conversation_state(sender)
 
     display_name = (state.get("profile_name") or profile_name or "").strip()
-    preview_state = {**state, "transcript_lines": lines}
-
-    hit = try_handle(settings, sender, message, preview_state, display_name)
-    if hit is not None:
-        merged = {**get_conversation_state(sender), "transcript_lines": lines}
-        set_conversation_state(sender, merged)
-        return hit
 
     if step == "start":
         _record_lead_event("started", sender)

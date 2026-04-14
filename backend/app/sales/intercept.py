@@ -22,6 +22,17 @@ def _bump_touch(state: dict) -> dict:
     return {**state, "sales_touch_count": n}
 
 
+def build_preview_state_for_sales(state: dict, message: str) -> dict:
+    """State dict with current inbound appended to transcript (matches lead_flow preview)."""
+    lines = state.get("transcript_lines")
+    if not isinstance(lines, list):
+        lines = []
+    text = (message or "").strip()
+    if text:
+        lines = (lines + [text])[-30:]
+    return {**state, "transcript_lines": lines}
+
+
 def try_handle(
     settings: "Settings",
     sender: str,
