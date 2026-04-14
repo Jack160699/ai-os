@@ -248,6 +248,22 @@
   background-color: #2563eb !important;
 }
 
+:root[data-admin-theme="light"] .admin-assistant-widget {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.16) !important;
+}
+
+:root[data-admin-theme="light"] .admin-assistant-widget .text-white,
+:root[data-admin-theme="light"] .admin-assistant-widget .text-slate-100,
+:root[data-admin-theme="light"] .admin-assistant-widget .text-slate-200,
+:root[data-admin-theme="light"] .admin-assistant-widget .text-slate-300,
+:root[data-admin-theme="light"] .admin-assistant-widget .text-slate-400,
+:root[data-admin-theme="light"] .admin-assistant-widget .text-slate-500,
+:root[data-admin-theme="light"] .admin-assistant-widget .text-slate-600 {
+  color: #0f172a !important;
+}
+
 :root[data-admin-theme="light"] .admin-app .hover\:bg-white\/\[0\.05\]:hover,
 :root[data-admin-theme="light"] .admin-app .hover\:bg-white\/\[0\.04\]:hover,
 :root[data-admin-theme="light"] .admin-app .hover\:bg-white\/\[0\.07\]:hover {
