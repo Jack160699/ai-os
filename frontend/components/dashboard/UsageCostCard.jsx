@@ -1,18 +1,30 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { SurfaceCard } from "@/app/admin/_components/SurfaceCard";
 import { formatInr } from "@/lib/costEstimator";
 
-function MetricCell({ label, value, hint, tone = "text-slate-400" }) {
+function MetricCell({ label, value, hint, tone = "text-slate-400", href, onNavigate }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5">
+    <button
+      type="button"
+      onClick={() => onNavigate(href)}
+      className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5 text-left transition-[border-color,background-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-sky-400/30 hover:bg-white/[0.04] hover:shadow-[0_10px_32px_rgba(14,165,233,0.16)]"
+    >
       <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">{label}</p>
       <p className="mt-1.5 text-lg font-semibold tracking-tight text-white">{value}</p>
       {hint ? <p className={`mt-1 text-[11px] ${tone}`}>{hint}</p> : null}
-    </div>
+    </button>
   );
 }
 
 export function UsageCostCard({ data }) {
+  const router = useRouter();
   const usageText = `${(data?.usageToday?.tokens || 0).toLocaleString("en-IN")} tokens · ${data?.usageToday?.requests || 0} req`;
+  function navigate(href) {
+    if (!href) return;
+    router.push(href);
+  }
 
   return (
     <SurfaceCard className="p-6" delay={0.04}>
@@ -28,13 +40,42 @@ export function UsageCostCard({ data }) {
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <MetricCell label="OpenAI API Usage Today" value={usageText} />
-        <MetricCell label="Estimated OpenAI Cost This Month" value={formatInr(data?.openAiCost || 0)} />
-        <MetricCell label="Calling Cost" value={formatInr(data?.callingCost || 0)} hint="Exotel placeholder/manual config" />
-        <MetricCell label="Voice Cost" value={formatInr(data?.voiceCost || 0)} hint="ElevenLabs placeholder/manual config" />
-        <MetricCell label="Total Estimated Monthly Cost" value={formatInr(data?.totalMonthlyCost || 0)} hint="Blended channel spend" tone="text-emerald-300/90" />
-        <MetricCell label="Cost Per Lead" value={formatInr(data?.costPerLead || 0)} />
-        <MetricCell label="Cost Per Conversion" value={formatInr(data?.costPerConversion || 0)} />
+        <MetricCell label="OpenAI API Usage Today" value={usageText} href="/admin/analytics?focus=usage" onNavigate={navigate} />
+        <MetricCell
+          label="Estimated OpenAI Cost This Month"
+          value={formatInr(data?.openAiCost || 0)}
+          href="/admin/analytics?focus=cost"
+          onNavigate={navigate}
+        />
+        <MetricCell
+          label="Calling Cost"
+          value={formatInr(data?.callingCost || 0)}
+          hint="Exotel placeholder/manual config"
+          href="/admin/settings?tab=calling"
+          onNavigate={navigate}
+        />
+        <MetricCell
+          label="Voice Cost"
+          value={formatInr(data?.voiceCost || 0)}
+          hint="ElevenLabs placeholder/manual config"
+          href="/admin/settings?tab=voice"
+          onNavigate={navigate}
+        />
+        <MetricCell
+          label="Total Estimated Monthly Cost"
+          value={formatInr(data?.totalMonthlyCost || 0)}
+          hint="Blended channel spend"
+          tone="text-emerald-300/90"
+          href="/admin/analytics?focus=cost"
+          onNavigate={navigate}
+        />
+        <MetricCell label="Cost Per Lead" value={formatInr(data?.costPerLead || 0)} href="/admin/leads" onNavigate={navigate} />
+        <MetricCell
+          label="Cost Per Conversion"
+          value={formatInr(data?.costPerConversion || 0)}
+          href="/admin/analytics?focus=conversion"
+          onNavigate={navigate}
+        />
       </div>
 
       <div className="mt-5 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-3.5">

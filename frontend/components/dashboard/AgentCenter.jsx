@@ -1,4 +1,7 @@
+"use client";
+
 import { SurfaceCard } from "@/app/admin/_components/SurfaceCard";
+import { useRouter } from "next/navigation";
 
 const STATUS_STYLES = {
   online: { dot: "bg-emerald-400", text: "text-emerald-300", pulse: "shadow-[0_0_0_0_rgba(52,211,153,0.55)] animate-[admin-pulse_1.7s_ease-out_infinite]" },
@@ -7,9 +10,28 @@ const STATUS_STYLES = {
 };
 
 function AgentRow({ item }) {
+  const router = useRouter();
   const style = STATUS_STYLES[item.status] || STATUS_STYLES.offline;
+  const actionable = Boolean(item.href);
   return (
-    <article className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5 transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:shadow-[0_16px_44px_rgba(0,0,0,0.35)]">
+    <article
+      className={`rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5 transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:shadow-[0_16px_44px_rgba(0,0,0,0.35)] ${
+        actionable ? "cursor-pointer" : ""
+      }`}
+      role={actionable ? "button" : undefined}
+      tabIndex={actionable ? 0 : undefined}
+      onClick={actionable ? () => router.push(item.href) : undefined}
+      onKeyDown={
+        actionable
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                router.push(item.href);
+              }
+            }
+          : undefined
+      }
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[13px] font-semibold text-slate-100">{item.name}</p>

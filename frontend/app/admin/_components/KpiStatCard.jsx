@@ -1,6 +1,7 @@
 "use client";
 
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 const trendTone = {
@@ -34,10 +35,17 @@ function AnimatedValue({ value }) {
   return <motion.span>{rounded}</motion.span>;
 }
 
-export function KpiStatCard({ label, value, hint, trend, index = 0 }) {
+export function KpiStatCard({ label, value, hint, trend, index = 0, href }) {
   const reduce = useReducedMotion();
+  const router = useRouter();
   const dir = trend?.direction === "up" || trend?.direction === "down" ? trend.direction : "neutral";
   const tone = trendTone[dir];
+  const actionable = Boolean(href);
+
+  function openCard() {
+    if (!href) return;
+    router.push(href);
+  }
 
   return (
     <motion.div
@@ -46,7 +54,22 @@ export function KpiStatCard({ label, value, hint, trend, index = 0 }) {
       transition={reduce ? { duration: 0 } : { duration: 0.24, ease: [0.22, 1, 0.36, 1], delay: index * 0.045 }}
       whileHover={reduce ? undefined : { y: -3 }}
       whileTap={reduce ? undefined : { scale: 0.995 }}
-      className="admin-card-surface group rounded-[14px] border border-white/[0.07] bg-white/[0.022] p-5 transition-[border-color,background-color,transform,box-shadow] duration-200 hover:border-white/[0.12] hover:bg-white/[0.034]"
+      className={`admin-card-surface group rounded-[14px] border border-white/[0.07] bg-white/[0.022] p-5 transition-[border-color,background-color,transform,box-shadow] duration-200 hover:border-white/[0.12] hover:bg-white/[0.034] ${
+        actionable ? "cursor-pointer" : ""
+      }`}
+      role={actionable ? "button" : undefined}
+      tabIndex={actionable ? 0 : undefined}
+      onClick={actionable ? openCard : undefined}
+      onKeyDown={
+        actionable
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openCard();
+              }
+            }
+          : undefined
+      }
     >
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
       <p className="mt-2 text-[1.75rem] font-semibold tracking-[-0.04em] text-white sm:text-[1.9rem]">

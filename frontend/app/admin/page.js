@@ -147,6 +147,7 @@ export default async function AdminPage() {
           value={String(summary.total_leads ?? 0)}
           hint="Conversations started in your workspace"
           trend={leadMomentum}
+          href="/admin/leads"
         />
         <KpiStatCard
           index={1}
@@ -154,6 +155,7 @@ export default async function AdminPage() {
           value={String(summary.active_leads ?? 0)}
           hint="Still in motion—needs a next step"
           trend={activeTrend}
+          href="/admin/pipeline"
         />
         <KpiStatCard
           index={2}
@@ -161,6 +163,7 @@ export default async function AdminPage() {
           value={String(summary.booked_calls ?? 0)}
           hint={`Win rate signal · ${conversionPct}% conversion`}
           trend={bookedT}
+          href="/admin/analytics?focus=bookings"
         />
         <KpiStatCard
           index={3}
@@ -168,6 +171,7 @@ export default async function AdminPage() {
           value={String(summary.hot_leads_count ?? 0)}
           hint="Fast lane—prioritize today"
           trend={hotT}
+          href="/admin/chats?segment=hot"
         />
       </section>
 

@@ -8,6 +8,7 @@ export function getAgentCenterItems() {
       currentTask: "Handling WhatsApp leads",
       successRate: "94%",
       lastActive: "Just now",
+      href: "/admin/chats",
     },
     {
       id: "calling-agent",
@@ -17,6 +18,7 @@ export function getAgentCenterItems() {
       currentTask: "Outbound follow-up campaign",
       successRate: "89%",
       lastActive: "1 min ago",
+      href: "/admin/pipeline",
     },
     {
       id: "finance-agent",
@@ -26,6 +28,7 @@ export function getAgentCenterItems() {
       currentTask: "Payment links + invoices",
       successRate: "97%",
       lastActive: "3 min ago",
+      href: "/admin/settings?tab=billing",
     },
     {
       id: "tech-agent",
@@ -35,6 +38,7 @@ export function getAgentCenterItems() {
       currentTask: "No active tasks",
       successRate: "--",
       lastActive: "27 min ago",
+      href: "/admin/settings",
     },
   ];
 }
