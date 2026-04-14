@@ -3,6 +3,7 @@ import { Logo } from "@/app/components/Logo";
 import { AdminTopBar } from "@/app/admin/_components/AdminTopBar";
 import { ADMIN_NAV } from "@/app/admin/_lib/nav";
 import { logoutAction } from "@/app/admin/_lib/auth";
+import { getCurrentRole, getVisibleAdminNav } from "@/lib/roles";
 
 function navLinkClass(active) {
   if (active) {
@@ -12,6 +13,9 @@ function navLinkClass(active) {
 }
 
 export function AdminShell({ activePath = "/admin", title, subtitle, children }) {
+  const role = getCurrentRole();
+  const navItems = getVisibleAdminNav(ADMIN_NAV, role);
+
   const logoutSlot = (
     <form action={logoutAction}>
       <button
@@ -31,7 +35,7 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children })
             <Logo variant="dark" />
           </div>
           <nav className="mt-8 space-y-1" aria-label="Primary">
-            {ADMIN_NAV.map((item) => {
+            {navItems.map((item) => {
               const active = activePath === item.href;
               return (
                 <Link
@@ -54,7 +58,7 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children })
 
         <div className="min-w-0 flex-1 rounded-2xl border border-white/[0.06] bg-[#0c0f16] shadow-[var(--admin-shadow-panel)]">
           <header className="border-b border-white/[0.06] px-5 pb-5 pt-4 sm:px-7 sm:pb-6 sm:pt-5 lg:px-8">
-            <AdminTopBar activePath={activePath} navItems={ADMIN_NAV} logoutSlot={logoutSlot} />
+            <AdminTopBar activePath={activePath} navItems={navItems} logoutSlot={logoutSlot} />
             <div className="mt-6 flex flex-col gap-1 sm:mt-7">
               <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-slate-500">Console</p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
