@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 
+from app.memory.store import get_payment_events, load_memory
+
 
 _PENDING_STEPS = frozenset(
     {
@@ -33,6 +35,28 @@ def _day_key(dt: datetime) -> str:
 
 def compute_dashboard_metrics(events: list[dict], states: dict[str, dict]) -> dict:
     now = datetime.now(timezone.utc)
+    month_start = now - timedelta(days=30)
+    payment_events = get_payment_events()
+    paid_rev_roll = 0.0
+    try:
+        paid_rev_roll = float((load_memory() or {}).get("revenue_total_rupees") or 0.0)
+    except (TypeError, ValueError):
+        paid_rev_roll = 0.0
+
+    paid_rev_30d = 0.0
+    payments_count_30d = 0
+    for pe in payment_events:
+        dt = parse_iso(str(pe.get("recorded_at_utc") or pe.get("timestamp_utc") or ""))
+        if not dt or dt < month_start:
+            continue
+        try:
+            ar = pe.get("amount_rupees")
+            if ar is None or str(ar).strip() == "":
+                continue
+            paid_rev_30d += float(ar)
+            payments_count_30d += 1
+        except (TypeError, ValueError):
+            continue
     today = now.date()
     started = [e for e in events if e.get("type") == "started"]
     completed = [e for e in events if e.get("type") == "completed"]
@@ -53,7 +77,6 @@ def compute_dashboard_metrics(events: list[dict], states: dict[str, dict]) -> di
     completed_today = 0
     completed_month = 0
     week_start = now - timedelta(days=7)
-    month_start = now - timedelta(days=30)
 
     for e in completed:
         dt = parse_iso(str(e.get("timestamp_utc", "")))
@@ -240,5 +263,8 @@ def compute_dashboard_metrics(events: list[dict], states: dict[str, dict]) -> di
             {"label": "Closed", "count": max(total_completed - booked_calls, 0)},
         ],
         "hot_score_count": hot_count,
+        "paid_revenue_rupees": round(paid_rev_roll, 2),
+        "paid_revenue_30d_rupees": round(paid_rev_30d, 2),
+        "payments_count_30d": payments_count_30d,
     }
 

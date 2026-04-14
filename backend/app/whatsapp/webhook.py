@@ -1,6 +1,7 @@
 import json
 import hmac
 import os
+import re
 from datetime import datetime, timezone
 
 from flask import Flask, g, jsonify, make_response, request
@@ -14,6 +15,7 @@ from app.leads.followups import (
     arm_followup_after_bot_send,
     clear_followup_on_user_inbound,
     process_due_followups,
+    process_payment_pending_nudges,
 )
 from app.inbox.service import (
     apply_inbox_action,
@@ -22,6 +24,7 @@ from app.inbox.service import (
     bump_inbox_unread,
     mark_inbox_read,
 )
+from app.payments.internal import process_razorpay_internal
 from app.memory.store import (
     get_all_states,
     append_thread_message,
@@ -31,6 +34,7 @@ from app.memory.store import (
     normalize_phone_digits,
     set_conversation_state,
 )
+from app.sales import states as sales_states
 from app.whatsapp.lead_flow import LeadFlowReply, handle_lead_message
 from app.whatsapp.messaging import (
     send_interactive_buttons,
@@ -123,6 +127,38 @@ def _compute_dashboard_metrics() -> dict:
     return compute_dashboard_metrics(get_lead_events(), get_all_states())
 
 
+def _try_ceo_pricing_approve(settings: Settings, inbound: str) -> str | None:
+    """Owner WhatsApp: APPROVE <10–16 digit phone> <rupees> — push final price to buyer."""
+    m = re.match(r"^\s*APPROVE\s+(\d{10,16})\s+₹?\s*(\d+)\s*$", (inbound or "").strip(), re.I)
+    if not m:
+        return None
+    target = m.group(1)
+    rupees = int(m.group(2))
+    st = get_conversation_state(target)
+    spread = max(2000, int(rupees * 0.12))
+    floor = 5000
+    q = {
+        "basic": max(floor, rupees - spread),
+        "standard": rupees,
+        "premium": rupees + int(spread * 1.05),
+        "complexity": "medium",
+        "intent_level": "medium",
+        "discount_pct_applied": 0,
+        "currency": "INR",
+    }
+    st["last_quote"] = q
+    st["admin_approved_rupees"] = rupees
+    st["sales_stage"] = sales_states.PRICING_OFFERED
+    set_conversation_state(target, st)
+    msg = (
+        f"Confirmed pricing for you: ₹{rupees:,}. "
+        "Say **go ahead** when you want the secure payment link 👍"
+    )
+    send_whatsapp_text(settings, target, msg)
+    append_thread_message(target, "assistant", msg)
+    return f"Approved ₹{rupees:,} for +{target} — buyer notified on WhatsApp."
+
+
 def _dashboard_api_payload(metrics: dict) -> dict:
     payload = {
         "summary": {
@@ -157,6 +193,8 @@ def _dashboard_api_payload(metrics: dict) -> dict:
             "conversion_rate_pct": metrics["conversion_rate_pct"],
             "avg_time_to_reply_min": metrics["avg_time_to_reply_min"],
             "hot_score_count": metrics["hot_score_count"],
+            "paid_revenue_rupees": metrics.get("paid_revenue_rupees", 0.0),
+            "payments_count_30d": metrics.get("payments_count_30d", 0),
         }
     )
     payload.update(
@@ -275,6 +313,8 @@ ul{{margin:0;padding-left:18px}} li{{margin:8px 0;color:#d1d9e6}}
   <div class='card'><div class='k'>Conversion rate</div><div class='v'>{metrics["conversion_rate_pct"]:.1f}%</div><div class='small'>Calls / total leads</div></div>
   <div class='card'><div class='k'>Avg time to reply</div><div class='v'>{metrics["avg_time_to_reply_min"]}</div><div class='small'>Minutes (post follow-up)</div></div>
   <div class='card'><div class='k'>Hot leads (score)</div><div class='v'>{metrics["hot_score_count"]}</div><div class='small'>Heuristic Hot count</div></div>
+  <div class='card'><div class='k'>Paid revenue (₹)</div><div class='v'>{metrics.get("paid_revenue_rupees", 0):,.0f}</div><div class='small'>Razorpay captured (running total)</div></div>
+  <div class='card'><div class='k'>Payments (30d)</div><div class='v'>{metrics.get("payments_count_30d", 0)}</div><div class='small'>Successful captures</div></div>
 </div>
 
 <div class='grid section'>
@@ -498,12 +538,31 @@ def create_app(settings: Settings) -> Flask:
         if not hmac.compare_digest(got, settings.followup_cron_secret):
             return jsonify({"error": "unauthorized"}), 401
         result = process_due_followups(settings)
+        pay = process_payment_pending_nudges(settings)
+        out = {**result, "payment_nudges": pay}
         print(
             "[followup-cron] "
             f"checked={result['checked']} sent={result['sent']} "
-            f"skipped={result['skipped']} completed={result['completed']}"
+            f"skipped={result['skipped']} completed={result['completed']} "
+            f"pay_nudge_sent={pay.get('sent', 0)}"
         )
-        return jsonify(result), 200
+        return jsonify(out), 200
+
+    @app.route("/internal/razorpay-payment", methods=["POST"])
+    def internal_razorpay_payment():
+        exp = (settings.internal_payment_webhook_secret or "").strip()
+        if not exp:
+            return jsonify({"error": "disabled"}), 404
+        got = request.headers.get("X-Internal-Payment-Secret", "")
+        if len(got) != len(exp) or not hmac.compare_digest(got.encode("utf-8"), exp.encode("utf-8")):
+            return jsonify({"error": "unauthorized"}), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            out = process_razorpay_internal(settings, data)
+            return jsonify(out), 200
+        except Exception as e:
+            print("[internal/razorpay-payment] error:", e)
+            return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/dashboard", methods=["GET", "POST"])
     @app.route("/admin", methods=["GET", "POST"])
@@ -629,6 +688,15 @@ def create_app(settings: Settings) -> Flask:
                 if mode == "ceo":
                     if wa_mid and get_conversation_state(sender).get("last_wa_mid") == wa_mid:
                         print("[wa-webhook] ceo dedupe wa_mid=", wa_mid)
+                        continue
+                    approve_note = _try_ceo_pricing_approve(settings, inbound)
+                    if approve_note:
+                        print("[wa-webhook] ceo pricing approve:", approve_note[:120])
+                        resp = send_whatsapp_text(settings, sender, approve_note)
+                        if wa_mid and resp.ok:
+                            st_ap = get_conversation_state(sender)
+                            st_ap["last_wa_mid"] = wa_mid
+                            set_conversation_state(sender, st_ap)
                         continue
                     if not auto_reply:
                         if wa_mid:

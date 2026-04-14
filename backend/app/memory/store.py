@@ -149,3 +149,53 @@ def get_thread_messages(phone: str) -> list[dict]:
     key = _thread_key(phone)
     rows = memory.get(key)
     return rows if isinstance(rows, list) else []
+
+
+def append_payment_event(event: dict) -> None:
+    """Append a Razorpay (or other) payment event for auditing in memory.json."""
+    memory = load_memory()
+    events = memory.get("payment_events")
+    if not isinstance(events, list):
+        events = []
+    evt = {**event, "recorded_at_utc": datetime.now(timezone.utc).isoformat()}
+    events.append(evt)
+    memory["payment_events"] = events[-400:]
+    save_memory(memory)
+
+
+def get_payment_events() -> list[dict]:
+    memory = load_memory()
+    ev = memory.get("payment_events")
+    return ev if isinstance(ev, list) else []
+
+
+def bump_revenue_total_rupees(amount_rupees: float) -> None:
+    memory = load_memory()
+    try:
+        cur = float(memory.get("revenue_total_rupees") or 0.0)
+    except (TypeError, ValueError):
+        cur = 0.0
+    memory["revenue_total_rupees"] = round(cur + float(amount_rupees), 2)
+    save_memory(memory)
+
+
+def mark_lead_payment_paid(phone: str, info: dict) -> None:
+    """Set conversation lead_status to PAID and attach last_payment snapshot."""
+    digits = normalize_phone_digits(phone)
+    if not digits:
+        return
+    st = get_conversation_state(digits)
+    st["lead_status"] = "PAID"
+    st["sales_stage"] = "PAID"
+    st["conversation_outcome"] = "WON"
+    st["step"] = "complete"
+    st["payment_nudge_level"] = 0
+    st["payment_pending_since"] = ""
+    st["followup_armed_at"] = ""
+    st["followup_stopped"] = True
+    st["followup_stop_reason"] = "payment_received"
+    pid = str(info.get("payment_id") or "").strip()
+    if pid:
+        st["last_payment_id"] = pid
+    st["last_payment"] = info
+    set_conversation_state(digits, st)

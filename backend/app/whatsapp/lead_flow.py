@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from app.ai.assistant import generate_lead_recommendation
 from app.config import Settings
+from app.leads.admin_alerts import send_admin_new_lead, send_admin_qualified_lead
 from app.leads.alerts import send_lead_owner_alerts
 from app.leads.classification import (
     classify_business_type,
@@ -21,6 +22,8 @@ from app.memory.store import (
     get_conversation_state,
     set_conversation_state,
 )
+from app.sales import states as S
+from app.sales.intercept import try_handle
 from app.whatsapp.copy_variants import (
     pick_booking_question,
     pick_challenge_prompt,
@@ -206,8 +209,19 @@ def handle_lead_message(
                 "lead_status": "active",
                 "followup_total_sent": 0,
                 "followup_stage_sent": 0,
+                "sales_stage": S.NEW,
             },
         )
+        try:
+            send_admin_new_lead(
+                settings,
+                sender,
+                display_name or "Customer",
+                S.NEW,
+                (message or "").strip()[:400],
+            )
+        except Exception as e:
+            print(f"[lead-flow] new lead admin alert failed: {e}")
         return _welcome_reply()
 
     set_conversation_state(sender, {**state, "transcript_lines": lines})
@@ -215,6 +229,10 @@ def handle_lead_message(
     step = state.get("step", "start")
     transcript = "\n".join(state.get("transcript_lines") or [])
     display_name = (state.get("profile_name") or profile_name or "").strip()
+
+    hit = try_handle(settings, sender, message, state, display_name)
+    if hit is not None:
+        return hit
 
     if step == "await_business":
         business = classify_business_type(message)
@@ -234,6 +252,7 @@ def handle_lead_message(
                 "business_type": business,
                 "transcript_lines": lines,
                 "lead_status": "active",
+                "sales_stage": S.QUALIFYING,
             },
         )
         body = _memory_greeting(display_name, business) + pick_challenge_prompt()
@@ -250,6 +269,17 @@ def handle_lead_message(
             )
         business_type = state.get("business_type", "Business")
         recommendation = generate_lead_recommendation(settings, business_type, challenge)
+        if not state.get("qualified_alert_sent"):
+            try:
+                send_admin_qualified_lead(
+                    settings,
+                    sender,
+                    display_name or "Customer",
+                    challenge,
+                    S.QUALIFIED,
+                )
+            except Exception as e:
+                print(f"[lead-flow] qualified admin alert failed: {e}")
         set_conversation_state(
             sender,
             {
@@ -260,6 +290,8 @@ def handle_lead_message(
                 "transcript_lines": lines,
                 "booking_link_sent": False,
                 "lead_status": "active",
+                "qualified_alert_sent": True,
+                "sales_stage": S.QUALIFIED,
             },
         )
         return _booking_call_reply(recommendation)
@@ -278,6 +310,7 @@ def handle_lead_message(
                 "followup_stopped": True,
                 "followup_stop_reason": "booking_started",
                 "followup_armed_at": "",
+                "sales_stage": S.CALL_INTENT,
             }
             if booking and not already:
                 next_state["booking_link_sent"] = True
@@ -365,6 +398,7 @@ def handle_lead_message(
                 "urgency": urgency,
                 "summary": summary,
                 "followup_armed_at": "",
+                "sales_stage": S.CALL_BOOKED,
             },
         )
         return LeadFlowReply(body="Perfect — noted. We will confirm the strategy call slot shortly.")
@@ -397,6 +431,7 @@ def handle_lead_message(
                     "urgency": urgency,
                     "summary": summary,
                     "followup_armed_at": "",
+                    "sales_stage": S.CLOSED,
                 },
             )
             return LeadFlowReply(
@@ -421,6 +456,7 @@ def handle_lead_message(
                     "lead_status": "active",
                     "followup_stopped": False,
                     "followup_stop_reason": "",
+                    "sales_stage": S.QUALIFIED,
                 },
             )
             return _booking_call_reply(recommendation)
@@ -450,6 +486,7 @@ def handle_lead_message(
                     "urgency": urgency,
                     "summary": summary,
                     "followup_armed_at": "",
+                    "sales_stage": S.CLOSED,
                 },
             )
             return LeadFlowReply(body="Absolutely. Reach out anytime when you are ready.")

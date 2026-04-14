@@ -14,6 +14,8 @@ from app.whatsapp.copy_variants import (
     pick_followup_3d,
     pick_followup_7d,
 )
+from app.leads.admin_alerts import send_admin_hot_lead
+from app.sales import states as sales_states
 from app.whatsapp.messaging import send_whatsapp_text
 
 _STEPS_PENDING_USER = frozenset(
@@ -192,6 +194,21 @@ def arm_followup_after_bot_send(phone: str) -> None:
     st["intent_score"] = ls.intent_score
     st["urgency"] = ls.urgency
 
+    if ls.is_hot and not st.get("hot_alert_sent"):
+        try:
+            s = Settings.load()
+            send_admin_hot_lead(
+                s,
+                phone,
+                (st.get("profile_name") or "").strip() or "Customer",
+                str(st.get("challenge", "")),
+            )
+            st["hot_alert_sent"] = True
+            if str(st.get("sales_stage", "")) not in {sales_states.PAYMENT_PENDING, sales_states.PAID}:
+                st["sales_stage"] = sales_states.HOT
+        except Exception as e:
+            print(f"[followup] hot admin alert failed {phone}: {e}")
+
     st["followup_stopped"] = bool(st.get("followup_stopped", False))
     st["followup_stop_reason"] = st.get("followup_stop_reason", "")
     st["followup_stage_sent"] = _safe_int(st.get("followup_stage_sent"), 0)
@@ -277,4 +294,50 @@ def process_due_followups(settings: Settings) -> dict:
 
         set_conversation_state(phone, st)
 
+    return counts
+
+
+def process_payment_pending_nudges(settings: Settings) -> dict[str, int]:
+    """WhatsApp nudges for open Razorpay links (10m / 1h after link sent)."""
+    counts = {"checked": 0, "sent": 0, "skipped": 0}
+    now = _utc_now()
+    ten_min = 600.0
+    one_h = 3600.0
+    for phone in iter_state_phone_numbers():
+        counts["checked"] += 1
+        st = get_conversation_state(phone)
+        if str(st.get("sales_stage", "")) != "PAYMENT_PENDING":
+            counts["skipped"] += 1
+            continue
+        since_raw = str(st.get("payment_pending_since") or "")
+        since = _parse_iso(since_raw)
+        if not since:
+            counts["skipped"] += 1
+            continue
+        elapsed = (now - since).total_seconds()
+        level = _safe_int(st.get("payment_nudge_level"), 0)
+        body = ""
+        next_level = level
+        if level == 0 and elapsed >= ten_min:
+            body = "Need help completing payment?"
+            next_level = 1
+        elif level == 1 and elapsed >= one_h:
+            body = "Slots are limited today — want me to reserve this?"
+            next_level = 2
+        if not body:
+            counts["skipped"] += 1
+            continue
+        try:
+            resp = send_whatsapp_text(settings, phone, body)
+            if not resp.ok:
+                counts["skipped"] += 1
+                print(f"[payment-nudge] send failed {phone} level={next_level} status={resp.status_code}")
+                continue
+        except Exception as e:
+            counts["skipped"] += 1
+            print(f"[payment-nudge] send failed {phone}: {e}")
+            continue
+        counts["sent"] += 1
+        st["payment_nudge_level"] = next_level
+        set_conversation_state(phone, st)
     return counts
