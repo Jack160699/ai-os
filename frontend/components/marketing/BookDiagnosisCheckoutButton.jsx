@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Script from "next/script";
 import { COLORS } from "@/lib/constants";
 import { checkoutFetch, parseCheckoutJson } from "@/lib/checkoutClient";
@@ -41,10 +41,116 @@ function friendlyError(data, status) {
 export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
   const [phase, setPhase] = useState("idle"); // idle | loading | error
   const [status, setStatus] = useState("");
+  const [lastOrder, setLastOrder] = useState(null);
 
   const style = useMemo(
     () => ({ background: `linear-gradient(135deg, ${accent} 0%, ${brand} 58%, ${brand} 100%)` }),
     []
+  );
+
+  const logCheckoutFailure = useCallback(async (payload) => {
+    try {
+      const failRes = await checkoutFetch("/api/payment-failed", payload);
+      await parseCheckoutJson(failRes);
+    } catch {
+      // best-effort logging only
+    }
+  }, []);
+
+  const openCheckout = useCallback(
+    async (orderData) => {
+      if (typeof window === "undefined" || !window.Razorpay) {
+        setPhase("error");
+        setStatus("Payment widget failed to load. Refresh the page and try again.");
+        return;
+      }
+
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount * 100,
+        currency: "INR",
+        name: "Your Business",
+        description: "Diagnosis Session",
+        order_id: orderData.order_id,
+        config: {
+          display: {
+            hide: [
+              { method: "emi" },
+              { method: "paylater" },
+            ],
+            blocks: {
+              upi: {
+                name: "UPI (Fastest)",
+                instruments: [{ method: "upi" }],
+              },
+              card: {
+                name: "Cards",
+                instruments: [{ method: "card" }],
+              },
+              netbanking: {
+                name: "Netbanking",
+                instruments: [{ method: "netbanking" }],
+              },
+            },
+            sequence: ["block.upi", "block.card", "block.netbanking"],
+            preferences: {
+              show_default_blocks: false,
+            },
+          },
+        },
+        retry: {
+          enabled: true,
+          max_count: 2,
+        },
+        handler: async function (response) {
+          setPhase("loading");
+          setStatus("Verifying payment...");
+          try {
+            const successRes = await checkoutFetch("/api/payment-success", {
+              ...response,
+              amount: orderData.amount,
+              source: "website_checkout",
+            });
+            const { ok: sOk, data: successData, status: sStatus } = await parseCheckoutJson(successRes);
+            if (!sOk || successData?.status !== "ok") {
+              setPhase("error");
+              setStatus(friendlyError(successData, sStatus));
+              return;
+            }
+            setPhase("idle");
+            setStatus("Payment successful. We'll contact you shortly.");
+            setLastOrder(null);
+          } catch {
+            setPhase("error");
+            setStatus("We could not verify the payment. If you were charged, contact us with your receipt.");
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setStatus((prev) => (prev === "Verifying payment..." ? prev : "Payment cancelled."));
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", async function (resp) {
+        const err = resp?.error || {};
+        await logCheckoutFailure({
+          source: "website_checkout",
+          amount: orderData.amount,
+          step: "payment_failed_callback",
+          razorpay_order_id: String(err.metadata?.order_id || orderData.order_id || ""),
+          razorpay_payment_id: String(err.metadata?.payment_id || ""),
+          error_code: String(err.code || ""),
+          error_description: String(err.description || ""),
+          reason: String(err.reason || "payment_failed"),
+        });
+        setPhase("error");
+        setStatus("Payment failed. Please try again using UPI or another method.");
+      });
+      rzp.open();
+    },
+    [logCheckoutFailure]
   );
 
   async function handlePay() {
@@ -60,53 +166,9 @@ export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
         setStatus(friendlyError(orderData, orderStatus));
         return;
       }
-
-      if (typeof window === "undefined" || !window.Razorpay) {
-        setPhase("error");
-        setStatus("Payment widget failed to load. Refresh the page and try again.");
-        return;
-      }
-
+      setLastOrder(orderData);
       setPhase("idle");
-
-      const options = {
-        key: orderData.key,
-        amount: orderData.amount * 100,
-        currency: "INR",
-        name: "Your Business",
-        description: "Diagnosis Session",
-        order_id: orderData.order_id,
-        handler: async function (response) {
-          setPhase("loading");
-          setStatus("Verifying payment…");
-          try {
-            const successRes = await checkoutFetch("/api/payment-success", {
-              ...response,
-              amount: orderData.amount,
-              source: "website_checkout",
-            });
-            const { ok: sOk, data: successData, status: sStatus } = await parseCheckoutJson(successRes);
-            if (!sOk || successData?.status !== "ok") {
-              setPhase("error");
-              setStatus(friendlyError(successData, sStatus));
-              return;
-            }
-            setPhase("idle");
-            setStatus("Payment successful. We'll contact you shortly.");
-          } catch {
-            setPhase("error");
-            setStatus("We could not verify the payment. If you were charged, contact us with your receipt.");
-          }
-        },
-        modal: {
-          ondismiss: function () {
-            setStatus((prev) => (prev === "Verifying payment…" ? prev : "Payment cancelled."));
-          },
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      await openCheckout(orderData);
     } catch {
       setPhase("error");
       setStatus("Network error. Check your connection and try again.");
@@ -130,6 +192,7 @@ export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
         >
           {busy ? "Opening checkout…" : "Book Diagnosis Session"}
         </button>
+        <p className="mt-2 text-xs text-blue-700">Use UPI for fastest checkout.</p>
         {busy && !status ? (
           <p className="mt-3 text-sm text-slate-500" role="status">
             Connecting to secure payment…
@@ -142,6 +205,15 @@ export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
           >
             {status}
           </p>
+        ) : null}
+        {phase === "error" && lastOrder ? (
+          <button
+            type="button"
+            onClick={() => openCheckout(lastOrder)}
+            className="mt-3 inline-flex items-center justify-center rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+          >
+            Retry payment
+          </button>
         ) : null}
       </div>
     </>

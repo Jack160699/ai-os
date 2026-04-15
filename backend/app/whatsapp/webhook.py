@@ -35,6 +35,7 @@ from app.memory.store import (
     append_payment_event,
     clear_conversation_state,
     get_conversion_events,
+    get_payment_events,
     get_all_states,
     append_thread_message,
     get_conversation_state,
@@ -228,6 +229,24 @@ def _try_ceo_pricing_approve(settings: Settings, inbound: str) -> str | None:
 
 
 def _dashboard_api_payload(metrics: dict) -> dict:
+    payment_events_recent = []
+    for row in reversed(get_payment_events()[-60:]):
+        if not isinstance(row, dict):
+            continue
+        payment_events_recent.append(
+            {
+                "recorded_at_utc": str(row.get("recorded_at_utc") or ""),
+                "status": str(row.get("status") or row.get("event") or "unknown"),
+                "amount_rupees": row.get("amount_rupees"),
+                "payment_id": str(row.get("payment_id") or ""),
+                "order_id": str(row.get("order_id") or ""),
+                "reason": str(row.get("reason") or row.get("error_description") or row.get("error_code") or ""),
+                "source": str(row.get("source") or ""),
+            }
+        )
+        if len(payment_events_recent) >= 20:
+            break
+
     payload = {
         "summary": {
             "daily_leads": metrics["daily_leads"],
@@ -274,6 +293,7 @@ def _dashboard_api_payload(metrics: dict) -> dict:
             "funnel": metrics["funnel"],
             "source_roi": metrics.get("source_roi", []),
             "quick_reply_templates": get_quick_reply_templates(),
+            "payment_events_recent": payment_events_recent,
         }
     )
     return payload
@@ -2044,6 +2064,26 @@ def create_app(settings: Settings) -> Flask:
             }
         )
         return _checkout_json({"status": "ok"}, 200)
+
+    @app.route("/api/payment-failed", methods=["POST", "OPTIONS"])
+    def api_payment_failed():
+        if request.method == "OPTIONS":
+            return _checkout_cors_preflight()
+        data = request.get_json(silent=True) or {}
+        append_payment_event(
+            {
+                "order_id": str(data.get("razorpay_order_id") or "").strip(),
+                "payment_id": str(data.get("razorpay_payment_id") or "").strip(),
+                "status": "failed",
+                "source": str(data.get("source") or "website_checkout"),
+                "error_code": str(data.get("error_code") or ""),
+                "error_description": str(data.get("error_description") or ""),
+                "reason": str(data.get("reason") or data.get("error_description") or "payment_failed"),
+                "step": str(data.get("step") or "checkout"),
+                "amount_rupees": data.get("amount"),
+            }
+        )
+        return _checkout_json({"status": "logged"}, 200)
 
     @app.route("/inbox/lead/<path:phone>", methods=["GET"])
     def inbox_lead_detail(phone: str):
