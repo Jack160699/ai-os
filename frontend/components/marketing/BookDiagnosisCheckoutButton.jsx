@@ -7,8 +7,10 @@ import { COLORS } from "@/lib/constants";
 const { brand, accent } = COLORS;
 
 function baseBtnClasses(disabled) {
-  const disabledCls = disabled ? "cursor-not-allowed opacity-70" : "hover:brightness-[1.03] motion-safe:hover:-translate-y-px";
-  return `inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-full px-6 text-[14px] font-semibold tracking-tight text-white shadow-[0_8px_28px_-10px_rgba(30,58,138,0.42)] transition-[transform,box-shadow,filter] duration-200 ease-out sm:w-auto sm:px-7 ${disabledCls}`;
+  const disabledCls = disabled
+    ? "cursor-not-allowed opacity-70"
+    : "hover:brightness-110 motion-safe:hover:-translate-y-px hover:shadow-[0_0_0_1px_rgba(191,219,254,0.55),0_20px_52px_-14px_rgba(37,99,235,0.65)]";
+  return `inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-full px-6 text-[14px] font-semibold tracking-tight text-white shadow-[0_12px_34px_-12px_rgba(30,58,138,0.58)] ring-1 ring-blue-200/40 transition-[transform,box-shadow,filter] duration-200 ease-out sm:w-auto sm:px-7 ${disabledCls}`;
 }
 
 export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {

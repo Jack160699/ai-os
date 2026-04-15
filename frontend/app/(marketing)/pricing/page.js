@@ -1,13 +1,13 @@
 import { PageHero } from "@/app/components/PageHero";
 import {
-  PrimaryButton,
   GhostButton,
   CTARow,
   CTAMicrocopy,
   TrustChips,
 } from "@/app/components/marketing-ui";
-import { COLORS, whatsappHref } from "@/lib/constants";
+import { COLORS } from "@/lib/constants";
 import { Reveal } from "@/app/components/Reveal";
+import { BookDiagnosisCheckoutButton } from "@/components/marketing/BookDiagnosisCheckoutButton";
 
 export const metadata = {
   title: "Pricing — Stratxcel AI OS",
@@ -94,9 +94,7 @@ export default function PricingPage() {
                 <TrustChips items={trustAboveTiers} />
               </div>
               <CTARow className="mt-6 sm:mt-7">
-                <PrimaryButton href={whatsappHref} external>
-                  Get started
-                </PrimaryButton>
+                <BookDiagnosisCheckoutButton className="sm:!w-auto" />
                 <GhostButton href="/system">How the system works</GhostButton>
               </CTARow>
               <CTAMicrocopy>
@@ -145,9 +143,7 @@ export default function PricingPage() {
                     {t.note}
                   </p>
                   <div className="mt-5">
-                    <PrimaryButton href={whatsappHref} external className="!w-full sm:!w-full">
-                      Get started
-                    </PrimaryButton>
+                    <BookDiagnosisCheckoutButton className="!w-full sm:!w-full" />
                   </div>
                 </li>
               </Reveal>
@@ -184,9 +180,7 @@ export default function PricingPage() {
             milestone plan. No SKU gymnastics.
           </p>
           <CTARow className="mt-7 sm:mt-8">
-            <PrimaryButton href={whatsappHref} external>
-              Get started
-            </PrimaryButton>
+            <BookDiagnosisCheckoutButton className="sm:!w-auto" />
           </CTARow>
           <CTAMicrocopy>
             You’ll always talk to someone who can reason about systems — not a script.
