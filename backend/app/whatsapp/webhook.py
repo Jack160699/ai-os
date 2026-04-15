@@ -466,8 +466,33 @@ def get_lang(sender: str) -> str:
     return lang if lang in {"en", "hi", "hinglish"} else "en"
 
 
+def get_user_lang(sender: str) -> str:
+    return get_lang(sender)
+
+
+def _enforce_lang_tone(text: str, lang: str) -> str:
+    out = text or ""
+    if not out:
+        return out
+    if lang == "en":
+        return (
+            out.replace("Samajh gaya", "Got it")
+            .replace("Bilkul", "Absolutely")
+            .replace("Koi tension nahi", "No worries")
+            .replace("kya aa raha hai", "what is coming up")
+            .replace("Aap alone nahi ho", "You are not alone")
+        )
+    if lang == "hi":
+        return (
+            out.replace("No worries", "कोई टेंशन नहीं")
+            .replace("Got it", "समझ गया")
+            .replace("Simple bataun", "सिंपल बताऊं")
+        )
+    return out
+
+
 def _localize_text(text: str, lang: str) -> str:
-    if not text or lang == "en":
+    if not text:
         return text
     t = text.strip()
     if lang == "hi":
@@ -481,7 +506,7 @@ def _localize_text(text: str, lang: str) -> str:
             "Need help completing payment?": "पेमेंट पूरा करने में मदद चाहिए?",
             "Slots are limited today — want me to reserve this?": "आज स्लॉट सीमित हैं — क्या मैं आपके लिए रिज़र्व कर दूँ?",
         }
-        return mapping.get(t, t)
+        return _enforce_lang_tone(mapping.get(t, t), lang)
     mapping_hinglish = {
         "Welcome to StratXcel 🚀\n\nChoose your language:": "Welcome to StratXcel 🚀\n\nLanguage choose kar lo 😊",
         "Please choose your language using the buttons below 👆": "No worries 😊\nNeeche se language button tap kar do 👆",
@@ -520,7 +545,7 @@ def _localize_text(text: str, lang: str) -> str:
             out = out.replace(". ", ".\n")
         if not any(x in out for x in ("👍", "👌", "😊")):
             out = f"{out} 👍"
-    return out
+    return _enforce_lang_tone(out, lang)
 
 
 def _localize_buttons(buttons: tuple[tuple[str, str], ...] | None, lang: str):
@@ -625,15 +650,13 @@ def _default_buttons_for_state(sender: str, text: str) -> tuple[tuple[str, str],
         )
     if "kaha ho" in t or "where are you" in t or "idea stage" in t:
         return (("st_idea", "Idea stage"), ("st_running", "Already running"))
-    if stage == "ask_stage" or "abhi kaha ho" in t:
-        return (("st_idea", "Idea stage"), ("st_running", "Already running"))
     if stage == "offer_accept" or "start karna chahoge" in t:
         return (("offer_yes", "Yes Start"), ("offer_details", "Need Details"), ("offer_later", "Later"))
     return None
 
 
 def _localize_reply_for_sender(sender: str, reply: LeadFlowReply) -> LeadFlowReply:
-    lang = get_lang(sender)
+    lang = get_user_lang(sender)
     dynamic_buttons = reply.buttons
     if not dynamic_buttons and not reply.list_menu:
         dynamic_buttons = _default_buttons_for_state(sender, reply.body)
@@ -688,7 +711,6 @@ _ENTRY_MENU_INBOUND = {
 }
 
 SESSION_PRICE = 499
-_FUNNEL_Q_STAGE = "Aap abhi kaha ho?"
 _FUNNEL_PITCH = (
     "Dekho 👍\n\n"
     "Aapke case mein guesswork se kaam nahi chalega.\n\n"
@@ -740,35 +762,6 @@ def _dynamic_challenge_question(need: str) -> LeadFlowReply:
     )
 
 
-def _challenge_ack_copy(challenge: str) -> str:
-    ch = (challenge or "").lower()
-    if "no_leads" in ch or "log aa nahi rahe" in ch:
-        return (
-            "Acha, matlab customers aa nahi rahe.\n"
-            "Ye common problem hai 👍\n\n"
-            "Aap alone nahi ho — bahut businesses yahi face karte hain.\n"
-            "Iska solution hota hai."
-        )
-    if "sales_low" in ch or "sales kam" in ch:
-        return (
-            "Samajh gaya — log aa rahe hain but sale convert nahi ho rahi.\n\n"
-            "Sahi baat hai, ye bhi common issue hai 👍\n"
-            "Isko fix kiya ja sakta hai."
-        )
-    if "marketing" in ch:
-        return (
-            "Bilkul, marketing clear na ho toh growth ruk jaati hai.\n\n"
-            "Ye common hai 👍\n"
-            "Isko structure karke fix kiya ja sakta hai."
-        )
-    return (
-        "Samajh gaya 👍\n"
-        "Ye common phase hota hai.\n\n"
-        "Koi tension nahi,\n"
-        "isko fix kiya ja sakta hai."
-    )
-
-
 def _problem_question_for_need(need: str) -> LeadFlowReply:
     if need == "grow":
         return LeadFlowReply(
@@ -791,6 +784,44 @@ def _problem_question_for_need(need: str) -> LeadFlowReply:
     return LeadFlowReply(
         body="Kis type ka business start karna hai?",
         buttons=(("sb_online", "Online"), ("sb_shop", "Shop"), ("sb_service", "Service")),
+    )
+
+
+def _is_leads_like(challenge: str) -> bool:
+    c = (challenge or "").lower()
+    return any(x in c for x in ("lead", "no_leads", "log aa nahi", "customers"))
+
+
+def _micro_explain_copy(challenge: str) -> str:
+    c = (challenge or "").lower()
+    if "follow" in c:
+        return (
+            "Samajh gaya 😊\n\n"
+            "Follow-up slow hota hai toh leads miss ho jaate hain ⚠️\n\n"
+            "Usually ya toh system nahi hota\n"
+            "ya timely reply nahi jaata.\n\n"
+            "Ye common hai.\n"
+            "Iska solution hota hai."
+        )
+    if _is_leads_like(c):
+        return (
+            "Samajh gaya 😊\n\n"
+            "Customers aa nahi rahe toh growth ruk jaati hai.\n\n"
+            "Usually marketing ya offer clarity issue hota hai.\n\n"
+            "Aap alone nahi ho.\n"
+            "Fix kiya ja sakta hai."
+        )
+    if "sales" in c:
+        return (
+            "Samajh gaya 😊\n\n"
+            "Sales convert na ho toh confidence hit hota hai.\n\n"
+            "Ye common issue hai.\n"
+            "Iska solution hota hai."
+        )
+    return (
+        "Bilkul.\n\n"
+        "Ye common issue hai.\n"
+        "Fix kiya ja sakta hai 👍"
     )
 
 
@@ -1403,7 +1434,34 @@ def create_app(settings: Settings) -> Flask:
                         challenge = raw_interactive_id if raw_interactive_id else inbound
                         answers["challenge"] = challenge
                         st_next = {**st_sales, "funnel_answers": answers, "last_funnel_button_id": raw_interactive_id or "", "last_funnel_stage": funnel_stage}
-                        need = str(st_sales.get("funnel_need") or "grow")
+                        if _is_leads_like(challenge):
+                            st_next["funnel_stage"] = "ask_lead_source"
+                            st_next["stage"] = "question_1_done"
+                            set_conversation_state(sender, st_next)
+                            _finalize_wa_auto_reply(
+                                settings,
+                                sender,
+                                LeadFlowReply(
+                                    body=(
+                                        f"{_micro_explain_copy(challenge)}\n\n"
+                                        "Leads ka issue usually alag-alag jagah se aata hai.\n\n"
+                                        "Aapka zyada focus kaha hai?"
+                                    ),
+                                    list_menu=ListMenuSpec(
+                                        button_label="Source choose karo",
+                                        section_title="Lead source",
+                                        rows=(
+                                            ("src_insta", "Instagram / Social media", None),
+                                            ("src_youtube", "YouTube", None),
+                                            ("src_ads", "Ads (Facebook/Google)", None),
+                                            ("src_local", "Local customers", None),
+                                            ("src_notsure", "Not sure", None),
+                                        ),
+                                    ),
+                                ),
+                                wa_mid,
+                            )
+                            return "", 200
                         st_next["funnel_stage"] = "offer_accept"
                         st_next["stage"] = "question_1_done"
                         set_conversation_state(sender, st_next)
@@ -1412,10 +1470,35 @@ def create_app(settings: Settings) -> Flask:
                             sender,
                             LeadFlowReply(
                                 body=(
-                                    f"{_challenge_ack_copy(challenge)}\n\n"
+                                    f"{_micro_explain_copy(challenge)}\n\n"
                                     "Agar abhi clarity mil jaye,\n"
                                     "toh kaafi time bach sakta hai.\n"
                                     "Most log guesswork mein months waste kar dete hain.\n\n"
+                                    f"{_FUNNEL_PITCH}"
+                                ),
+                                buttons=(("offer_yes", "Yes Start"), ("offer_details", "Need Details"), ("offer_later", "Later")),
+                            ),
+                            wa_mid,
+                        )
+                        return "", 200
+                    if funnel_stage == "ask_lead_source":
+                        answers["lead_source"] = raw_interactive_id or inbound
+                        st_next = {
+                            **st_sales,
+                            "funnel_stage": "offer_accept",
+                            "funnel_answers": answers,
+                            "last_funnel_button_id": raw_interactive_id or "",
+                            "last_funnel_stage": funnel_stage,
+                            "stage": "offer_shown",
+                        }
+                        set_conversation_state(sender, st_next)
+                        _finalize_wa_auto_reply(
+                            settings,
+                            sender,
+                            LeadFlowReply(
+                                body=(
+                                    "Sahi baat hai.\n"
+                                    "Ye clarity early mil jaaye toh time aur paisa dono bachta hai.\n\n"
                                     f"{_FUNNEL_PITCH}"
                                 ),
                                 buttons=(("offer_yes", "Yes Start"), ("offer_details", "Need Details"), ("offer_later", "Later")),
