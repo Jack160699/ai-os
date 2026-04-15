@@ -993,13 +993,15 @@ def _next_step(current_step: str) -> str | None:
 def _init_consultant_state() -> dict:
     return {
         "stage": None,
-        "business_type": None,
+        "intent": None,
         "mode": None,
         "platform": None,
         "problem": None,
         "sub_problem": None,
+        "history": [],
         "steps_completed": [],
-        "current_step": "stage",
+        "locked_steps": [],
+        "current_step": None,
         "awaiting_other_for": "",
         "last_step_input": "",
     }
@@ -1014,32 +1016,109 @@ def _append_step_done(state: dict, step: str) -> None:
     state["steps_completed"] = steps
 
 
-def _consultant_next_step(current_step: str) -> str | None:
-    return {
-        "stage": "business_type",
-        "business_type": "mode",
-        "mode": "platform",
-        "platform": "problem",
-        "problem": "sub_problem",
-        "sub_problem": "insight",
-        "insight": "offer",
-        "offer": None,
-    }.get(current_step)
+def _lock_step(state: dict, step: str) -> None:
+    locks = state.get("locked_steps")
+    if not isinstance(locks, list):
+        locks = []
+    if step and step not in locks:
+        locks.append(step)
+    state["locked_steps"] = locks
+
+
+def _is_locked(state: dict, step: str) -> bool:
+    return step in (state.get("locked_steps") or [])
+
+
+def _normalize_user_input(raw_interactive_id: str, inbound: str) -> str:
+    return (raw_interactive_id or inbound or "").strip().lower()
+
+
+def _extract_entities(text: str) -> dict:
+    t = (text or "").lower()
+    out: dict[str, str] = {}
+    if any(x in t for x in ("explore", "just exploring", "learn", "understand", "confused", "don't understand", "dont understand")):
+        out["stage"] = "exploring"
+    elif any(x in t for x in ("start", "begin", "launch", "new")):
+        out["stage"] = "starting"
+        out["intent"] = "start"
+    elif any(x in t for x in ("scale", "grow", "increase", "expand")):
+        out["stage"] = "scaling"
+        out["intent"] = "scale"
+
+    if any(x in t for x in ("online", "social", "digital", "ads", "website")):
+        out["mode"] = "online"
+    elif any(x in t for x in ("offline", "shop", "store", "local")):
+        out["mode"] = "offline"
+
+    platform_map = {
+        "youtube": ("youtube",),
+        "instagram": ("instagram", "insta", "ig"),
+        "dropshipping": ("dropshipping", "drop shipping"),
+        "facebook": ("facebook", "fb"),
+        "whatsapp": ("whatsapp", "wa"),
+        "amazon": ("amazon",),
+        "shopify": ("shopify",),
+    }
+    for key, needles in platform_map.items():
+        if any(n in t for n in needles):
+            out["platform"] = key
+            if not out.get("mode"):
+                out["mode"] = "online"
+            break
+
+    if any(x in t for x in ("views", "reach", "audience", "followers")):
+        out["problem"] = "audience growth"
+    elif any(x in t for x in ("sales", "no order", "orders", "revenue", "customers", "leads")):
+        out["problem"] = "sales conversion"
+    elif any(x in t for x in ("content", "what to post", "niche", "clarity", "idea")):
+        out["problem"] = "content clarity"
+    elif any(x in t for x in ("ad", "ads", "cpc", "roas")):
+        out["problem"] = "ads performance"
+
+    if any(x in t for x in ("consistent", "regular", "posting")):
+        out["sub_problem"] = "consistency gap"
+    elif any(x in t for x in ("setup", "technical", "profile", "channel setup")):
+        out["sub_problem"] = "setup confusion"
+    elif any(x in t for x in ("don't know", "dont know", "no idea", "confused")):
+        out["sub_problem"] = "execution confusion"
+    return out
+
+
+def _meaningful_interactions_count(state: dict) -> int:
+    count = 0
+    for k in ("stage", "intent", "mode", "platform", "problem", "sub_problem"):
+        if state.get(k):
+            count += 1
+    return count
+
+
+def _resolve_next_decision(state: dict) -> str:
+    if not state.get("platform"):
+        return "platform"
+    if not state.get("problem"):
+        return "problem"
+    if not state.get("sub_problem"):
+        return "sub_problem"
+    if not state.get("stage"):
+        return "stage"
+    if not state.get("mode"):
+        return "mode"
+    if _meaningful_interactions_count(state) >= 4:
+        return "insight"
+    return "problem"
 
 
 def generate_dynamic_options(context: dict) -> list[str]:
     platform = str(context.get("platform") or "").lower()
     step = str(context.get("current_step") or "")
     if step == "stage":
-        return ["Just exploring", "I have an idea", "Ready to start", "Other"]
-    if step == "business_type":
-        return ["Service business", "Product business", "Local business", "Other"]
+        return ["Exploring", "Starting now", "Scaling", "Other"]
     if step == "mode":
         return ["Online", "Offline", "Other"]
     if step == "platform":
         if str(context.get("mode") or "").lower() == "offline":
-            return ["Already have shop", "Start new", "No clarity", "Need customers", "Other"]
-        return ["Instagram", "YouTube", "Dropshipping", "Selling products", "Course/services", "Other"]
+            return ["Retail shop", "Local service", "Franchise", "Other"]
+        return ["YouTube", "Instagram", "Dropshipping", "Facebook", "Other"]
     if step in {"problem", "sub_problem"}:
         if platform == "youtube":
             return [
@@ -1065,12 +1144,20 @@ def generate_dynamic_options(context: dict) -> list[str]:
                 "Store setup issue",
                 "Other",
             ]
+        if platform == "facebook":
+            return [
+                "Ads not performing",
+                "No leads",
+                "No sales",
+                "Targeting confusion",
+                "Other",
+            ]
         if str(context.get("mode") or "").lower() == "offline":
             return ["Need customers", "Location issue", "Pricing issue", "Setup issue", "Other"]
-        return ["Low sales", "No customers", "Execution issue", "No clarity", "Other"]
+        return ["No clarity", "No traction", "No sales", "Execution issue", "Other"]
     if step == "offer":
         return ["Yes Start", "Need Details", "Later", "Other"]
-    return ["Other"]
+    return ["No clarity", "No sales", "No reach", "Other"]
 
 
 def _map_other_to_problem(free_text: str) -> str:
@@ -1098,7 +1185,7 @@ def _strict_lang_render(lang: str, english_text: str, hinglish_text: str, hindi_
 
 
 def _ctx_insight_text(lang: str, ctx: dict) -> str:
-    stage = str(ctx.get("stage") or "unknown")
+    stage = str(ctx.get("stage") or "current stage")
     platform = str(ctx.get("platform") or "your platform")
     problem = str(ctx.get("problem") or "your current challenge")
     en = (
@@ -1145,13 +1232,6 @@ def _next_question_for_step(lang: str, step: str, ctx: dict) -> str:
             "What stage are you currently at?",
             "Aap abhi kis stage pe ho?",
             "आप अभी किस स्टेज पर हैं?",
-        )
-    if step == "business_type":
-        return _strict_lang_render(
-            lang,
-            "What type of business are you building?",
-            "Aap kis type ka business build kar rahe ho?",
-            "आप किस प्रकार का बिजनेस बना रहे हैं?",
         )
     if step == "mode":
         return _strict_lang_render(
@@ -1213,77 +1293,83 @@ def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: 
     if not isinstance(cs, dict):
         cs = _init_consultant_state()
 
-    user_input = (raw_interactive_id or inbound or "").strip().lower()
-    current_step = str(cs.get("current_step") or "stage")
+    user_input = _normalize_user_input(raw_interactive_id, inbound)
+    if not isinstance(cs.get("history"), list):
+        cs["history"] = []
+    if user_input:
+        cs["history"].append(user_input)
 
-    # Multi-click protection: ignore repeated same click for same step.
-    last = str(cs.get("last_step_input") or "")
-    if user_input and user_input == last and current_step in (cs.get("steps_completed") or []):
-        nstep = _consultant_next_step(current_step) or "problem"
-        q = _next_question_for_step(lang, nstep, cs)
-        return LeadFlowReply(body=q, buttons=_buttons_from_options(lang, generate_dynamic_options({**cs, "current_step": nstep}), f"dyn_{nstep}"))
+    extracted = _extract_entities(user_input)
+    for k, v in extracted.items():
+        # Step lock: once explicitly selected/set, ignore overwriting with repeated clicks.
+        if not _is_locked(cs, k):
+            cs[k] = v
 
-    # Other flow.
     if cs.get("awaiting_other_for"):
         mapped = _map_other_to_problem(user_input)
         slot = str(cs.get("awaiting_other_for"))
-        cs[slot] = mapped
+        if slot in {"stage", "intent", "mode", "platform", "problem", "sub_problem"} and not _is_locked(cs, slot):
+            cs[slot] = mapped
+            _lock_step(cs, slot)
         cs["awaiting_other_for"] = ""
-        _append_step_done(cs, slot)
-        cs["current_step"] = _consultant_next_step(slot) or "insight"
         cs["last_step_input"] = user_input
-        st_sales["consultant_state"] = cs
-        set_conversation_state(sender, st_sales)
-        q = _next_question_for_step(lang, cs["current_step"], cs)
-        return LeadFlowReply(body=q, buttons=_buttons_from_options(lang, generate_dynamic_options(cs), f"dyn_{cs['current_step']}"))
-
-    # Save current step input.
-    step_key_map = {
-        "stage": "stage",
-        "business_type": "business_type",
-        "mode": "mode",
-        "platform": "platform",
-        "problem": "problem",
-        "sub_problem": "sub_problem",
-    }
-    if current_step in step_key_map and not cs.get(step_key_map[current_step]) and user_input:
-        if user_input.endswith("other") or user_input == "other":
-            cs["awaiting_other_for"] = step_key_map[current_step]
+    else:
+        decision = _resolve_next_decision(cs)
+        cs["current_step"] = decision
+        if user_input == "other" or user_input.endswith("other"):
+            cs["awaiting_other_for"] = decision
             cs["last_step_input"] = user_input
             st_sales["consultant_state"] = cs
             set_conversation_state(sender, st_sales)
+            print("STATE:", cs)
+            print("NEXT DECISION:", decision)
+            print("STEP:", cs.get("current_step"))
             return LeadFlowReply(
                 body=_strict_lang_render(
                     lang,
                     "Can you explain a bit more?",
                     "Thoda detail mein bata sakte ho?",
                     "क्या आप थोड़ा विस्तार से बता सकते हैं?",
-                ),
+                )
             )
-        cs[step_key_map[current_step]] = user_input
-        _append_step_done(cs, current_step)
+
+        # Apply direct user input to the current decision field if missing.
+        if decision in {"stage", "intent", "mode", "platform", "problem", "sub_problem"} and user_input:
+            if not cs.get(decision) and not _is_locked(cs, decision):
+                cs[decision] = user_input
+                _append_step_done(cs, decision)
+                _lock_step(cs, decision)
+            elif cs.get(decision) and user_input and user_input == cs.get("last_step_input"):
+                # anti-repeat click/input
+                pass
         cs["last_step_input"] = user_input
 
-    # Always move forward (no dead end, no repeat).
-    next_step = _consultant_next_step(current_step)
-    if next_step is None:
-        next_step = "offer"
-    if next_step == current_step:
-        next_step = "problem"
+    # Re-resolve dynamically after updates (no fixed order).
+    next_step = _resolve_next_decision(cs)
     cs["current_step"] = next_step
 
     # Offer control.
-    if next_step == "offer":
-        enough = len(cs.get("steps_completed") or []) >= 3 and cs.get("problem") and cs.get("sub_problem")
-        if not enough:
-            cs["current_step"] = "sub_problem"
-            next_step = "sub_problem"
+    enough_for_offer = bool(cs.get("problem") and cs.get("sub_problem") and _meaningful_interactions_count(cs) >= 3)
+    if next_step == "insight" and enough_for_offer:
+        next_step = "offer"
+        cs["current_step"] = "offer"
+    elif next_step == "insight" and not enough_for_offer:
+        next_step = "sub_problem" if not cs.get("sub_problem") else "problem"
+        cs["current_step"] = next_step
 
     st_sales["consultant_state"] = cs
     set_conversation_state(sender, st_sales)
+    print("STATE:", cs)
+    print("NEXT DECISION:", next_step)
+    print("STEP:", cs.get("current_step"))
 
     # Always answer + next options.
-    q = _next_question_for_step(lang, next_step, cs)
+    q = _strict_lang_render(
+        lang,
+        f"{_ctx_insight_text(lang, cs)}\n\n{_next_question_for_step(lang, next_step, cs)}",
+        f"{_ctx_insight_text(lang, cs)}\n\n{_next_question_for_step(lang, next_step, cs)}",
+        f"{_ctx_insight_text(lang, cs)}\n\n{_next_question_for_step(lang, next_step, cs)}",
+    )
     if next_step == "offer":
         q = _strict_lang_render(
             lang,
@@ -1296,6 +1382,16 @@ def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: 
             f"अगर इसे जल्दी ठीक नहीं किया तो समय और मेहनत दोनों व्यर्थ होते हैं।\n\n₹{SESSION_PRICE} इंट्रो सेशन से शुरू करना चाहेंगे?",
         )
         return LeadFlowReply(body=q, buttons=_buttons_from_options(lang, ["Yes Start", "Need Details", "Later", "Other"], "offer"))
+
+    # No dead-end fallback.
+    if next_step not in {"stage", "mode", "platform", "problem", "sub_problem", "insight"}:
+        fallback_body = _strict_lang_render(
+            lang,
+            "Let me understand this better—what is your biggest challenge right now?",
+            "Thoda better samjhta hoon—abhi sabse bada challenge kya hai?",
+            "इसे बेहतर समझता हूं—अभी आपकी सबसे बड़ी चुनौती क्या है?",
+        )
+        return LeadFlowReply(body=fallback_body, buttons=_buttons_from_options(lang, generate_dynamic_options({"current_step": "problem", **cs}), "dyn_problem"))
 
     return LeadFlowReply(body=q, buttons=_buttons_from_options(lang, generate_dynamic_options(cs), f"dyn_{next_step}"))
 def _insight_for_profile(answers: dict, lang: str) -> str:
