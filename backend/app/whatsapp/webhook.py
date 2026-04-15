@@ -753,29 +753,31 @@ def create_app(settings: Settings) -> Flask:
                 display_sales = (st_sales.get("profile_name") or profile_name or "").strip()
                 preview_sales = build_preview_state_for_sales(st_sales, inbound)
                 handled, sales_reply = try_handle(settings, sender, inbound, preview_sales, display_sales)
-                if handled and sales_reply is not None:
+                print("HANDLED =", handled)
+                if handled:
                     print("INTERCEPT OVERRIDE HIT")
                     merged_sales = {
                         **get_conversation_state(sender),
                         "transcript_lines": preview_sales["transcript_lines"],
                     }
                     set_conversation_state(sender, merged_sales)
-                    print("[wa-webhook] sales intercept path:", (sales_reply.body or "")[:200])
-                    resp = _send_lead_flow_reply(settings, sender, sales_reply)
-                    if wa_mid and resp.ok:
-                        st_sales_done = get_conversation_state(sender)
-                        st_sales_done["last_wa_mid"] = wa_mid
-                        st_sales_done["last_bot_inbound_mid"] = wa_mid
-                        set_conversation_state(sender, st_sales_done)
-                        append_thread_message(sender, "assistant", sales_reply.body)
-                        arm_followup_after_bot_send(sender)
-                        print("[wa-webhook] conversation updated + sales intercept assistant appended")
-                    else:
-                        print(
-                            "[wa-webhook] sales intercept outbound failed STATUS=",
-                            getattr(resp, "status_code", "?"),
-                        )
-                    continue
+                    if sales_reply is not None:
+                        print("[wa-webhook] sales intercept path:", (sales_reply.body or "")[:200])
+                        resp = _send_lead_flow_reply(settings, sender, sales_reply)
+                        if wa_mid and resp.ok:
+                            st_sales_done = get_conversation_state(sender)
+                            st_sales_done["last_wa_mid"] = wa_mid
+                            st_sales_done["last_bot_inbound_mid"] = wa_mid
+                            set_conversation_state(sender, st_sales_done)
+                            append_thread_message(sender, "assistant", sales_reply.body)
+                            arm_followup_after_bot_send(sender)
+                            print("[wa-webhook] conversation updated + sales intercept assistant appended")
+                        else:
+                            print(
+                                "[wa-webhook] sales intercept outbound failed STATUS=",
+                                getattr(resp, "status_code", "?"),
+                            )
+                    return "", 200
 
                 reply = handle_lead_message(settings, sender, inbound, profile_name=profile_name)
                 print("[wa-webhook] bot reply (client):", (reply.body or "")[:200])

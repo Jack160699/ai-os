@@ -504,7 +504,7 @@ def handle_lead_message(
                 },
             )
             return _welcome_reply()
-        return LeadFlowReply(body="DEBUG: fallback triggered")
+        return LeadFlowReply(body="Thanks for your message — a strategist will assist you shortly.")
 
     set_conversation_state(
         sender,
