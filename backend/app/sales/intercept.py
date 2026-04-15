@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
@@ -152,17 +151,6 @@ def try_handle(
         set_conversation_state(sender, st)
         send_admin_pricing_offered(settings, digits, name, txt, q)
         return True, LeadFlowReply(body=format_pricing_message(q))
-
-    # Broad "consulting / help my business" — catches phrases that used to die on the complete-step fallback.
-    if re.search(r"\b(consulting|consultant|business\s+consult|advisor|advisory)\b", txt, re.I):
-        st = _bump_touch(st)
-        set_conversation_state(sender, st)
-        return True, LeadFlowReply(
-            body=(
-                "I'd love to help — StratXcel focuses on starting, scaling, and automating businesses.\n\n"
-                "In one line: what stage are you at (idea, early revenue, or scaling) and what feels most stuck?"
-            ),
-        )
 
     print("INTERCEPT MISSED")
     return False, None

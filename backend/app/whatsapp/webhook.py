@@ -74,6 +74,29 @@ def _should_reset_session(state: dict, inbound: str, msg_type: str) -> bool:
     return (datetime.now(timezone.utc) - last_seen).total_seconds() > 30 * 60
 
 
+def _is_new_user_state(state: dict) -> bool:
+    if not isinstance(state, dict) or not state:
+        return True
+    return not any(
+        state.get(k)
+        for k in (
+            "entry_flow",
+            "funnel_stage",
+            "onboarding_step",
+            "step",
+            "lead_status",
+            "last_user_seen_at",
+        )
+    )
+
+
+def _contains_entry_greeting(inbound: str) -> bool:
+    t = (inbound or "").strip().lower()
+    if not t:
+        return False
+    return bool(re.search(r"\b(hi|hello|start|hey)\b", t))
+
+
 def _extract_message_payload(msg_data: dict) -> tuple[str, str, str]:
     """Return (display_text, raw_interactive_id, msg_type)."""
     msg_type = str(msg_data.get("type") or "unknown")
@@ -1081,6 +1104,28 @@ def create_app(settings: Settings) -> Flask:
                 if wa_mid and get_conversation_state(sender).get("last_bot_inbound_mid") == wa_mid:
                     print("[wa-webhook] skip bot already sent for wa_mid=", wa_mid)
                     continue
+
+                st_entry_check = get_conversation_state(sender)
+                if _is_new_user_state(st_entry_check) or _contains_entry_greeting(inbound):
+                    clear_conversation_state(sender)
+                    print("ENTRY FLOW TRIGGERED")
+                    tl_entry = build_preview_state_for_sales({}, inbound)["transcript_lines"]
+                    set_conversation_state(
+                        sender,
+                        {
+                            "entry_flow": "language_select",
+                            "step": "start",
+                            "lang": "en",
+                            "transcript_lines": tl_entry,
+                            "last_user_seen_at": datetime.now(timezone.utc).isoformat(),
+                        },
+                    )
+                    welcome_lang = LeadFlowReply(
+                        body="Welcome to StratXcel 🚀\n\nChoose your language:",
+                        buttons=_ENTRY_LANG_BUTTONS,
+                    )
+                    _finalize_wa_auto_reply(settings, sender, welcome_lang, wa_mid)
+                    return "", 200
 
                 st_paid_onb = get_conversation_state(sender)
                 onb_step = str(st_paid_onb.get("onboarding_step") or "").strip()
