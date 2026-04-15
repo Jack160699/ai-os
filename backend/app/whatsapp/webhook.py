@@ -26,6 +26,7 @@ from app.inbox.service import (
 )
 from app.payments.internal import process_razorpay_internal
 from app.memory.store import (
+    clear_conversation_state,
     get_all_states,
     append_thread_message,
     get_conversation_state,
@@ -57,6 +58,19 @@ def _wa_timestamp_iso(msg_data: dict) -> str | None:
 
 def _inbound_auto_reply_enabled() -> bool:
     return os.getenv("WHATSAPP_INBOUND_AUTO_REPLY", "1").strip().lower() not in ("0", "false", "no", "off")
+
+
+_SESSION_RESET_GREETINGS = {"hi", "hello", "start"}
+
+
+def _should_reset_session(state: dict, inbound: str, msg_type: str) -> bool:
+    text = (inbound or "").strip().lower()
+    if msg_type == "text" and text in _SESSION_RESET_GREETINGS:
+        return True
+    last_seen = parse_iso(str(state.get("last_user_seen_at", "")))
+    if not last_seen:
+        return False
+    return (datetime.now(timezone.utc) - last_seen).total_seconds() > 30 * 60
 
 
 def _extract_message_payload(msg_data: dict) -> tuple[str, str, str]:
@@ -861,6 +875,15 @@ def create_app(settings: Settings) -> Flask:
                         set_conversation_state(sender, st1)
                     print("[wa-webhook] STATUS:", getattr(resp, "status_code", "?"))
                     continue
+
+                st_live = get_conversation_state(sender)
+                if _should_reset_session(st_live, inbound, msg_type):
+                    clear_conversation_state(sender)
+                    print("STATE RESET")
+
+                st_seen = get_conversation_state(sender)
+                st_seen["last_user_seen_at"] = datetime.now(timezone.utc).isoformat()
+                set_conversation_state(sender, st_seen)
 
                 clear_followup_on_user_inbound(sender, inbound)
                 added = append_thread_message(
