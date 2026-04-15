@@ -169,6 +169,53 @@ def get_payment_events() -> list[dict]:
     return ev if isinstance(ev, list) else []
 
 
+def get_payment_notes() -> dict[str, dict]:
+    memory = load_memory()
+    notes = memory.get("payment_notes")
+    if not isinstance(notes, dict):
+        return {}
+    out: dict[str, dict] = {}
+    for key, value in notes.items():
+        if not isinstance(key, str) or not isinstance(value, dict):
+            continue
+        out[key] = value
+    return out
+
+
+def upsert_payment_note(
+    *,
+    payment_id: str,
+    note: str,
+    refund_status: str = "",
+    author: str = "admin",
+) -> dict:
+    pid = str(payment_id or "").strip()
+    if not pid:
+        raise ValueError("payment_id is required")
+    body = str(note or "").strip()
+    if not body:
+        raise ValueError("note is required")
+
+    memory = load_memory()
+    notes = memory.get("payment_notes")
+    if not isinstance(notes, dict):
+        notes = {}
+
+    now = datetime.now(timezone.utc).isoformat()
+    prev = notes.get(pid) if isinstance(notes.get(pid), dict) else {}
+    notes[pid] = {
+        "payment_id": pid,
+        "note": body,
+        "refund_status": str(refund_status or prev.get("refund_status") or "").strip(),
+        "author": str(author or "admin").strip(),
+        "updated_at_utc": now,
+        "created_at_utc": str(prev.get("created_at_utc") or now),
+    }
+    memory["payment_notes"] = notes
+    save_memory(memory)
+    return notes[pid]
+
+
 def append_conversion_event(event: dict) -> None:
     """Append one conversion analytics row for dashboard/CSV exports."""
     memory = load_memory()

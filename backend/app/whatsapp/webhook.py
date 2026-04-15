@@ -40,6 +40,7 @@ from app.memory.store import (
     append_payment_event,
     clear_conversation_state,
     get_conversion_events,
+    get_payment_notes,
     get_payment_events,
     get_all_states,
     append_thread_message,
@@ -48,6 +49,7 @@ from app.memory.store import (
     get_thread_messages,
     normalize_phone_digits,
     set_conversation_state,
+    upsert_payment_note,
 )
 from app.sales import states as sales_states
 from app.sales.intercept import build_preview_state_for_sales, try_handle
@@ -234,19 +236,25 @@ def _try_ceo_pricing_approve(settings: Settings, inbound: str) -> str | None:
 
 
 def _dashboard_api_payload(metrics: dict) -> dict:
+    payment_notes = get_payment_notes()
     payment_events_recent = []
     for row in reversed(get_payment_events()[-60:]):
         if not isinstance(row, dict):
             continue
+        payment_id = str(row.get("payment_id") or "")
+        note = payment_notes.get(payment_id) if payment_id else None
         payment_events_recent.append(
             {
                 "recorded_at_utc": str(row.get("recorded_at_utc") or ""),
                 "status": str(row.get("status") or row.get("event") or "unknown"),
                 "amount_rupees": row.get("amount_rupees"),
-                "payment_id": str(row.get("payment_id") or ""),
+                "payment_id": payment_id,
                 "order_id": str(row.get("order_id") or ""),
                 "reason": str(row.get("reason") or row.get("error_description") or row.get("error_code") or ""),
                 "source": str(row.get("source") or ""),
+                "refund_note": str((note or {}).get("note") or ""),
+                "refund_status": str((note or {}).get("refund_status") or ""),
+                "refund_note_updated_at_utc": str((note or {}).get("updated_at_utc") or ""),
             }
         )
         if len(payment_events_recent) >= 20:
@@ -2105,6 +2113,40 @@ def create_app(settings: Settings) -> Flask:
             f"step={str(data.get('step') or 'checkout')} environment={razorpay_mode()}"
         )
         return _checkout_json({"status": "logged"}, 200)
+
+    @app.route("/api/payment-notes", methods=["GET", "POST"])
+    def api_payment_notes():
+        if settings.dashboard_password and not _is_dashboard_authed(settings):
+            return jsonify({"error": "unauthorized"}), 401
+        if request.method == "GET":
+            return jsonify({"notes": get_payment_notes()}), 200
+
+        data = request.get_json(silent=True) or {}
+        payment_id = str(data.get("payment_id") or "").strip()
+        note = str(data.get("note") or "").strip()
+        refund_status = str(data.get("refund_status") or "").strip()
+        author = str(data.get("author") or "admin").strip() or "admin"
+        if not payment_id or not note:
+            return jsonify({"error": "payment_id and note are required"}), 400
+        try:
+            row = upsert_payment_note(
+                payment_id=payment_id,
+                note=note,
+                refund_status=refund_status,
+                author=author,
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        append_payment_event(
+            {
+                "payment_id": payment_id,
+                "status": "refund_note_updated",
+                "reason": row.get("note"),
+                "refund_status": row.get("refund_status"),
+                "source": "admin_dashboard",
+            }
+        )
+        return jsonify({"ok": True, "note": row}), 200
 
     @app.route("/inbox/lead/<path:phone>", methods=["GET"])
     def inbox_lead_detail(phone: str):

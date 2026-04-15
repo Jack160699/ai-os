@@ -122,10 +122,12 @@ export default async function AdminPage() {
   const painPoints = Array.isArray(data?.top_pain_points) ? data.top_pain_points : [];
   const hotLeads = Array.isArray(data?.hot_leads) ? data.hot_leads : [];
   const recentRows = data ? mergeRecentTableRows(data) : [];
+  const paymentEvents = Array.isArray(data?.payment_events_recent) ? data.payment_events_recent : [];
   const agentStatuses = getAgentCenterItems();
   const dailyWin = Number(summary?.bookings_today ?? 0) * 499;
   const activeLive = Number(summary?.active_leads ?? 0);
   const abandonedPayments = Math.max(0, Math.round(activeLive * 0.18));
+  const paymentFailures = paymentEvents.filter((row) => String(row?.status || "").toLowerCase().includes("fail"));
 
   return (
     <AdminShell
@@ -212,6 +214,21 @@ export default async function AdminPage() {
               Assign sales owner
             </button>
           </div>
+        </SurfaceCard>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+        <SurfaceCard className="p-5 sm:p-6" href="/admin/payments">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Payment Alerts</p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-white">{paymentFailures.length}</p>
+          <p className="mt-1 text-[12px] text-slate-400">Recent payment failures needing follow-up.</p>
+        </SurfaceCard>
+        <SurfaceCard className="p-5 sm:p-6" href="/admin/payments">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Daily Revenue Snapshot</p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-emerald-100">
+            ₹{Number(summary?.paid_revenue_rupees ?? 0).toLocaleString("en-IN")}
+          </p>
+          <p className="mt-1 text-[12px] text-slate-400">Captured revenue reflected from payment events.</p>
         </SurfaceCard>
       </section>
 
