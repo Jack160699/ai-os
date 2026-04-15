@@ -674,6 +674,12 @@ def _localize_reply_for_sender(sender: str, reply: LeadFlowReply) -> LeadFlowRep
     # Hard language gate at final output layer for English mode.
     if lang == "english" and re.search(r"[\u0900-\u097F]|(?:\baap\b|\bhai\b|\bka\b|\bhai\b)", body, re.I):
         body = "I understand your situation.\n\nLet's continue step by step."
+    if lang == "english":
+        body = _strip_or_limit_emoji(body, keep_one=False)
+    elif lang == "hindi":
+        body = _strip_or_limit_emoji(body, keep_one=False)
+    else:
+        body = _strip_or_limit_emoji(body, keep_one=True)
     return LeadFlowReply(
         body=body,
         buttons=_localize_buttons(dynamic_buttons, lang),
@@ -941,7 +947,7 @@ def _flow_text(lang: str, key: str) -> str:
             "ask_offline_sub": "What are you planning offline?",
             "ask_problem": "What is the biggest problem right now?",
             "understand": "I understand.\n\nAt this stage, most people struggle with clarity or execution.\n\nThis can be solved.",
-            "failsafe": "Something went wrong, let’s continue 😊",
+            "failsafe": "I understand.\n\nLet’s continue.\n\nWhat feels most difficult right now?",
         },
         "hinglish": {
             "ask_stage": "Aap abhi kis stage pe ho?",
@@ -950,7 +956,7 @@ def _flow_text(lang: str, key: str) -> str:
             "ask_offline_sub": "Offline mein kya plan hai?",
             "ask_problem": "Abhi sabse bada problem kya aa raha hai?",
             "understand": "Samajh gaya.\n\nIs stage pe clarity ya execution issue aata hai.\n\nYe solve ho sakta hai.",
-            "failsafe": "Kuch issue aaya, chalo continue karte hain 😊",
+            "failsafe": "Samajh gaya.\n\nChalo continue karte hain.\n\nAbhi sabse bada problem kya lag raha hai?",
         },
         "hindi": {
             "ask_stage": "आप अभी किस स्टेज पर हैं?",
@@ -959,7 +965,7 @@ def _flow_text(lang: str, key: str) -> str:
             "ask_offline_sub": "ऑफलाइन में आप क्या प्लान कर रहे हैं?",
             "ask_problem": "अभी सबसे बड़ी समस्या क्या आ रही है?",
             "understand": "मैं समझ गया।\n\nइस स्टेज पर ज्यादातर लोगों को clarity या execution की समस्या होती है।\n\nइसे ठीक किया जा सकता है।",
-            "failsafe": "कुछ गड़बड़ हुई, चलिए आगे बढ़ते हैं 😊",
+            "failsafe": "मैं समझ गया।\n\nचलिए आगे बढ़ते हैं।\n\nअभी सबसे बड़ी समस्या क्या लग रही है?",
         },
     }
     lk = lang if lang in text else "english"
@@ -1013,6 +1019,58 @@ def _insight_for_profile(answers: dict, lang: str) -> str:
     )
 
 
+def generate_options(context: dict) -> tuple[tuple[str, str], ...]:
+    stage = str(context.get("funnel_stage") or "")
+    platform = str(context.get("platform") or context.get("subcategory") or "").lower()
+    mode = str(context.get("funnel_mode") or "").lower()
+    if stage == "ask_subcategory_detail" and "youtube" in platform:
+        return (
+            ("yt_no_views", "Not getting views"),
+            ("yt_content_confused", "Don’t know content"),
+            ("yt_not_consistent", "Not consistent"),
+            ("yt_setup_confused", "Channel setup confusion"),
+            ("yt_other", "Other"),
+        )
+    if stage == "ask_subcategory_detail" and "instagram" in platform:
+        return (
+            ("ig_no_reach", "No reach"),
+            ("ig_no_followers", "No followers"),
+            ("ig_no_sales", "No sales"),
+            ("ig_content_confused", "Content confusion"),
+            ("ig_other", "Other"),
+        )
+    if stage == "ask_subcategory_detail" and mode == "offline":
+        return (
+            ("of_need_customers", "Need customers"),
+            ("of_location_issue", "Location issue"),
+            ("of_pricing_issue", "Pricing issue"),
+            ("of_setup_issue", "Setup issue"),
+            ("of_other", "Other"),
+        )
+    return (
+        ("pb_sales_low", "Sales low"),
+        ("pb_no_customers", "No customers"),
+        ("pb_marketing", "Marketing issue"),
+        ("pb_execution", "Execution issue"),
+        ("pb_other", "Other"),
+    )
+
+
+def _strip_or_limit_emoji(text: str, *, keep_one: bool) -> str:
+    emoji_re = re.compile(r"[😊⚠📈🎯🚀👍👌👀]")
+    if not keep_one:
+        return emoji_re.sub("", text or "").strip()
+    seen = False
+    out = []
+    for ch in text or "":
+        if emoji_re.match(ch):
+            if seen:
+                continue
+            seen = True
+        out.append(ch)
+    return "".join(out).strip()
+
+
 def _exploration_question(mode: str) -> LeadFlowReply:
     if mode == "online":
         return LeadFlowReply(
@@ -1042,25 +1100,13 @@ def _second_level_question(selection: str, mode: str) -> LeadFlowReply:
     s = (selection or "").lower()
     if "youtube" in s:
         return LeadFlowReply(
-            body="Got it. What’s your current situation with YouTube?",
-            buttons=(
-                ("yt_channel", "I already have a channel"),
-                ("yt_basic", "Facing basic issues"),
-                ("yt_no_understanding", "I don’t understand anything yet"),
-                ("yt_no_audience", "Not getting audience"),
-                ("yt_other", "Other"),
-            ),
+            body="I understand.\n\nWhat exactly are you facing on YouTube?",
+            buttons=generate_options({"funnel_stage": "ask_subcategory_detail", "subcategory": "youtube"}),
         )
     if "insta" in s:
         return LeadFlowReply(
             body="Got it. What’s your current situation with Instagram?",
-            buttons=(
-                ("ig_page_exists", "Page already exists"),
-                ("ig_no_growth", "No growth"),
-                ("ig_no_leads", "No leads/sales"),
-                ("ig_content_confused", "Content confusion"),
-                ("ig_other", "Other"),
-            ),
+            buttons=generate_options({"funnel_stage": "ask_subcategory_detail", "subcategory": "instagram"}),
         )
     if any(x in s for x in ("drop", "selling", "product")):
         return LeadFlowReply(
@@ -1086,12 +1132,7 @@ def _second_level_question(selection: str, mode: str) -> LeadFlowReply:
         )
     return LeadFlowReply(
         body="Got it. What feels most difficult right now?",
-        buttons=(
-            ("ch_sales_low", "Sales low"),
-            ("ch_no_leads", "No leads"),
-            ("ch_marketing", "Marketing issue"),
-            ("ch_other", "Other"),
-        ),
+        buttons=generate_options({"funnel_stage": "ask_subcategory_detail", "funnel_mode": mode}),
     )
 
 
@@ -1777,6 +1818,22 @@ def create_app(settings: Settings) -> Flask:
                         return "", 200
                     if funnel_stage == "ask_subcategory_detail":
                         detail = raw_interactive_id or inbound
+                        if detail.endswith("other") or detail == "Other":
+                            st_next = {
+                                **st_sales,
+                                "funnel_stage": "ask_other_detail",
+                                "funnel_answers": answers,
+                                "last_funnel_button_id": raw_interactive_id or "",
+                                "last_funnel_stage": funnel_stage,
+                            }
+                            set_conversation_state(sender, st_next)
+                            _finalize_wa_auto_reply(
+                                settings,
+                                sender,
+                                LeadFlowReply(body="Can you explain a bit more?"),
+                                wa_mid,
+                            )
+                            return "", 200
                         answers["subcategory_detail"] = detail
                         if detail == "yt_no_audience":
                             st_next = {
@@ -1816,6 +1873,32 @@ def create_app(settings: Settings) -> Flask:
                             LeadFlowReply(
                                 body=f"{_flow_text(lang_now, 'understand')}\n\n{_flow_text(lang_now, 'ask_problem')}",
                                 buttons=_flow_buttons(lang_now, ("pb_sales_low", "pb_no_customers", "pb_marketing")),
+                            ),
+                            wa_mid,
+                        )
+                        return "", 200
+                    if funnel_stage == "ask_other_detail":
+                        problem_text = (inbound or "").strip()
+                        mapped = "content_clarity" if "content" in problem_text.lower() else "execution_issue"
+                        answers["sub_problem"] = mapped
+                        st_next = {
+                            **st_sales,
+                            "funnel_stage": "ask_challenge",
+                            "funnel_answers": answers,
+                            "last_funnel_button_id": raw_interactive_id or "",
+                            "last_funnel_stage": funnel_stage,
+                        }
+                        set_conversation_state(sender, st_next)
+                        _finalize_wa_auto_reply(
+                            settings,
+                            sender,
+                            LeadFlowReply(
+                                body=(
+                                    "Got it.\n\n"
+                                    f"So you are facing {mapped.replace('_', ' ')} issue.\n\n"
+                                    f"{_flow_text(lang_now, 'ask_problem')}"
+                                ),
+                                buttons=generate_options({"funnel_stage": "ask_challenge", "platform": answers.get('subcategory', '')}),
                             ),
                             wa_mid,
                         )
@@ -1866,6 +1949,17 @@ def create_app(settings: Settings) -> Flask:
                         return "", 200
                     if funnel_stage == "ask_challenge":
                         challenge = raw_interactive_id if raw_interactive_id else inbound
+                        if challenge.endswith("other") or challenge == "Other":
+                            st_next = {
+                                **st_sales,
+                                "funnel_stage": "ask_other_detail",
+                                "funnel_answers": answers,
+                                "last_funnel_button_id": raw_interactive_id or "",
+                                "last_funnel_stage": funnel_stage,
+                            }
+                            set_conversation_state(sender, st_next)
+                            _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body="Can you explain a bit more?"), wa_mid)
+                            return "", 200
                         answers["challenge"] = challenge
                         st_next = {**st_sales, "funnel_answers": answers, "last_funnel_button_id": raw_interactive_id or "", "last_funnel_stage": funnel_stage}
                         if _is_leads_like(challenge):
@@ -2028,7 +2122,15 @@ def create_app(settings: Settings) -> Flask:
                     # Failsafe only when flow cannot resolve next step.
                     next_step = _next_step(funnel_stage)
                     if next_step is None:
-                        _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_flow_text(get_user_lang(sender), "failsafe")), wa_mid)
+                        _finalize_wa_auto_reply(
+                            settings,
+                            sender,
+                            LeadFlowReply(
+                                body=_flow_text(get_user_lang(sender), "failsafe"),
+                                buttons=generate_options({"funnel_stage": "ask_challenge", "platform": str(answers.get("subcategory", ""))}),
+                            ),
+                            wa_mid,
+                        )
                         return "", 200
 
                 print("WEBHOOK HIT:", flow_inbound[:500])
