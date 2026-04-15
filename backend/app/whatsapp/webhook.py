@@ -536,25 +536,73 @@ def _localize_list_menu(menu: ListMenuSpec | None, lang: str):
     if not menu or lang == "en":
         return menu
     if lang == "hi":
-        rows = (
-            ("menu_start", "बिज़नेस शुरू करें", None),
-            ("menu_grow", "बिज़नेस बढ़ाएँ", None),
-            ("menu_auto", "ऑटोमेट करें", None),
+        translated_rows = []
+        for rid, title, desc in menu.rows:
+            tr = {
+                "Start Business": "बिज़नेस शुरू करें",
+                "Grow Business": "बिज़नेस बढ़ाएँ",
+                "Automate": "ऑटोमेट करें",
+                "Automate Business": "ऑटोमेट करें",
+                "Sales low": "सेल्स कम",
+                "No leads": "लीड्स नहीं",
+                "No marketing system": "मार्केटिंग सिस्टम नहीं",
+                "Team issue": "टीम इश्यू",
+                "Idea not clear": "आइडिया क्लियर नहीं",
+                "Launch plan missing": "लॉन्च प्लान नहीं",
+                "No team / support": "टीम / सपोर्ट नहीं",
+                "Too much manual work": "मैन्युअल काम ज़्यादा",
+                "Follow-ups slow": "फॉलो-अप धीमे",
+                "No proper system": "सिस्टम नहीं",
+                "Something else": "कुछ और",
+            }.get(title, title)
+            translated_rows.append((rid, tr[:24], desc))
+        return ListMenuSpec(
+            button_label="विकल्प चुनें",
+            section_title="मदद विषय",
+            rows=tuple(translated_rows),
         )
-        return ListMenuSpec(button_label="विकल्प चुनें", section_title="मदद विषय", rows=rows)
-    rows = (
-        ("menu_start", "Start Business", None),
-        ("menu_grow", "Grow Business", None),
-        ("menu_auto", "Automate", None),
+    translated_rows = []
+    for rid, title, desc in menu.rows:
+        tr = {
+            "Something else": "Something else",
+            "No marketing system": "Marketing issue",
+        }.get(title, title)
+        translated_rows.append((rid, tr[:24], desc))
+    return ListMenuSpec(
+        button_label=menu.button_label or "Choose",
+        section_title=menu.section_title or "Options",
+        rows=tuple(translated_rows),
     )
-    return ListMenuSpec(button_label="Choose", section_title="Help topics", rows=rows)
+
+
+def _default_buttons_for_state(sender: str, text: str) -> tuple[tuple[str, str], ...] | None:
+    st = get_conversation_state(sender)
+    stage = str(st.get("funnel_stage") or "")
+    t = (text or "").lower()
+    if stage == "ask_challenge" or "biggest challenge" in t:
+        return (
+            ("ch_sales_low", "Sales low"),
+            ("ch_no_leads", "No leads"),
+            ("ch_marketing", "Marketing issue"),
+            ("ch_not_sure", "Not sure"),
+        )
+    if "kaha ho" in t or "where are you" in t or "idea stage" in t:
+        return (("st_idea", "Idea stage"), ("st_running", "Already running"))
+    if stage == "ask_level" or "kis level pe" in t:
+        return (("lvl_start", "Just starting"), ("lvl_growth", "Serious growth"), ("lvl_scale", "Full scale"))
+    if stage == "offer_accept" or "start karna chahoge" in t:
+        return (("offer_yes", "Yes Start"), ("offer_details", "Need Details"), ("offer_later", "Later"))
+    return None
 
 
 def _localize_reply_for_sender(sender: str, reply: LeadFlowReply) -> LeadFlowReply:
     lang = get_lang(sender)
+    dynamic_buttons = reply.buttons
+    if not dynamic_buttons and not reply.list_menu:
+        dynamic_buttons = _default_buttons_for_state(sender, reply.body)
     return LeadFlowReply(
         body=_localize_text(reply.body, lang),
-        buttons=_localize_buttons(reply.buttons, lang),
+        buttons=_localize_buttons(dynamic_buttons, lang),
         list_menu=_localize_list_menu(reply.list_menu, lang),
     )
 
