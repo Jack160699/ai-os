@@ -462,8 +462,12 @@ def _is_dashboard_authed(settings: Settings) -> bool:
 
 def get_lang(sender: str) -> str:
     state = get_conversation_state(sender)
-    lang = str(state.get("lang") or state.get("user_language") or "en").strip().lower()
-    return lang if lang in {"en", "hi", "hinglish"} else "en"
+    lang = str(state.get("lang") or state.get("user_language") or "english").strip().lower()
+    if lang in {"en", "english"}:
+        return "english"
+    if lang in {"hi", "hindi"}:
+        return "hindi"
+    return "hinglish"
 
 
 def get_user_lang(sender: str) -> str:
@@ -474,15 +478,19 @@ def _enforce_lang_tone(text: str, lang: str) -> str:
     out = text or ""
     if not out:
         return out
-    if lang == "en":
+    if lang == "english":
         return (
             out.replace("Samajh gaya", "Got it")
             .replace("Bilkul", "Absolutely")
             .replace("Koi tension nahi", "No worries")
-            .replace("kya aa raha hai", "what is coming up")
+            .replace("kya aa raha hai", "what is happening")
             .replace("Aap alone nahi ho", "You are not alone")
+            .replace("Aap", "You")
+            .replace("aap", "you")
+            .replace("hai", "is")
+            .replace("karna", "do")
         )
-    if lang == "hi":
+    if lang == "hindi":
         return (
             out.replace("No worries", "कोई टेंशन नहीं")
             .replace("Got it", "समझ गया")
@@ -495,7 +503,7 @@ def _localize_text(text: str, lang: str) -> str:
     if not text:
         return text
     t = text.strip()
-    if lang == "hi":
+    if lang == "hindi":
         mapping = {
             "Welcome to StratXcel 🚀\n\nChoose your language:": "StratXcel में आपका स्वागत है 🚀\n\nकृपया अपनी भाषा चुनें:",
             "Please choose your language using the buttons below 👆": "कृपया नीचे दिए गए बटनों से अपनी भाषा चुनें 👆",
@@ -507,6 +515,8 @@ def _localize_text(text: str, lang: str) -> str:
             "Slots are limited today — want me to reserve this?": "आज स्लॉट सीमित हैं — क्या मैं आपके लिए रिज़र्व कर दूँ?",
         }
         return _enforce_lang_tone(mapping.get(t, t), lang)
+    if lang == "english":
+        return _enforce_lang_tone(t, lang)
     mapping_hinglish = {
         "Welcome to StratXcel 🚀\n\nChoose your language:": "Welcome to StratXcel 🚀\n\nLanguage choose kar lo 😊",
         "Please choose your language using the buttons below 👆": "No worries 😊\nNeeche se language button tap kar do 👆",
@@ -549,7 +559,7 @@ def _localize_text(text: str, lang: str) -> str:
 
 
 def _localize_buttons(buttons: tuple[tuple[str, str], ...] | None, lang: str):
-    if not buttons or lang == "en":
+    if not buttons or lang == "english":
         return buttons
     out = []
     for bid, title in buttons:
@@ -560,7 +570,7 @@ def _localize_buttons(buttons: tuple[tuple[str, str], ...] | None, lang: str):
         elif bid == "lang_hinglish":
             label = "Hinglish"
         else:
-            if lang == "hi":
+            if lang == "hindi":
                 label = {
                     "Start Business": "बिज़नेस शुरू करें",
                     "Grow Business": "बिज़नेस बढ़ाएँ",
@@ -581,9 +591,9 @@ def _localize_buttons(buttons: tuple[tuple[str, str], ...] | None, lang: str):
 
 
 def _localize_list_menu(menu: ListMenuSpec | None, lang: str):
-    if not menu or lang == "en":
+    if not menu or lang == "english":
         return menu
-    if lang == "hi":
+    if lang == "hindi":
         translated_rows = []
         for rid, title, desc in menu.rows:
             tr = {
@@ -712,17 +722,17 @@ _ENTRY_MENU_INBOUND = {
 
 SESSION_PRICE = 499
 _FUNNEL_PITCH = (
-    "Dekho 👍\n\n"
-    "Aapke case mein guesswork se kaam nahi chalega.\n\n"
-    "Ek baar exact samajh lena better rahega,\n"
-    "warna same issue repeat hota rahega.\n\n"
+    "I understand your situation.\n\n"
+    "In your case, guesswork will cost time and money.\n\n"
+    "It is better to get exact clarity now,\n"
+    "instead of repeating the same problem.\n\n"
     "1:1 Strategy Session mein:\n\n"
-    "• problem root cause samjhenge\n"
-    "• exact fix batayenge\n"
-    "• growth roadmap denge\n"
-    "• next best step clear karenge\n\n"
+    "• identify root problem\n"
+    "• give exact fix\n"
+    "• share growth roadmap\n"
+    "• clarify next best step\n\n"
     f"Intro fee ₹{SESSION_PRICE} hai.\n\n"
-    "Start karna chahoge? 😊"
+    "Would you like to start? 😊"
 )
 
 
@@ -739,7 +749,7 @@ def _is_explicit_human_request(text: str) -> bool:
 def _dynamic_challenge_question(need: str) -> LeadFlowReply:
     if need == "grow":
         return LeadFlowReply(
-            body="Samajh gaya 😊 aap business grow karna chahte ho.\n\nAapka business kis type ka hai?",
+            body="I understand.\n\nWhat type of business do you run?",
             list_menu=ListMenuSpec(
                 button_label="Type choose karo",
                 section_title="Business type",
@@ -753,11 +763,11 @@ def _dynamic_challenge_question(need: str) -> LeadFlowReply:
         )
     if need == "automate":
         return LeadFlowReply(
-            body="Samajh gaya 😊 aap business automate karna chahte ho.\n\nKis cheez ko automate karna chahte ho?",
+            body="I understand.\n\nWhat do you want to automate first?",
             buttons=(("am_leads", "Leads"), ("am_followup", "Follow-up"), ("am_support", "Support")),
         )
     return LeadFlowReply(
-        body="Nice 🚀 start karna exciting hai.\n\nAap abhi kis stage pe ho?",
+        body="Nice 🚀 starting a business is exciting.\n\nWhat stage are you currently at?",
         buttons=(("st_idea", "Idea hai"), ("st_plan", "Soch raha hoon"), ("st_ready", "Ready to start")),
     )
 
@@ -794,15 +804,77 @@ def _exploration_question(mode: str) -> LeadFlowReply:
             buttons=(
                 ("ex_insta", "Instagram"),
                 ("ex_youtube", "YouTube"),
+                ("ex_drop", "Dropshipping"),
                 ("ex_selling", "Selling products"),
+                ("ex_course", "Course / services"),
+                ("ex_notsure", "Not sure"),
             ),
         )
     return LeadFlowReply(
         body="What’s your focus offline?",
         buttons=(
-            ("ex_shop_new", "New shop"),
-            ("ex_local_reach", "Grow local reach"),
-            ("ex_improve_shop", "Improve existing shop"),
+            ("ex_shop_running", "Already have a shop"),
+            ("ex_shop_new", "Want to start something new"),
+            ("ex_no_clarity", "No clarity yet"),
+            ("ex_need_customers", "Need customers"),
+            ("ex_other", "Other"),
+        ),
+    )
+
+
+def _second_level_question(selection: str, mode: str) -> LeadFlowReply:
+    s = (selection or "").lower()
+    if "youtube" in s:
+        return LeadFlowReply(
+            body="Got it. What’s your current situation with YouTube?",
+            buttons=(
+                ("yt_channel", "I already have a channel"),
+                ("yt_basic", "Facing basic issues"),
+                ("yt_no_understanding", "I don’t understand anything yet"),
+                ("yt_no_audience", "Not getting audience"),
+                ("yt_other", "Other"),
+            ),
+        )
+    if "insta" in s:
+        return LeadFlowReply(
+            body="Got it. What’s your current situation with Instagram?",
+            buttons=(
+                ("ig_page_exists", "Page already exists"),
+                ("ig_no_growth", "No growth"),
+                ("ig_no_leads", "No leads/sales"),
+                ("ig_content_confused", "Content confusion"),
+                ("ig_other", "Other"),
+            ),
+        )
+    if any(x in s for x in ("drop", "selling", "product")):
+        return LeadFlowReply(
+            body="Got it. What’s your current situation with products?",
+            buttons=(
+                ("pr_store_not_set", "Store not set"),
+                ("pr_no_sales", "No sales"),
+                ("pr_ads_fail", "Ads not working"),
+                ("pr_confused_sell", "Confused what to sell"),
+                ("pr_other", "Other"),
+            ),
+        )
+    if mode == "offline":
+        return LeadFlowReply(
+            body="Got it. What’s your current offline situation?",
+            buttons=(
+                ("of_running", "Already running shop"),
+                ("of_start_new", "Want to start new"),
+                ("of_no_clarity", "No clarity"),
+                ("of_need_customers", "Need customers"),
+                ("of_other", "Other"),
+            ),
+        )
+    return LeadFlowReply(
+        body="Got it. What feels most difficult right now?",
+        buttons=(
+            ("ch_sales_low", "Sales low"),
+            ("ch_no_leads", "No leads"),
+            ("ch_marketing", "Marketing issue"),
+            ("ch_other", "Other"),
         ),
     )
 
@@ -816,32 +888,32 @@ def _micro_explain_copy(challenge: str) -> str:
     c = (challenge or "").lower()
     if "follow" in c:
         return (
-            "Samajh gaya 😊\n\n"
-            "Follow-up slow hota hai toh leads miss ho jaate hain ⚠️\n\n"
-            "Usually ya toh system nahi hota\n"
-            "ya timely reply nahi jaata.\n\n"
-            "Ye common hai.\n"
-            "Iska solution hota hai."
+            "I understand.\n\n"
+            "When follow-up is slow, leads are often lost ⚠️\n\n"
+            "Usually this happens due to weak systems\n"
+            "or delayed response.\n\n"
+            "This is common.\n"
+            "It can be fixed."
         )
     if _is_leads_like(c):
         return (
-            "Samajh gaya 😊\n\n"
-            "Customers aa nahi rahe toh growth ruk jaati hai.\n\n"
-            "Usually marketing ya offer clarity issue hota hai.\n\n"
-            "Aap alone nahi ho.\n"
-            "Fix kiya ja sakta hai."
+            "I understand.\n\n"
+            "When customers are not coming in, growth slows down.\n\n"
+            "Usually this is a marketing or offer clarity issue.\n\n"
+            "You are not alone.\n"
+            "It can be improved."
         )
     if "sales" in c:
         return (
-            "Samajh gaya 😊\n\n"
-            "Sales convert na ho toh confidence hit hota hai.\n\n"
-            "Ye common issue hai.\n"
-            "Iska solution hota hai."
+            "I understand.\n\n"
+            "When sales do not convert, confidence drops.\n\n"
+            "This is common.\n"
+            "There is a clear fix."
         )
     return (
-        "Bilkul.\n\n"
-        "Ye common issue hai.\n"
-        "Fix kiya ja sakta hai 👍"
+        "I understand.\n\n"
+        "This is a common issue.\n"
+        "It can be solved."
     )
 
 
@@ -1458,6 +1530,19 @@ def create_app(settings: Settings) -> Flask:
                         answers["focus_area"] = raw_interactive_id or inbound
                         st_next = {
                             **st_sales,
+                            "funnel_stage": "ask_exploration_detail",
+                            "funnel_answers": answers,
+                            "funnel_mode": st_sales.get("funnel_mode", "online"),
+                            "last_funnel_button_id": raw_interactive_id or "",
+                            "last_funnel_stage": funnel_stage,
+                        }
+                        set_conversation_state(sender, st_next)
+                        _finalize_wa_auto_reply(settings, sender, _second_level_question(raw_interactive_id or inbound, str(st_sales.get("funnel_mode", "online"))), wa_mid)
+                        return "", 200
+                    if funnel_stage == "ask_exploration_detail":
+                        answers["exploration_detail"] = raw_interactive_id or inbound
+                        st_next = {
+                            **st_sales,
                             "funnel_stage": "ask_challenge",
                             "funnel_answers": answers,
                             "last_funnel_button_id": raw_interactive_id or "",
@@ -1472,12 +1557,13 @@ def create_app(settings: Settings) -> Flask:
                                     "I understand.\n\n"
                                     "At this stage, most people struggle with clarity or execution.\n\n"
                                     "This can be solved.\n\n"
-                                    "Abhi sabse bada problem kya aa raha hai?"
+                                    "What is the biggest problem right now?"
                                 ),
                                 buttons=(
-                                    ("ch_sales_low", "Sales kam hai"),
-                                    ("ch_no_leads", "Log aa nahi rahe"),
-                                    ("ch_marketing", "Marketing samajh nahi aa rahi"),
+                                    ("ch_sales_low", "Sales low"),
+                                    ("ch_no_leads", "No leads"),
+                                    ("ch_marketing", "Marketing confusion"),
+                                    ("ch_not_sure", "Not sure"),
                                 ),
                             ),
                             wa_mid,
