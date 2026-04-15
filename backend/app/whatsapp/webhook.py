@@ -990,6 +990,314 @@ def _next_step(current_step: str) -> str | None:
     return chain.get(current_step)
 
 
+def _init_consultant_state() -> dict:
+    return {
+        "stage": None,
+        "business_type": None,
+        "mode": None,
+        "platform": None,
+        "problem": None,
+        "sub_problem": None,
+        "steps_completed": [],
+        "current_step": "stage",
+        "awaiting_other_for": "",
+        "last_step_input": "",
+    }
+
+
+def _append_step_done(state: dict, step: str) -> None:
+    steps = state.get("steps_completed")
+    if not isinstance(steps, list):
+        steps = []
+    if step not in steps:
+        steps.append(step)
+    state["steps_completed"] = steps
+
+
+def _consultant_next_step(current_step: str) -> str | None:
+    return {
+        "stage": "business_type",
+        "business_type": "mode",
+        "mode": "platform",
+        "platform": "problem",
+        "problem": "sub_problem",
+        "sub_problem": "insight",
+        "insight": "offer",
+        "offer": None,
+    }.get(current_step)
+
+
+def generate_dynamic_options(context: dict) -> list[str]:
+    platform = str(context.get("platform") or "").lower()
+    step = str(context.get("current_step") or "")
+    if step == "stage":
+        return ["Just exploring", "I have an idea", "Ready to start", "Other"]
+    if step == "business_type":
+        return ["Service business", "Product business", "Local business", "Other"]
+    if step == "mode":
+        return ["Online", "Offline", "Other"]
+    if step == "platform":
+        if str(context.get("mode") or "").lower() == "offline":
+            return ["Already have shop", "Start new", "No clarity", "Need customers", "Other"]
+        return ["Instagram", "YouTube", "Dropshipping", "Selling products", "Course/services", "Other"]
+    if step in {"problem", "sub_problem"}:
+        if platform == "youtube":
+            return [
+                "Not getting views",
+                "Don't know what content to make",
+                "Not consistent",
+                "Channel setup confusion",
+                "Other",
+            ]
+        if platform == "instagram":
+            return [
+                "No reach",
+                "No followers",
+                "No sales",
+                "Content confusion",
+                "Other",
+            ]
+        if platform == "dropshipping":
+            return [
+                "No sales",
+                "Product confusion",
+                "Ads not working",
+                "Store setup issue",
+                "Other",
+            ]
+        if str(context.get("mode") or "").lower() == "offline":
+            return ["Need customers", "Location issue", "Pricing issue", "Setup issue", "Other"]
+        return ["Low sales", "No customers", "Execution issue", "No clarity", "Other"]
+    if step == "offer":
+        return ["Yes Start", "Need Details", "Later", "Other"]
+    return ["Other"]
+
+
+def _map_other_to_problem(free_text: str) -> str:
+    t = (free_text or "").strip().lower()
+    if "content" in t:
+        return "content clarity issue"
+    if "view" in t or "reach" in t:
+        return "audience growth issue"
+    if "sale" in t or "customer" in t or "lead" in t:
+        return "customer acquisition issue"
+    if "ad" in t:
+        return "ad performance issue"
+    return "execution clarity issue"
+
+
+def _strict_lang_render(lang: str, english_text: str, hinglish_text: str, hindi_text: str) -> str:
+    if lang == "english":
+        out = _strip_or_limit_emoji(english_text, keep_one=False)
+        if re.search(r"[\u0900-\u097F]|(?:\baap\b|\bhai\b|\bka\b|\bhai\b)", out, re.I):
+            out = "I understand your situation.\n\nLet's continue step by step."
+        return out
+    if lang == "hindi":
+        return _strip_or_limit_emoji(hindi_text, keep_one=False)
+    return _strip_or_limit_emoji(hinglish_text, keep_one=True)
+
+
+def _ctx_insight_text(lang: str, ctx: dict) -> str:
+    stage = str(ctx.get("stage") or "unknown")
+    platform = str(ctx.get("platform") or "your platform")
+    problem = str(ctx.get("problem") or "your current challenge")
+    en = (
+        f"I understand your situation.\n\n"
+        f"Since you are at '{stage}' and working on {platform},\n"
+        f"the core issue looks like {problem}.\n\n"
+        "This can definitely be improved."
+    )
+    hi = (
+        f"मैं आपकी स्थिति समझ गया।\n\n"
+        f"आप '{stage}' स्टेज पर हैं और {platform} पर काम कर रहे हैं,\n"
+        f"इसलिए मुख्य समस्या {problem} दिख रही है।\n\n"
+        "इसे निश्चित रूप से बेहतर किया जा सकता है।"
+    )
+    hing = (
+        f"Samajh gaya.\n\n"
+        f"Aap '{stage}' stage pe ho aur {platform} pe kaam kar rahe ho,\n"
+        f"toh core issue {problem} lag raha hai.\n\n"
+        "Ye improve ho sakta hai 😊"
+    )
+    return _strict_lang_render(lang, en, hing, hi)
+
+
+def _buttons_from_options(lang: str, options: list[str], prefix: str) -> tuple[tuple[str, str], ...]:
+    # Keep WA button limit (3). We rotate top 3 while always including "Other" when present.
+    opts = [o for o in options if o]
+    if "Other" in opts and len(opts) > 3:
+        core = [o for o in opts if o != "Other"][:2] + ["Other"]
+    else:
+        core = opts[:3]
+    btns = []
+    for i, label in enumerate(core):
+        bid = f"{prefix}_{i}"
+        if label.lower() == "other":
+            bid = f"{prefix}_other"
+        btns.append((bid, label[:20]))
+    return tuple(btns)
+
+
+def _next_question_for_step(lang: str, step: str, ctx: dict) -> str:
+    if step == "stage":
+        return _strict_lang_render(
+            lang,
+            "What stage are you currently at?",
+            "Aap abhi kis stage pe ho?",
+            "आप अभी किस स्टेज पर हैं?",
+        )
+    if step == "business_type":
+        return _strict_lang_render(
+            lang,
+            "What type of business are you building?",
+            "Aap kis type ka business build kar rahe ho?",
+            "आप किस प्रकार का बिजनेस बना रहे हैं?",
+        )
+    if step == "mode":
+        return _strict_lang_render(
+            lang,
+            "Are you planning this online or offline?",
+            "Aap isko online karna chahte ho ya offline?",
+            "आप इसे ऑनलाइन करना चाहते हैं या ऑफलाइन?",
+        )
+    if step == "platform":
+        mode = str(ctx.get("mode") or "")
+        if mode.lower() == "offline":
+            return _strict_lang_render(
+                lang,
+                "What’s your focus offline?",
+                "Offline mein aapka focus kya hai?",
+                "ऑफलाइन में आपका फोकस क्या है?",
+            )
+        return _strict_lang_render(
+            lang,
+            "What platform are you focusing on right now?",
+            "Abhi kis platform pe focus kar rahe ho?",
+            "अभी आप किस प्लेटफॉर्म पर फोकस कर रहे हैं?",
+        )
+    if step == "problem":
+        plat = str(ctx.get("platform") or "this platform")
+        return _strict_lang_render(
+            lang,
+            f"What is your biggest challenge in {plat}?",
+            f"{plat} mein sabse bada challenge kya aa raha hai?",
+            f"{plat} में आपकी सबसे बड़ी चुनौती क्या है?",
+        )
+    if step == "sub_problem":
+        if str(ctx.get("platform") or "").lower() == "youtube":
+            return _strict_lang_render(
+                lang,
+                "Are you posting regularly?",
+                "Kya aap regularly post kar rahe ho?",
+                "क्या आप नियमित रूप से पोस्ट कर रहे हैं?",
+            )
+        return _strict_lang_render(
+            lang,
+            "Let me understand one thing—what is happening most often?",
+            "Ek cheez samjhoon—sabse zyada kya ho raha hai?",
+            "एक चीज़ समझूं—सबसे ज़्यादा क्या हो रहा है?",
+        )
+    if step == "insight":
+        return _ctx_insight_text(lang, ctx)
+    return _strict_lang_render(
+        lang,
+        "Would you like to start with a guided strategy session?",
+        "Kya aap guided strategy session se start karna chahoge?",
+        "क्या आप गाइडेड स्ट्रेटेजी सेशन से शुरू करना चाहेंगे?",
+    )
+
+
+def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: str, st_sales: dict) -> LeadFlowReply:
+    lang = get_user_lang(sender)
+    cs = st_sales.get("consultant_state")
+    if not isinstance(cs, dict):
+        cs = _init_consultant_state()
+
+    user_input = (raw_interactive_id or inbound or "").strip().lower()
+    current_step = str(cs.get("current_step") or "stage")
+
+    # Multi-click protection: ignore repeated same click for same step.
+    last = str(cs.get("last_step_input") or "")
+    if user_input and user_input == last and current_step in (cs.get("steps_completed") or []):
+        nstep = _consultant_next_step(current_step) or "problem"
+        q = _next_question_for_step(lang, nstep, cs)
+        return LeadFlowReply(body=q, buttons=_buttons_from_options(lang, generate_dynamic_options({**cs, "current_step": nstep}), f"dyn_{nstep}"))
+
+    # Other flow.
+    if cs.get("awaiting_other_for"):
+        mapped = _map_other_to_problem(user_input)
+        slot = str(cs.get("awaiting_other_for"))
+        cs[slot] = mapped
+        cs["awaiting_other_for"] = ""
+        _append_step_done(cs, slot)
+        cs["current_step"] = _consultant_next_step(slot) or "insight"
+        cs["last_step_input"] = user_input
+        st_sales["consultant_state"] = cs
+        set_conversation_state(sender, st_sales)
+        q = _next_question_for_step(lang, cs["current_step"], cs)
+        return LeadFlowReply(body=q, buttons=_buttons_from_options(lang, generate_dynamic_options(cs), f"dyn_{cs['current_step']}"))
+
+    # Save current step input.
+    step_key_map = {
+        "stage": "stage",
+        "business_type": "business_type",
+        "mode": "mode",
+        "platform": "platform",
+        "problem": "problem",
+        "sub_problem": "sub_problem",
+    }
+    if current_step in step_key_map and not cs.get(step_key_map[current_step]) and user_input:
+        if user_input.endswith("other") or user_input == "other":
+            cs["awaiting_other_for"] = step_key_map[current_step]
+            cs["last_step_input"] = user_input
+            st_sales["consultant_state"] = cs
+            set_conversation_state(sender, st_sales)
+            return LeadFlowReply(
+                body=_strict_lang_render(
+                    lang,
+                    "Can you explain a bit more?",
+                    "Thoda detail mein bata sakte ho?",
+                    "क्या आप थोड़ा विस्तार से बता सकते हैं?",
+                ),
+            )
+        cs[step_key_map[current_step]] = user_input
+        _append_step_done(cs, current_step)
+        cs["last_step_input"] = user_input
+
+    # Always move forward (no dead end, no repeat).
+    next_step = _consultant_next_step(current_step)
+    if next_step is None:
+        next_step = "offer"
+    if next_step == current_step:
+        next_step = "problem"
+    cs["current_step"] = next_step
+
+    # Offer control.
+    if next_step == "offer":
+        enough = len(cs.get("steps_completed") or []) >= 3 and cs.get("problem") and cs.get("sub_problem")
+        if not enough:
+            cs["current_step"] = "sub_problem"
+            next_step = "sub_problem"
+
+    st_sales["consultant_state"] = cs
+    set_conversation_state(sender, st_sales)
+
+    # Always answer + next options.
+    q = _next_question_for_step(lang, next_step, cs)
+    if next_step == "offer":
+        q = _strict_lang_render(
+            lang,
+            f"{_ctx_insight_text(lang, cs)}\n\n"
+            "If this is not fixed early, it usually wastes time and effort.\n\n"
+            f"Would you like to start the intro session for ₹{SESSION_PRICE}?",
+            f"{_ctx_insight_text(lang, cs)}\n\n"
+            f"Agar ye early fix na ho to time waste hota hai.\n\n₹{SESSION_PRICE} intro session se start karna chahoge?",
+            f"{_ctx_insight_text(lang, cs)}\n\n"
+            f"अगर इसे जल्दी ठीक नहीं किया तो समय और मेहनत दोनों व्यर्थ होते हैं।\n\n₹{SESSION_PRICE} इंट्रो सेशन से शुरू करना चाहेंगे?",
+        )
+        return LeadFlowReply(body=q, buttons=_buttons_from_options(lang, ["Yes Start", "Need Details", "Later", "Other"], "offer"))
+
+    return LeadFlowReply(body=q, buttons=_buttons_from_options(lang, generate_dynamic_options(cs), f"dyn_{next_step}"))
 def _insight_for_profile(answers: dict, lang: str) -> str:
     platform = str(answers.get("platform", "")).lower()
     sub_problem = str(answers.get("sub_problem", "")).lower()
@@ -1706,16 +2014,18 @@ def create_app(settings: Settings) -> Flask:
                             "funnel_need": need,
                             "funnel_stage": "ask_stage",
                             "funnel_answers": {},
+                            "consultant_state": _init_consultant_state(),
                             "transcript_lines": tl3,
                         },
                     )
                     lang_now = get_user_lang(sender)
+                    cs_boot = _init_consultant_state()
                     _finalize_wa_auto_reply(
                         settings,
                         sender,
                         LeadFlowReply(
-                            body=_flow_text(lang_now, "ask_stage"),
-                            buttons=_flow_buttons(lang_now, ("st_explore", "st_idea", "st_ready")),
+                            body=_next_question_for_step(lang_now, "stage", cs_boot),
+                            buttons=_buttons_from_options(lang_now, generate_dynamic_options(cs_boot), "dyn_stage"),
                         ),
                         wa_mid,
                     )
@@ -1729,6 +2039,14 @@ def create_app(settings: Settings) -> Flask:
                         st_inc["last_wa_mid"] = wa_mid
                         set_conversation_state(sender, st_inc)
                     return "", 200
+
+                if isinstance(st_sales.get("consultant_state"), dict):
+                    try:
+                        dyn_reply = _run_dynamic_consultant_step(sender, inbound, raw_interactive_id, st_sales)
+                        _finalize_wa_auto_reply(settings, sender, dyn_reply, wa_mid)
+                        return "", 200
+                    except Exception:
+                        print("[wa-webhook] dynamic consultant fallback")
 
                 funnel_stage = str(st_sales.get("funnel_stage") or "").strip()
                 if funnel_stage:
