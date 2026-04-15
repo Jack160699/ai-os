@@ -459,16 +459,25 @@ def _localize_text(text: str, lang: str) -> str:
         }
         return mapping.get(t, t)
     mapping_hinglish = {
-        "Welcome to StratXcel 🚀\n\nChoose your language:": "StratXcel mein welcome hai 🚀\n\nApni language choose karo:",
-        "Please choose your language using the buttons below 👆": "Please neeche diye gaye buttons se language choose karo 👆",
-        "What would you like help with?": "Aapko kis cheez mein help chahiye?",
-        "Pick one option below so we can route you correctly 👇": "Sahi route ke liye neeche se ek option choose karo 👇",
-        "Thanks for your message — a strategist will assist you shortly.": "Message ke liye thanks — strategist team jaldi assist karegi.",
-        "I've flagged our team — a human will join this thread shortly. Until then, tell me anything useful (timeline, budget band, must-haves) and I'll pass it along.": "Maine team ko inform kar diya hai — human expert abhi join karega. Tab tak timeline, budget aur must-haves share kar do.",
+        "Welcome to StratXcel 🚀\n\nChoose your language:": "Welcome to StratXcel 🚀\n\nLanguage choose karo:",
+        "Please choose your language using the buttons below 👆": "Please language button se choose karo 👆",
+        "What would you like help with?": "Kis cheez mein help chahiye?",
+        "Pick one option below so we can route you correctly 👇": "Sahi route ke liye neeche se ek option pick karo 👇",
+        "Thanks for your message — a strategist will assist you shortly.": "Thanks for your message — strategist aapko shortly assist karega.",
+        "I've flagged our team — a human will join this thread shortly. Until then, tell me anything useful (timeline, budget band, must-haves) and I'll pass it along.": "Maine team ko inform kar diya hai — expert abhi connect karega. Tab tak timeline, budget range aur must-haves share karo.",
         "Need help completing payment?": "Payment complete karne mein help chahiye?",
         "Slots are limited today — want me to reserve this?": "Aaj slots limited hain — reserve kar du?",
     }
-    return mapping_hinglish.get(t, t)
+    out = mapping_hinglish.get(t, t)
+    return (
+        out.replace("कृपया", "Please")
+        .replace("मैंने", "Maine")
+        .replace("आप", "aap")
+        .replace("आपको", "aapko")
+        .replace("धन्यवाद", "thanks")
+        .replace("सहायता", "help")
+        .replace("साझा करें", "share karo")
+    )
 
 
 def _localize_buttons(buttons: tuple[tuple[str, str], ...] | None, lang: str):
@@ -492,10 +501,10 @@ def _localize_buttons(buttons: tuple[tuple[str, str], ...] | None, lang: str):
                 }.get(title, title)
             else:
                 label = {
-                    "Start Business": "Business Start",
-                    "Grow Business": "Business Grow",
+                    "Start Business": "Start Business",
+                    "Grow Business": "Grow Business",
                     "Automate": "Automate",
-                    "Talk to Expert": "Expert se baat",
+                    "Talk to Expert": "Talk to Expert",
                 }.get(title, title)
         out.append((bid, label[:20]))
     return tuple(out)
@@ -513,10 +522,10 @@ def _localize_list_menu(menu: ListMenuSpec | None, lang: str):
         )
         return ListMenuSpec(button_label="विकल्प चुनें", section_title="मदद विषय", rows=rows)
     rows = (
-        ("menu_start", "Business Start", None),
-        ("menu_grow", "Business Grow", None),
+        ("menu_start", "Start Business", None),
+        ("menu_grow", "Grow Business", None),
         ("menu_auto", "Automate", None),
-        ("menu_expert", "Expert se baat", None),
+        ("menu_expert", "Talk to Expert", None),
     )
     return ListMenuSpec(button_label="Choose", section_title="Help topics", rows=rows)
 
