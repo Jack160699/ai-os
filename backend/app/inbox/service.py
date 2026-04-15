@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.config import Settings
-from app.leads.analytics import parse_iso
+from app.leads.utils import parse_iso
 from app.leads.growth_hot_score import compute_growth_hot_score
 from app.memory.store import (
     append_thread_message,

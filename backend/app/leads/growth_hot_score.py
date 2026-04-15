@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from app.leads.analytics import parse_iso
+from app.leads.utils import parse_iso
 
 
 def _metrics(st: dict) -> dict:

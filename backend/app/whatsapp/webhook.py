@@ -10,7 +10,8 @@ from flask import Flask, g, jsonify, make_response, request
 
 from app.ai.assistant import get_ai_reply
 from app.config import Settings
-from app.leads.analytics import compute_dashboard_metrics, parse_iso
+from app.leads.analytics import compute_dashboard_metrics
+from app.leads.utils import parse_iso
 from app.leads.email_digest import build_daily_digest, build_weekly_digest, send_smtp_html
 from app.leads.classification import map_business_interactive_id
 from app.leads.constants import OWNER_NUMBER

@@ -6,6 +6,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 
 from app.leads.growth_hot_score import compute_growth_hot_score
+from app.leads.utils import parse_iso
 from app.memory.store import get_conversion_events, get_payment_events, load_memory
 
 
@@ -18,16 +19,6 @@ _PENDING_STEPS = frozenset(
         "await_no_option",
     }
 )
-
-
-def parse_iso(ts: str) -> datetime | None:
-    try:
-        if ts.endswith("Z"):
-            ts = ts[:-1] + "+00:00"
-        dt = datetime.fromisoformat(ts)
-        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
-    except Exception:
-        return None
 
 
 def _day_key(dt: datetime) -> str:
