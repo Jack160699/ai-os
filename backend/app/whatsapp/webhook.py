@@ -36,7 +36,7 @@ from app.memory.store import (
 )
 from app.sales import states as sales_states
 from app.sales.intercept import build_preview_state_for_sales, try_handle
-from app.whatsapp.lead_flow import LeadFlowReply, handle_lead_message
+from app.whatsapp.lead_flow import LeadFlowReply, ListMenuSpec, handle_lead_message
 from app.whatsapp.messaging import (
     send_interactive_buttons,
     send_interactive_list,
@@ -437,6 +437,36 @@ def _send_lead_flow_reply(settings: Settings, sender: str, reply: LeadFlowReply)
     return send_whatsapp_text(settings, sender, reply.body)
 
 
+def _finalize_wa_auto_reply(settings: Settings, sender: str, reply: LeadFlowReply, wa_mid: str) -> None:
+    resp = _send_lead_flow_reply(settings, sender, reply)
+    if wa_mid and resp.ok:
+        st1 = get_conversation_state(sender)
+        st1["last_wa_mid"] = wa_mid
+        st1["last_bot_inbound_mid"] = wa_mid
+        set_conversation_state(sender, st1)
+        append_thread_message(sender, "assistant", reply.body or "")
+        arm_followup_after_bot_send(sender)
+
+
+_ENTRY_LANG_BUTTONS = (("lang_en", "English"), ("lang_hi", "Hindi"))
+_ENTRY_MENU_LIST = ListMenuSpec(
+    button_label="Choose topic",
+    section_title="Help topics",
+    rows=(
+        ("menu_start", "Start Business", None),
+        ("menu_grow", "Grow Business", None),
+        ("menu_auto", "Automate", None),
+        ("menu_expert", "Talk to Expert", None),
+    ),
+)
+_ENTRY_MENU_INBOUND = {
+    "menu_start": "I want to start a new business",
+    "menu_grow": "I want to grow my existing business",
+    "menu_auto": "I want to automate workflows and operations",
+    "menu_expert": "I want to talk to an expert",
+}
+
+
 def create_app(settings: Settings) -> Flask:
     app = Flask(__name__)
 
@@ -748,18 +778,102 @@ def create_app(settings: Settings) -> Flask:
                     print("[wa-webhook] skip bot already sent for wa_mid=", wa_mid)
                     continue
 
-                print("WEBHOOK HIT:", inbound[:500])
+                st_onb = get_conversation_state(sender)
+                entry_flow = (st_onb.get("entry_flow") or "").strip()
+                if entry_flow and entry_flow not in ("language_select", "menu", "ready"):
+                    set_conversation_state(sender, {**st_onb, "entry_flow": ""})
+                    st_onb = get_conversation_state(sender)
+                    entry_flow = (st_onb.get("entry_flow") or "").strip()
+
+                flow_inbound = inbound
+
+                if not entry_flow:
+                    print("FIRST MESSAGE FLOW")
+                    tl = build_preview_state_for_sales(st_onb, inbound)["transcript_lines"]
+                    set_conversation_state(
+                        sender,
+                        {**st_onb, "entry_flow": "language_select", "step": "start", "transcript_lines": tl},
+                    )
+                    welcome_lang = LeadFlowReply(
+                        body="Welcome to StratXcel 🚀\n\nChoose your language:",
+                        buttons=_ENTRY_LANG_BUTTONS,
+                    )
+                    _finalize_wa_auto_reply(settings, sender, welcome_lang, wa_mid)
+                    return "", 200
+
+                if entry_flow == "language_select":
+                    rid = (raw_interactive_id or "").strip()
+                    lang: str | None = None
+                    if rid == "lang_en":
+                        lang = "en"
+                    elif rid == "lang_hi":
+                        lang = "hi"
+                    else:
+                        low = inbound.lower()
+                        if low in ("english", "en", "inglish") or "english" in low:
+                            lang = "en"
+                        elif low in ("hindi", "hi", "हिंदी") or "hindi" in low:
+                            lang = "hi"
+                    if not lang:
+                        retry = LeadFlowReply(
+                            body="Please choose your language using the buttons below 👆",
+                            buttons=_ENTRY_LANG_BUTTONS,
+                        )
+                        _finalize_wa_auto_reply(settings, sender, retry, wa_mid)
+                        return "", 200
+                    st_lang = get_conversation_state(sender)
+                    tl2 = build_preview_state_for_sales(st_lang, inbound)["transcript_lines"]
+                    set_conversation_state(
+                        sender,
+                        {**st_lang, "entry_flow": "menu", "user_language": lang, "transcript_lines": tl2},
+                    )
+                    menu_reply = LeadFlowReply(
+                        body="What would you like help with?",
+                        list_menu=_ENTRY_MENU_LIST,
+                    )
+                    _finalize_wa_auto_reply(settings, sender, menu_reply, wa_mid)
+                    return "", 200
+
+                if entry_flow == "menu":
+                    rid = (raw_interactive_id or "").strip()
+                    if rid not in _ENTRY_MENU_INBOUND:
+                        retry_m = LeadFlowReply(
+                            body="Pick one option below so we can route you correctly 👇",
+                            list_menu=_ENTRY_MENU_LIST,
+                        )
+                        _finalize_wa_auto_reply(settings, sender, retry_m, wa_mid)
+                        return "", 200
+                    st_menu = get_conversation_state(sender)
+                    tl3 = build_preview_state_for_sales(st_menu, inbound)["transcript_lines"]
+                    flow_inbound = _ENTRY_MENU_INBOUND[rid]
+                    set_conversation_state(
+                        sender,
+                        {
+                            **st_menu,
+                            "entry_flow": "ready",
+                            "menu_choice": rid,
+                            "step": "await_business",
+                            "transcript_lines": tl3,
+                        },
+                    )
+
                 st_sales = get_conversation_state(sender)
+                if (st_sales.get("entry_flow") or "").strip() != "ready":
+                    print("ENTRY FLOW INCOMPLETE — skip intercept/lead")
+                    if wa_mid:
+                        st_inc = get_conversation_state(sender)
+                        st_inc["last_wa_mid"] = wa_mid
+                        set_conversation_state(sender, st_inc)
+                    return "", 200
+
+                print("WEBHOOK HIT:", flow_inbound[:500])
                 display_sales = (st_sales.get("profile_name") or profile_name or "").strip()
-                preview_sales = build_preview_state_for_sales(st_sales, inbound)
-                handled, sales_reply = try_handle(settings, sender, inbound, preview_sales, display_sales)
+                preview_sales = build_preview_state_for_sales(st_sales, flow_inbound)
+                handled, sales_reply = try_handle(settings, sender, flow_inbound, preview_sales, display_sales)
                 print("HANDLED =", handled)
                 if handled:
                     print("INTERCEPT OVERRIDE HIT")
-                    merged_sales = {
-                        **get_conversation_state(sender),
-                        "transcript_lines": preview_sales["transcript_lines"],
-                    }
+                    merged_sales = {**get_conversation_state(sender), "transcript_lines": preview_sales["transcript_lines"]}
                     set_conversation_state(sender, merged_sales)
                     if sales_reply is not None:
                         print("[wa-webhook] sales intercept path:", (sales_reply.body or "")[:200])
@@ -779,7 +893,7 @@ def create_app(settings: Settings) -> Flask:
                             )
                     return "", 200
 
-                reply = handle_lead_message(settings, sender, inbound, profile_name=profile_name)
+                reply = handle_lead_message(settings, sender, flow_inbound, profile_name=profile_name)
                 print("[wa-webhook] bot reply (client):", (reply.body or "")[:200])
                 resp = _send_lead_flow_reply(settings, sender, reply)
                 if wa_mid and resp.ok:
