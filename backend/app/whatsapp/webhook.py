@@ -787,6 +787,26 @@ def _problem_question_for_need(need: str) -> LeadFlowReply:
     )
 
 
+def _exploration_question(mode: str) -> LeadFlowReply:
+    if mode == "online":
+        return LeadFlowReply(
+            body="What exactly are you planning online?",
+            buttons=(
+                ("ex_insta", "Instagram"),
+                ("ex_youtube", "YouTube"),
+                ("ex_selling", "Selling products"),
+            ),
+        )
+    return LeadFlowReply(
+        body="What’s your focus offline?",
+        buttons=(
+            ("ex_shop_new", "New shop"),
+            ("ex_local_reach", "Grow local reach"),
+            ("ex_improve_shop", "Improve existing shop"),
+        ),
+    )
+
+
 def _is_leads_like(challenge: str) -> bool:
     c = (challenge or "").lower()
     return any(x in c for x in ("lead", "no_leads", "log aa nahi", "customers"))
@@ -1393,16 +1413,18 @@ def create_app(settings: Settings) -> Flask:
                         selected = raw_interactive_id or inbound
                         if need == "grow":
                             answers["business_type"] = selected
+                            mode = "offline" if "local" in selected else "online"
                             st_next = {
                                 **st_sales,
-                                "funnel_stage": "ask_challenge",
+                                "funnel_stage": "ask_exploration",
+                                "funnel_mode": mode,
                                 "funnel_answers": answers,
                                 "last_funnel_button_id": raw_interactive_id or "",
                                 "last_funnel_stage": funnel_stage,
                                 "stage": "question_1_done",
                             }
                             set_conversation_state(sender, st_next)
-                            _finalize_wa_auto_reply(settings, sender, _problem_question_for_need("grow"), wa_mid)
+                            _finalize_wa_auto_reply(settings, sender, _exploration_question(mode), wa_mid)
                             return "", 200
                         if need == "automate":
                             answers["automation_target"] = selected
@@ -1419,16 +1441,47 @@ def create_app(settings: Settings) -> Flask:
                             return "", 200
                         # start path
                         answers["stage"] = selected
+                        mode = "offline" if selected == "sb_shop" else "online"
                         st_next = {
                             **st_sales,
-                            "funnel_stage": "ask_challenge",
+                            "funnel_stage": "ask_exploration",
+                            "funnel_mode": mode,
                             "funnel_answers": answers,
                             "last_funnel_button_id": raw_interactive_id or "",
                             "last_funnel_stage": funnel_stage,
                             "stage": "question_1_done",
                         }
                         set_conversation_state(sender, st_next)
-                        _finalize_wa_auto_reply(settings, sender, _problem_question_for_need("start"), wa_mid)
+                        _finalize_wa_auto_reply(settings, sender, _exploration_question(mode), wa_mid)
+                        return "", 200
+                    if funnel_stage == "ask_exploration":
+                        answers["focus_area"] = raw_interactive_id or inbound
+                        st_next = {
+                            **st_sales,
+                            "funnel_stage": "ask_challenge",
+                            "funnel_answers": answers,
+                            "last_funnel_button_id": raw_interactive_id or "",
+                            "last_funnel_stage": funnel_stage,
+                        }
+                        set_conversation_state(sender, st_next)
+                        _finalize_wa_auto_reply(
+                            settings,
+                            sender,
+                            LeadFlowReply(
+                                body=(
+                                    "I understand.\n\n"
+                                    "At this stage, most people struggle with clarity or execution.\n\n"
+                                    "This can be solved.\n\n"
+                                    "Abhi sabse bada problem kya aa raha hai?"
+                                ),
+                                buttons=(
+                                    ("ch_sales_low", "Sales kam hai"),
+                                    ("ch_no_leads", "Log aa nahi rahe"),
+                                    ("ch_marketing", "Marketing samajh nahi aa rahi"),
+                                ),
+                            ),
+                            wa_mid,
+                        )
                         return "", 200
                     if funnel_stage == "ask_challenge":
                         challenge = raw_interactive_id if raw_interactive_id else inbound
@@ -1498,6 +1551,9 @@ def create_app(settings: Settings) -> Flask:
                             LeadFlowReply(
                                 body=(
                                     "Sahi baat hai.\n"
+                                    "Ye common hai.\n"
+                                    "Aap alone nahi ho.\n"
+                                    "Iska solution hota hai.\n\n"
                                     "Ye clarity early mil jaaye toh time aur paisa dono bachta hai.\n\n"
                                     f"{_FUNNEL_PITCH}"
                                 ),
