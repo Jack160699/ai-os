@@ -670,8 +670,12 @@ def _localize_reply_for_sender(sender: str, reply: LeadFlowReply) -> LeadFlowRep
     dynamic_buttons = reply.buttons
     if not dynamic_buttons and not reply.list_menu:
         dynamic_buttons = _default_buttons_for_state(sender, reply.body)
+    body = _localize_text(reply.body, lang)
+    # Hard language gate at final output layer for English mode.
+    if lang == "english" and re.search(r"[\u0900-\u097F]|(?:\baap\b|\bhai\b|\bka\b|\bhai\b)", body, re.I):
+        body = "I understand your situation.\n\nLet's continue step by step."
     return LeadFlowReply(
-        body=_localize_text(reply.body, lang),
+        body=body,
         buttons=_localize_buttons(dynamic_buttons, lang),
         list_menu=_localize_list_menu(reply.list_menu, lang),
     )
@@ -960,6 +964,48 @@ def _flow_text(lang: str, key: str) -> str:
     }
     lk = lang if lang in text else "english"
     return text[lk].get(key, key)
+
+
+def _next_step(current_step: str) -> str | None:
+    chain = {
+        "stage": "business_type",
+        "business_type": "mode",
+        "mode": "platform",
+        "platform": "sub_problem",
+        "sub_problem": "insight",
+        "insight": "offer",
+        "offer": None,
+    }
+    return chain.get(current_step)
+
+
+def _insight_for_profile(answers: dict, lang: str) -> str:
+    platform = str(answers.get("platform", "")).lower()
+    sub_problem = str(answers.get("sub_problem", "")).lower()
+    if lang == "english":
+        if "youtube" in platform and ("no_audience" in sub_problem or "views" in sub_problem):
+            return (
+                "I understand your situation.\n\n"
+                "Since you're struggling with audience on YouTube,\n"
+                "the issue is usually content positioning or consistency.\n\n"
+                "This can definitely be improved."
+            )
+        return (
+            "I understand your situation.\n\n"
+            "At this stage, most people struggle with clarity or execution.\n\n"
+            "This can definitely be improved."
+        )
+    if lang == "hindi":
+        return (
+            "मैं आपकी स्थिति समझ गया।\n\n"
+            "इस स्टेज पर ज्यादातर लोग clarity या execution में अटकते हैं।\n\n"
+            "इसे निश्चित रूप से बेहतर किया जा सकता है।"
+        )
+    return (
+        "Samajh gaya.\n\n"
+        "Is stage pe zyada log clarity ya execution mein atakte hain.\n\n"
+        "Ye definitely improve ho sakta hai."
+    )
 
 
 def _exploration_question(mode: str) -> LeadFlowReply:
@@ -1640,6 +1686,8 @@ def create_app(settings: Settings) -> Flask:
 
                 funnel_stage = str(st_sales.get("funnel_stage") or "").strip()
                 if funnel_stage:
+                    print("CURRENT STEP:", funnel_stage)
+                    print("NEXT STEP:", _next_step(funnel_stage))
                     if funnel_stage == "offer_closed":
                         print("[wa-webhook] offer already closed, waiting for restart")
                         return "", 200
@@ -1903,6 +1951,11 @@ def create_app(settings: Settings) -> Flask:
                                     wa_mid,
                                 )
                                 return "", 200
+                    # Failsafe only when flow cannot resolve next step.
+                    next_step = _next_step(funnel_stage)
+                    if next_step is None:
+                        _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_flow_text(get_user_lang(sender), "failsafe")), wa_mid)
+                        return "", 200
 
                 print("WEBHOOK HIT:", flow_inbound[:500])
                 display_sales = (st_sales.get("profile_name") or profile_name or "").strip()
@@ -1954,11 +2007,6 @@ def create_app(settings: Settings) -> Flask:
                     print("[wa-webhook] outbound failed STATUS=", getattr(resp, "status_code", "?"), "body=", getattr(resp, "text", "")[:300])
             except Exception as e:
                 print("[wa-webhook] message loop error:", e)
-                try:
-                    if sender:
-                        send_whatsapp_text(settings, sender, _flow_text(get_user_lang(sender), "failsafe"))
-                except Exception:
-                    pass
 
         return "ok", 200
 
