@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 
-from app.memory.store import get_payment_events, load_memory
+from app.leads.growth_hot_score import compute_growth_hot_score
+from app.memory.store import get_conversion_events, get_payment_events, load_memory
 
 
 _PENDING_STEPS = frozenset(
@@ -31,6 +32,40 @@ def parse_iso(ts: str) -> datetime | None:
 
 def _day_key(dt: datetime) -> str:
     return dt.date().isoformat()
+
+
+def _compute_source_roi_rows() -> list[dict]:
+    """Aggregate conversion_events by traffic source for ROI-style dashboard."""
+    rows = get_conversion_events()
+    if not rows:
+        return []
+    agg: dict[str, dict[str, float]] = defaultdict(lambda: {"started": 0, "cta": 0, "paid": 0, "rows": 0})
+    for e in rows[-1500:]:
+        src = str(e.get("source") or "unknown").strip() or "unknown"
+        agg[src]["rows"] += 1
+        agg[src]["started"] += float(e.get("started") or 0)
+        agg[src]["cta"] += float(e.get("cta_shown") or 0)
+        agg[src]["paid"] += float(e.get("paid") or 0)
+    out: list[dict] = []
+    for src, a in agg.items():
+        started = int(a["started"])
+        cta = int(a["cta"])
+        paid = int(a["paid"])
+        funnel = max(1, started + cta)
+        conv = round((paid / funnel) * 100, 2) if funnel else 0.0
+        roi_index = round(paid * 12 + cta * 3 + started * 1, 1)
+        out.append(
+            {
+                "source": src,
+                "started_signals": started,
+                "cta_signals": cta,
+                "paid_signals": paid,
+                "conversion_index_pct": conv,
+                "roi_score": roi_index,
+            }
+        )
+    out.sort(key=lambda x: x["roi_score"], reverse=True)
+    return out[:20]
 
 
 def compute_dashboard_metrics(events: list[dict], states: dict[str, dict]) -> dict:
@@ -145,6 +180,14 @@ def compute_dashboard_metrics(events: list[dict], states: dict[str, dict]) -> di
             revival_conversions += 1
             response_delays_min.append((last_reply - followup_last).total_seconds() / 60.0)
 
+        gh = compute_growth_hot_score(st)
+        tags = st.get("inbox_tags") if isinstance(st.get("inbox_tags"), list) else []
+        notes = st.get("lead_notes") if isinstance(st.get("lead_notes"), list) else []
+        note_preview = ""
+        if notes:
+            last = notes[-1]
+            if isinstance(last, dict):
+                note_preview = str(last.get("text", ""))[:80]
         recent_pipeline.append(
             {
                 "name": st.get("profile_name", "-"),
@@ -157,6 +200,11 @@ def compute_dashboard_metrics(events: list[dict], states: dict[str, dict]) -> di
                 "last_reply_time": st.get("last_user_reply_at", "-"),
                 "status": status,
                 "summary": st.get("summary", "-"),
+                "growth_score": gh.get("growth_score"),
+                "growth_label": gh.get("growth_label"),
+                "growth_factors": gh.get("growth_factors"),
+                "lead_tags": tags[:12],
+                "note_preview": note_preview,
             }
         )
 
@@ -266,5 +314,6 @@ def compute_dashboard_metrics(events: list[dict], states: dict[str, dict]) -> di
         "paid_revenue_rupees": round(paid_rev_roll, 2),
         "paid_revenue_30d_rupees": round(paid_rev_30d, 2),
         "payments_count_30d": payments_count_30d,
+        "source_roi": _compute_source_roi_rows(),
     }
 

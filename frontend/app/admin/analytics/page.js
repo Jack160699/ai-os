@@ -19,6 +19,7 @@ export default async function AdminAnalyticsPage() {
   const bookingsByDay = Array.isArray(data?.bookings_by_day) ? data.bookings_by_day : [];
   const scorePie = Array.isArray(data?.score_pie) ? data.score_pie : [];
   const summary = data?.summary || {};
+  const sourceRoi = Array.isArray(data?.source_roi) ? data.source_roi : [];
 
   return (
     <AdminShell
@@ -62,6 +63,42 @@ export default async function AdminAnalyticsPage() {
       </SurfaceCard>
 
       <SurfaceCard className="p-6">
+        <p className="text-sm font-semibold tracking-tight text-white">Source ROI</p>
+        <p className="mt-1 text-[12px] text-slate-500">Signals from conversion logs — rank by composite ROI score.</p>
+        {sourceRoi.length === 0 ? (
+          <div className="mt-6 rounded-xl border border-dashed border-white/[0.12] bg-white/[0.02] px-4 py-10 text-center text-[13px] text-slate-500">
+            No source-level events yet. As WhatsApp journeys log conversions, ROI rows appear here automatically.
+          </div>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="admin-table min-w-[640px] w-full text-left text-[12px]">
+              <thead>
+                <tr>
+                  {["Source", "Started", "CTA", "Paid", "Conv. index %", "ROI score"].map((h) => (
+                    <th key={h} className="px-2 py-2 text-slate-500">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sourceRoi.map((row) => (
+                  <tr key={row.source} className="border-t border-white/[0.06]">
+                    <td className="px-2 py-2.5 font-medium text-slate-200">{row.source}</td>
+                    <td className="px-2 py-2.5 text-slate-400">{row.started_signals}</td>
+                    <td className="px-2 py-2.5 text-slate-400">{row.cta_signals}</td>
+                    <td className="px-2 py-2.5 text-slate-400">{row.paid_signals}</td>
+                    <td className="px-2 py-2.5 text-slate-400">{row.conversion_index_pct}</td>
+                    <td className="px-2 py-2.5 text-emerald-200/90">{row.roi_score}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SurfaceCard>
+
+      <SurfaceCard className="p-6">
         <p className="text-sm font-semibold tracking-tight text-white">Conversion event exports</p>
         <p className="mt-1 text-[12px] text-slate-500">Download structured logs for date, started, CTA shown, paid, source, language, and path selected.</p>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -72,6 +109,13 @@ export default async function AdminAnalyticsPage() {
             View JSON
           </a>
         </div>
+        <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
+          Email digests: POST <span className="font-mono text-slate-400">/internal/digest-daily</span> and{" "}
+          <span className="font-mono text-slate-400">/internal/digest-weekly</span> on your bot host with header{" "}
+          <span className="font-mono text-slate-400">X-Followup-Cron-Secret</span> (same secret as follow-up cron). Set{" "}
+          <span className="font-mono text-slate-400">SMTP_HOST</span>, <span className="font-mono text-slate-400">SMTP_USER</span>,{" "}
+          <span className="font-mono text-slate-400">SMTP_PASSWORD</span>, <span className="font-mono text-slate-400">OWNER_DIGEST_EMAIL</span>.
+        </p>
       </SurfaceCard>
     </AdminShell>
   );

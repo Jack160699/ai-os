@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { formatFullTime } from "@/components/chat/format";
-import { OWNER_OPTIONS, QUICK_REPLIES } from "@/components/inbox/constants";
+import { OWNER_OPTIONS, QUICK_REPLIES, WHATSAPP_QUICK_TEMPLATES } from "@/components/inbox/constants";
 
 export function ActiveChatPanel({
   selected,
@@ -17,10 +18,18 @@ export function ActiveChatPanel({
   selectedRow,
   owner,
   onOwnerChange,
+  onQuickTemplate,
+  onAddTag,
+  onAddNote,
 }) {
   const reduce = useReducedMotion();
-  const score = Number(selectedRow?.intent_score || detail?.state?.intent_score || 0);
+  const [tagInput, setTagInput] = useState("");
+  const [noteInput, setNoteInput] = useState("");
+  const growthScore = selectedRow?.growth_score ?? detail?.state?.growth_score;
+  const growthLabel = selectedRow?.growth_label ?? detail?.state?.growth_label;
   const lastActive = selectedRow?.last_time || detail?.state?.last_reply_time || "";
+  const tags = detail?.state?.tags || [];
+  const notes = detail?.state?.lead_notes || [];
 
   return (
     <section
@@ -41,7 +50,9 @@ export function ActiveChatPanel({
                 <p className="text-[11px] text-slate-500">+{selected}</p>
               </div>
               <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400 sm:flex sm:items-center">
-                <span className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 py-1">Lead score: {score || "--"}</span>
+                <span className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 py-1">
+                  Growth: {growthScore != null ? `${growthScore} · ${growthLabel || ""}` : "—"}
+                </span>
                 <span className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 py-1">
                   Last active: {lastActive ? formatFullTime(lastActive) : "--"}
                 </span>
@@ -61,6 +72,15 @@ export function ActiveChatPanel({
                 </label>
               </div>
             </div>
+            {tags.length ? (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {tags.map((t) => (
+                  <span key={t} className="rounded-full border border-sky-400/25 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-100">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </header>
 
           <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
@@ -100,7 +120,7 @@ export function ActiveChatPanel({
           </div>
 
           <div className="border-t border-white/[0.06] p-3 sm:p-4">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Quick replies</p>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Quick replies (draft)</p>
             <div className="mb-3 flex flex-wrap gap-1.5">
               {QUICK_REPLIES.map((item) => (
                 <button
@@ -113,6 +133,75 @@ export function ActiveChatPanel({
                 </button>
               ))}
             </div>
+            {onQuickTemplate ? (
+              <>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">WhatsApp templates (send now)</p>
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                  {WHATSAPP_QUICK_TEMPLATES.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => onQuickTemplate(item.id)}
+                      className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-100 transition hover:border-emerald-400/40"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : null}
+            {onAddTag && onAddNote ? (
+              <div className="mb-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Notes & tags</p>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    placeholder="New tag"
+                    className="min-w-[120px] flex-1 rounded-lg border border-white/[0.1] bg-white/[0.04] px-2 py-1.5 text-[12px] text-white outline-none placeholder:text-slate-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!tagInput.trim()) return;
+                      onAddTag(tagInput.trim());
+                      setTagInput("");
+                    }}
+                    className="rounded-lg border border-white/[0.1] bg-white/[0.06] px-3 py-1.5 text-[11px] font-semibold text-slate-200"
+                  >
+                    Add tag
+                  </button>
+                </div>
+                <textarea
+                  value={noteInput}
+                  onChange={(e) => setNoteInput(e.target.value)}
+                  rows={2}
+                  placeholder="Internal note (visible in CRM)…"
+                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.1] bg-white/[0.04] px-2 py-1.5 text-[12px] text-white outline-none placeholder:text-slate-600"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!noteInput.trim()) return;
+                    onAddNote(noteInput.trim());
+                    setNoteInput("");
+                  }}
+                  className="mt-2 rounded-lg border border-sky-400/30 bg-sky-500/15 px-3 py-1.5 text-[11px] font-semibold text-sky-100"
+                >
+                  Save note
+                </button>
+                {notes.length ? (
+                  <ul className="mt-2 max-h-24 space-y-1 overflow-y-auto text-[11px] text-slate-400">
+                    {notes.slice(-6).map((n, i) => (
+                      <li key={i} className="border-l border-white/[0.08] pl-2">
+                        {(n.text || "").slice(0, 120)}
+                        <span className="text-slate-600"> · {n.at || ""}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
             <div className="flex gap-2">
               <textarea
                 value={reply}

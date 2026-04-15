@@ -298,11 +298,13 @@ def process_due_followups(settings: Settings) -> dict:
 
 
 def process_payment_pending_nudges(settings: Settings) -> dict[str, int]:
-    """WhatsApp nudges for open Razorpay links (10m / 1h after link sent)."""
+    """WhatsApp nudges for abandoned / open Razorpay links (10m → 1h → 24h → 72h)."""
     counts = {"checked": 0, "sent": 0, "skipped": 0}
     now = _utc_now()
     ten_min = 600.0
     one_h = 3600.0
+    day_h = 86400.0
+    three_day = 259200.0
     for phone in iter_state_phone_numbers():
         counts["checked"] += 1
         st = get_conversation_state(phone)
@@ -318,12 +320,31 @@ def process_payment_pending_nudges(settings: Settings) -> dict[str, int]:
         level = _safe_int(st.get("payment_nudge_level"), 0)
         body = ""
         next_level = level
+        link = str(st.get("last_payment_link_url") or "").strip()
         if level == 0 and elapsed >= ten_min:
-            body = "Need help completing payment?"
+            body = "Need help completing payment? If anything blocked on the page, tell me and I will fix it."
             next_level = 1
         elif level == 1 and elapsed >= one_h:
-            body = "Slots are limited today — want me to reserve this?"
+            body = (
+                "Gentle reminder — your diagnosis session slot is still open.\n\n"
+                + (f"Pay securely here when ready:\n{link}\n\n" if link else "Reply “link” and I will resend the secure payment link.\n\n")
+                + "No pressure — I just don’t want you to lose momentum."
+            )
             next_level = 2
+        elif level == 2 and elapsed >= day_h:
+            body = (
+                "24h check-in: if you still want the roadmap + diagnosis, here is the link again.\n\n"
+                + (f"{link}\n\n" if link else "I can resend the payment link — just say yes.\n\n")
+                + "If timing is wrong, reply “later” and I will pause reminders."
+            )
+            next_level = 3
+        elif level == 3 and elapsed >= three_day:
+            body = (
+                "Last nudge from my side — if you want to continue, use the link below. "
+                "If not, totally fine; message whenever you are ready.\n\n"
+                + (f"{link}" if link else "Reply “link” for a fresh payment link.")
+            )
+            next_level = 4
         if not body:
             counts["skipped"] += 1
             continue
@@ -339,5 +360,14 @@ def process_payment_pending_nudges(settings: Settings) -> dict[str, int]:
             continue
         counts["sent"] += 1
         st["payment_nudge_level"] = next_level
+        st["payment_last_reminder_at"] = now.isoformat()
         set_conversation_state(phone, st)
+        append_lead_event(
+            {
+                "type": "payment_reminder",
+                "phone": phone,
+                "level": next_level,
+                "timestamp_utc": now.isoformat(),
+            }
+        )
     return counts

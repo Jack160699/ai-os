@@ -160,6 +160,50 @@ export function LiveInbox() {
 
   const liveEmpty = !listError && !loadingList && rows.length === 0 && !debouncedQ && filter === "all";
 
+  async function postAction(action, payload = {}) {
+    if (!selected) return { ok: false };
+    const res = await fetch(`/api/admin/chats/${encodeURIComponent(selected)}/action`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, payload }),
+    });
+    return res.json().catch(() => ({}));
+  }
+
+  async function sendQuickTemplate(templateId) {
+    if (!selected || sending) return;
+    setSending(true);
+    setError("");
+    try {
+      const data = await postAction("send_quick_reply", { template_id: templateId });
+      if (!data.ok) {
+        setError(data.error || data.detail || "Template send failed.");
+      } else {
+        await fetchDetail(selected);
+        await fetchList();
+      }
+    } catch {
+      setError("Template send failed.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function addTag(tag) {
+    if (!selected) return;
+    const data = await postAction("add_tags", { tags: [tag] });
+    if (!data.ok) setError(data.error || "Could not add tag.");
+    else await fetchDetail(selected);
+  }
+
+  async function addNote(text) {
+    if (!selected) return;
+    const data = await postAction("add_note", { text });
+    if (!data.ok) setError(data.error || "Could not save note.");
+    else await fetchDetail(selected);
+  }
+
   async function sendReply() {
     const text = reply.trim();
     if (!text || !selected || sending) return;
@@ -241,6 +285,9 @@ export function LiveInbox() {
           selectedRow={selectedRow}
           owner={ownerMap[selected] || "Unassigned"}
           onOwnerChange={(value) => setOwnerMap((prev) => ({ ...prev, [selected]: value }))}
+          onQuickTemplate={sendQuickTemplate}
+          onAddTag={addTag}
+          onAddNote={addNote}
         />
       </div>
     </div>

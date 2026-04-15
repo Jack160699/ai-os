@@ -11,6 +11,7 @@ from flask import Flask, g, jsonify, make_response, request
 from app.ai.assistant import get_ai_reply
 from app.config import Settings
 from app.leads.analytics import compute_dashboard_metrics, parse_iso
+from app.leads.email_digest import build_daily_digest, build_weekly_digest, send_smtp_html
 from app.leads.classification import map_business_interactive_id
 from app.leads.constants import OWNER_NUMBER
 from app.leads.followups import (
@@ -43,6 +44,7 @@ from app.sales import states as sales_states
 from app.sales.intercept import build_preview_state_for_sales, try_handle
 from app.sales.razorpay_link import create_payment_link_http
 from app.whatsapp.lead_flow import LeadFlowReply, ListMenuSpec, handle_lead_message
+from app.whatsapp.quick_reply_templates import get_quick_reply_templates
 from app.whatsapp.messaging import (
     send_interactive_buttons,
     send_interactive_list,
@@ -247,6 +249,8 @@ def _dashboard_api_payload(metrics: dict) -> dict:
             "bookings_by_day": metrics["bookings_by_day"],
             "score_pie": metrics["score_pie"],
             "funnel": metrics["funnel"],
+            "source_roi": metrics.get("source_roi", []),
+            "quick_reply_templates": get_quick_reply_templates(),
         }
     )
     return payload
@@ -2017,6 +2021,38 @@ def create_app(settings: Settings) -> Flask:
             f"pay_nudge_sent={pay.get('sent', 0)}"
         )
         return jsonify(out), 200
+
+    @app.route("/internal/digest-daily", methods=["POST"])
+    def internal_digest_daily():
+        if not settings.followup_cron_secret:
+            return jsonify({"error": "digest disabled"}), 404
+        got = request.headers.get("X-Followup-Cron-Secret", "")
+        if not hmac.compare_digest(got, settings.followup_cron_secret):
+            return jsonify({"error": "unauthorized"}), 401
+        metrics = _compute_dashboard_metrics()
+        subj, html, text = build_daily_digest(metrics)
+        out = send_smtp_html(subj, html, text)
+        code = 200 if out.get("ok") or out.get("skipped") else 500
+        return jsonify(out), code
+
+    @app.route("/internal/digest-weekly", methods=["POST"])
+    def internal_digest_weekly():
+        if not settings.followup_cron_secret:
+            return jsonify({"error": "digest disabled"}), 404
+        got = request.headers.get("X-Followup-Cron-Secret", "")
+        if not hmac.compare_digest(got, settings.followup_cron_secret):
+            return jsonify({"error": "unauthorized"}), 401
+        metrics = _compute_dashboard_metrics()
+        subj, html, text = build_weekly_digest(metrics)
+        out = send_smtp_html(subj, html, text)
+        code = 200 if out.get("ok") or out.get("skipped") else 500
+        return jsonify(out), code
+
+    @app.route("/dashboard/quick-replies.json", methods=["GET"])
+    def dashboard_quick_replies_json():
+        if settings.dashboard_password and not _is_dashboard_authed(settings):
+            return jsonify({"error": "unauthorized"}), 401
+        return jsonify({"templates": get_quick_reply_templates()}), 200
 
     @app.route("/internal/razorpay-payment", methods=["POST"])
     def internal_razorpay_payment():

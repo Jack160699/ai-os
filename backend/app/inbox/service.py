@@ -5,14 +5,19 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from app.config import Settings
 from app.leads.analytics import parse_iso
+from app.leads.growth_hot_score import compute_growth_hot_score
 from app.memory.store import (
+    append_thread_message,
     get_all_states,
     get_conversation_state,
     get_thread_messages,
     load_memory,
     set_conversation_state,
 )
+from app.whatsapp.messaging import send_whatsapp_text
+from app.whatsapp.quick_reply_templates import template_body_by_id
 
 def _normalize_phone(phone: str) -> str:
     return "".join(c for c in (phone or "") if c.isdigit())
@@ -167,6 +172,7 @@ def build_inbox_list(q: str = "", temperature: str = "all", unread_only: bool = 
         elif lr:
             last_iso = lr.isoformat()
 
+        gh = compute_growth_hot_score(st)
         rows_out.append(
             {
                 "phone": digits,
@@ -178,10 +184,12 @@ def build_inbox_list(q: str = "", temperature: str = "all", unread_only: bool = 
                 "temperature": temp,
                 "intent_score": st.get("intent_score", "Warm"),
                 "status": str(st.get("lead_status", "active")),
+                "growth_score": gh.get("growth_score"),
+                "growth_label": gh.get("growth_label"),
             }
         )
 
-    rows_out.sort(key=lambda r: r.get("sort_key", 0), reverse=True)
+    rows_out.sort(key=lambda r: (float(r.get("growth_score") or 0), r.get("sort_key", 0)), reverse=True)
     for r in rows_out:
         r.pop("sort_key", None)
 
@@ -209,6 +217,10 @@ def build_inbox_detail(phone: str) -> dict[str, Any] | None:
         ]
         summary = " · ".join(str(p) for p in parts if p) or "No summary captured yet."
 
+    gh = compute_growth_hot_score(st)
+    tags = st.get("inbox_tags") if isinstance(st.get("inbox_tags"), list) else []
+    notes = st.get("lead_notes") if isinstance(st.get("lead_notes"), list) else []
+
     return {
         "phone": digits,
         "transcript": thread,
@@ -221,13 +233,19 @@ def build_inbox_detail(phone: str) -> dict[str, Any] | None:
             "lead_status": st.get("lead_status"),
             "summary": st.get("summary"),
             "followup_stage_sent": st.get("followup_stage_sent"),
-            "tags": st.get("inbox_tags") if isinstance(st.get("inbox_tags"), list) else [],
+            "tags": tags,
+            "lead_notes": notes[-50:],
+            "growth_score": gh.get("growth_score"),
+            "growth_label": gh.get("growth_label"),
+            "growth_factors": gh.get("growth_factors"),
         },
         "intelligence": {
             "summary": summary,
             "sentiment": sent,
             "intent_score": st.get("intent_score", "Warm"),
             "recommended_next_action": rec,
+            "growth_score": gh.get("growth_score"),
+            "growth_label": gh.get("growth_label"),
         },
         "suggestions": _heuristic_suggestions(last_user),
         "updated_at": _iso_now(),
@@ -271,6 +289,25 @@ def apply_inbox_action(phone: str, action: str, payload: dict | None = None) -> 
         cur = st.get("inbox_tags")
         if isinstance(cur, list) and tag in cur:
             st["inbox_tags"] = [x for x in cur if x != tag]
+    elif action == "add_note":
+        text = str(payload.get("text", "")).strip()
+        if not text:
+            return {"ok": False, "error": "empty_note"}
+        cur = st.get("lead_notes")
+        if not isinstance(cur, list):
+            cur = []
+        cur.append({"text": text[:2000], "at": _iso_now(), "author": str(payload.get("author") or "admin")[:40]})
+        st["lead_notes"] = cur[-80:]
+    elif action == "send_quick_reply":
+        tid = str(payload.get("template_id", "")).strip()
+        body = template_body_by_id(tid)
+        if not body:
+            return {"ok": False, "error": "unknown_template"}
+        settings = Settings.load()
+        resp = send_whatsapp_text(settings, digits, body)
+        if not resp.ok:
+            return {"ok": False, "error": "send_failed", "detail": (resp.text or "")[:300]}
+        append_thread_message(digits, "assistant", body)
     else:
         return {"ok": False, "error": "unknown_action"}
 

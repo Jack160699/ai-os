@@ -70,7 +70,7 @@ export function LeadsCommandCenter({ rows = [] }) {
         <table className="admin-table min-w-[980px] w-full text-left text-[12px]">
           <thead>
             <tr>
-              {["Name", "WhatsApp", "Need", "Stage", "Hot Score 🔥", "Last Action", "Status", "Payment Status", "Actions"].map((h) => (
+              {["Name", "WhatsApp", "Need", "Tags", "Stage", "Growth", "Last Action", "Status", "Payment", "Actions"].map((h) => (
                 <th key={h} className="px-2.5 py-2 text-slate-500">{h}</th>
               ))}
             </tr>
@@ -79,13 +79,16 @@ export function LeadsCommandCenter({ rows = [] }) {
             {filtered.slice(0, 25).map((r, i) => {
               const status = r.status || "active";
               const paid = /paid|booked/i.test(status) ? "Paid" : "Pending";
+              const tags = Array.isArray(r.lead_tags) ? r.lead_tags : [];
+              const g = r.growth_score != null ? `${r.growth_score}${r.growth_label ? ` (${r.growth_label})` : ""}` : "—";
               return (
                 <tr key={`${r.phone}-${i}`} className="border-t border-white/[0.05]">
                   <td className="px-2.5 py-3 text-slate-100">{r.name || `Lead ${i + 1}`}</td>
                   <td className="px-2.5 py-3 text-slate-300">{r.phone}</td>
                   <td className="px-2.5 py-3 text-slate-300">{r.pain_point || r.summary || "-"}</td>
+                  <td className="px-2.5 py-3 text-slate-400">{tags.length ? tags.join(", ") : "—"}</td>
                   <td className="px-2.5 py-3 text-slate-300">{r.followup_stage || "-"}</td>
-                  <td className="px-2.5 py-3 text-slate-300">{r.intent_score || "Warm"}</td>
+                  <td className="px-2.5 py-3 text-slate-300">{g}</td>
                   <td className="px-2.5 py-3 text-slate-400">{r.last_reply_time || "-"}</td>
                   <td className="px-2.5 py-3">
                     <span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${pill(status)}`}>{status}</span>

@@ -51,6 +51,10 @@ function mergeRecentTableRows(data) {
       followup_stage: r.followup_stage ?? "-",
       status: r.status ?? "-",
       sort_ts: r.last_reply_time || "",
+      growth_score: r.growth_score,
+      growth_label: r.growth_label,
+      lead_tags: r.lead_tags,
+      note_preview: r.note_preview,
     });
   }
   for (const e of completed) {
@@ -65,6 +69,10 @@ function mergeRecentTableRows(data) {
       followup_stage: "-",
       status: "completed",
       sort_ts: e.timestamp_utc || "",
+      growth_score: null,
+      growth_label: null,
+      lead_tags: [],
+      note_preview: "",
     });
   }
   rows.sort((a, b) => String(b.sort_ts).localeCompare(String(a.sort_ts)));

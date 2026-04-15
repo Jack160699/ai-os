@@ -115,11 +115,16 @@ export function ConversationPane({
                       <span className="truncate text-[13px] font-semibold text-white">{c.name || "Lead"}</span>
                       <span className="shrink-0 text-[11px] text-slate-500">{formatTime(c.last_time)}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-slate-400">
                         <span className={`h-1.5 w-1.5 rounded-full ${statusClass(status)}`} />
                         {status}
                       </span>
+                      {c.growth_score != null ? (
+                        <span className="rounded-md border border-amber-400/25 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-100">
+                          {c.growth_score}
+                        </span>
+                      ) : null}
                       {(c.unread || 0) > 0 ? (
                         <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-sky-500 px-1 text-[10px] font-bold text-white">
                           {c.unread > 9 ? "9+" : c.unread}

@@ -13,5 +13,15 @@ export const QUICK_REPLIES = [
   { id: "follow-up", label: "Follow up tomorrow", text: "Noted. I will follow up tomorrow with the next steps." },
 ];
 
+/** IDs match backend `app/whatsapp/quick_reply_templates.py` — sent via one-click WhatsApp. */
+export const WHATSAPP_QUICK_TEMPLATES = [
+  { id: "qr_payment_nudge", label: "Payment nudge" },
+  { id: "qr_book_call", label: "Book call" },
+  { id: "qr_clarify_need", label: "Clarify need" },
+  { id: "qr_social_proof", label: "Social proof" },
+  { id: "qr_followup_value", label: "Value FU" },
+  { id: "qr_human_handoff", label: "Human handoff" },
+];
+
 export const OWNER_OPTIONS = ["Unassigned", "Aarav", "Isha", "Rahul", "Priya"];
 
