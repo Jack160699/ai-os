@@ -422,19 +422,114 @@ def _is_dashboard_authed(settings: Settings) -> bool:
     return hmac.compare_digest(cookie_value, password)
 
 
+def get_lang(sender: str) -> str:
+    state = get_conversation_state(sender)
+    lang = str(state.get("lang") or state.get("user_language") or "en").strip().lower()
+    return lang if lang in {"en", "hi", "hinglish"} else "en"
+
+
+def _localize_text(text: str, lang: str) -> str:
+    if not text or lang == "en":
+        return text
+    t = text.strip()
+    if lang == "hi":
+        mapping = {
+            "Welcome to StratXcel 🚀\n\nChoose your language:": "StratXcel में आपका स्वागत है 🚀\n\nकृपया अपनी भाषा चुनें:",
+            "Please choose your language using the buttons below 👆": "कृपया नीचे दिए गए बटनों से अपनी भाषा चुनें 👆",
+            "What would you like help with?": "आपको किस चीज़ में मदद चाहिए?",
+            "Pick one option below so we can route you correctly 👇": "सही दिशा में ले जाने के लिए नीचे से एक विकल्प चुनें 👇",
+            "Thanks for your message — a strategist will assist you shortly.": "आपके संदेश के लिए धन्यवाद — हमारी रणनीतिक टीम जल्द ही मदद करेगी।",
+            "I've flagged our team — a human will join this thread shortly. Until then, tell me anything useful (timeline, budget band, must-haves) and I'll pass it along.": "मैंने हमारी टीम को सूचित कर दिया है — एक एक्सपर्ट जल्द ही इस चैट में जुड़ेंगे। तब तक आप अपनी टाइमलाइन, बजट और ज़रूरी बातें साझा करें।",
+            "Need help completing payment?": "पेमेंट पूरा करने में मदद चाहिए?",
+            "Slots are limited today — want me to reserve this?": "आज स्लॉट सीमित हैं — क्या मैं आपके लिए रिज़र्व कर दूँ?",
+        }
+        return mapping.get(t, t)
+    mapping_hinglish = {
+        "Welcome to StratXcel 🚀\n\nChoose your language:": "StratXcel mein welcome hai 🚀\n\nApni language choose karo:",
+        "Please choose your language using the buttons below 👆": "Please neeche diye gaye buttons se language choose karo 👆",
+        "What would you like help with?": "Aapko kis cheez mein help chahiye?",
+        "Pick one option below so we can route you correctly 👇": "Sahi route ke liye neeche se ek option choose karo 👇",
+        "Thanks for your message — a strategist will assist you shortly.": "Message ke liye thanks — strategist team jaldi assist karegi.",
+        "I've flagged our team — a human will join this thread shortly. Until then, tell me anything useful (timeline, budget band, must-haves) and I'll pass it along.": "Maine team ko inform kar diya hai — human expert abhi join karega. Tab tak timeline, budget aur must-haves share kar do.",
+        "Need help completing payment?": "Payment complete karne mein help chahiye?",
+        "Slots are limited today — want me to reserve this?": "Aaj slots limited hain — reserve kar du?",
+    }
+    return mapping_hinglish.get(t, t)
+
+
+def _localize_buttons(buttons: tuple[tuple[str, str], ...] | None, lang: str):
+    if not buttons or lang == "en":
+        return buttons
+    out = []
+    for bid, title in buttons:
+        if bid == "lang_en":
+            label = "English"
+        elif bid == "lang_hi":
+            label = "Hindi"
+        elif bid == "lang_hinglish":
+            label = "Hinglish"
+        else:
+            if lang == "hi":
+                label = {
+                    "Start Business": "बिज़नेस शुरू करें",
+                    "Grow Business": "बिज़नेस बढ़ाएँ",
+                    "Automate": "ऑटोमेट करें",
+                    "Talk to Expert": "एक्सपर्ट से बात",
+                }.get(title, title)
+            else:
+                label = {
+                    "Start Business": "Business Start",
+                    "Grow Business": "Business Grow",
+                    "Automate": "Automate",
+                    "Talk to Expert": "Expert se baat",
+                }.get(title, title)
+        out.append((bid, label[:20]))
+    return tuple(out)
+
+
+def _localize_list_menu(menu: ListMenuSpec | None, lang: str):
+    if not menu or lang == "en":
+        return menu
+    if lang == "hi":
+        rows = (
+            ("menu_start", "बिज़नेस शुरू करें", None),
+            ("menu_grow", "बिज़नेस बढ़ाएँ", None),
+            ("menu_auto", "ऑटोमेट करें", None),
+            ("menu_expert", "एक्सपर्ट से बात", None),
+        )
+        return ListMenuSpec(button_label="विकल्प चुनें", section_title="मदद विषय", rows=rows)
+    rows = (
+        ("menu_start", "Business Start", None),
+        ("menu_grow", "Business Grow", None),
+        ("menu_auto", "Automate", None),
+        ("menu_expert", "Expert se baat", None),
+    )
+    return ListMenuSpec(button_label="Choose", section_title="Help topics", rows=rows)
+
+
+def _localize_reply_for_sender(sender: str, reply: LeadFlowReply) -> LeadFlowReply:
+    lang = get_lang(sender)
+    return LeadFlowReply(
+        body=_localize_text(reply.body, lang),
+        buttons=_localize_buttons(reply.buttons, lang),
+        list_menu=_localize_list_menu(reply.list_menu, lang),
+    )
+
+
 def _send_lead_flow_reply(settings: Settings, sender: str, reply: LeadFlowReply):
-    if reply.list_menu:
+    localized = _localize_reply_for_sender(sender, reply)
+    if localized.list_menu:
         return send_interactive_list(
             settings,
             sender,
-            reply.body,
-            button_label=reply.list_menu.button_label,
-            section_title=reply.list_menu.section_title,
-            rows=reply.list_menu.rows,
+            localized.body,
+            button_label=localized.list_menu.button_label,
+            section_title=localized.list_menu.section_title,
+            rows=localized.list_menu.rows,
         )
-    if reply.buttons:
-        return send_interactive_buttons(settings, sender, reply.body, reply.buttons)
-    return send_whatsapp_text(settings, sender, reply.body)
+    if localized.buttons:
+        return send_interactive_buttons(settings, sender, localized.body, localized.buttons)
+    return send_whatsapp_text(settings, sender, localized.body)
 
 
 def _finalize_wa_auto_reply(settings: Settings, sender: str, reply: LeadFlowReply, wa_mid: str) -> None:
@@ -444,11 +539,11 @@ def _finalize_wa_auto_reply(settings: Settings, sender: str, reply: LeadFlowRepl
         st1["last_wa_mid"] = wa_mid
         st1["last_bot_inbound_mid"] = wa_mid
         set_conversation_state(sender, st1)
-        append_thread_message(sender, "assistant", reply.body or "")
+        append_thread_message(sender, "assistant", _localize_reply_for_sender(sender, reply).body or "")
         arm_followup_after_bot_send(sender)
 
 
-_ENTRY_LANG_BUTTONS = (("lang_en", "English"), ("lang_hi", "Hindi"))
+_ENTRY_LANG_BUTTONS = (("lang_en", "English"), ("lang_hi", "Hindi"), ("lang_hinglish", "Hinglish"))
 _ENTRY_MENU_LIST = ListMenuSpec(
     button_label="Choose topic",
     section_title="Help topics",
@@ -813,7 +908,13 @@ def create_app(settings: Settings) -> Flask:
                     tl = build_preview_state_for_sales(st_onb, inbound)["transcript_lines"]
                     set_conversation_state(
                         sender,
-                        {**st_onb, "entry_flow": "language_select", "step": "start", "transcript_lines": tl},
+                        {
+                            **st_onb,
+                            "entry_flow": "language_select",
+                            "step": "start",
+                            "lang": st_onb.get("lang", "en"),
+                            "transcript_lines": tl,
+                        },
                     )
                     welcome_lang = LeadFlowReply(
                         body="Welcome to StratXcel 🚀\n\nChoose your language:",
@@ -829,12 +930,16 @@ def create_app(settings: Settings) -> Flask:
                         lang = "en"
                     elif rid == "lang_hi":
                         lang = "hi"
+                    elif rid == "lang_hinglish":
+                        lang = "hinglish"
                     else:
                         low = inbound.lower()
                         if low in ("english", "en", "inglish") or "english" in low:
                             lang = "en"
                         elif low in ("hindi", "hi", "हिंदी") or "hindi" in low:
                             lang = "hi"
+                        elif low in ("hinglish", "hin-glish") or "hinglish" in low:
+                            lang = "hinglish"
                     if not lang:
                         retry = LeadFlowReply(
                             body="Please choose your language using the buttons below 👆",
@@ -846,7 +951,13 @@ def create_app(settings: Settings) -> Flask:
                     tl2 = build_preview_state_for_sales(st_lang, inbound)["transcript_lines"]
                     set_conversation_state(
                         sender,
-                        {**st_lang, "entry_flow": "menu", "user_language": lang, "transcript_lines": tl2},
+                        {
+                            **st_lang,
+                            "entry_flow": "menu",
+                            "lang": lang,
+                            "user_language": lang,
+                            "transcript_lines": tl2,
+                        },
                     )
                     menu_reply = LeadFlowReply(
                         body="What would you like help with?",
@@ -904,7 +1015,11 @@ def create_app(settings: Settings) -> Flask:
                             st_sales_done["last_wa_mid"] = wa_mid
                             st_sales_done["last_bot_inbound_mid"] = wa_mid
                             set_conversation_state(sender, st_sales_done)
-                            append_thread_message(sender, "assistant", sales_reply.body)
+                            append_thread_message(
+                                sender,
+                                "assistant",
+                                _localize_reply_for_sender(sender, sales_reply).body,
+                            )
                             arm_followup_after_bot_send(sender)
                             print("[wa-webhook] conversation updated + sales intercept assistant appended")
                         else:
@@ -922,7 +1037,11 @@ def create_app(settings: Settings) -> Flask:
                     st1["last_wa_mid"] = wa_mid
                     st1["last_bot_inbound_mid"] = wa_mid
                     set_conversation_state(sender, st1)
-                    append_thread_message(sender, "assistant", reply.body)
+                    append_thread_message(
+                        sender,
+                        "assistant",
+                        _localize_reply_for_sender(sender, reply).body,
+                    )
                     arm_followup_after_bot_send(sender)
                     print("[wa-webhook] conversation updated + assistant appended")
                 else:
