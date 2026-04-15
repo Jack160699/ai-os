@@ -94,7 +94,7 @@ def _contains_entry_greeting(inbound: str) -> bool:
     t = (inbound or "").strip().lower()
     if not t:
         return False
-    return t in {"hi", "start"}
+    return t in {"hi", "hello", "hey", "start"}
 
 
 def _extract_message_payload(msg_data: dict) -> tuple[str, str, str]:
@@ -715,45 +715,28 @@ def _is_explicit_human_request(text: str) -> bool:
 
 
 def _dynamic_challenge_question(need: str) -> LeadFlowReply:
-    if need == "start":
+    if need == "grow":
         return LeadFlowReply(
-            body="Nice 🚀 start karna exciting hai.\n\nAap abhi kaha ho?",
+            body="Samajh gaya 😊 aap business grow karna chahte ho.\n\nAapka business kis type ka hai?",
             list_menu=ListMenuSpec(
-                button_label="Pick stage",
-                section_title="Start stage",
+                button_label="Type choose karo",
+                section_title="Business type",
                 rows=(
-                    ("st_idea", "Idea stage", None),
-                    ("st_plan", "Planning", None),
-                    ("st_ready", "Ready to launch", None),
+                    ("bt_service", "Service (agency/freelance)", None),
+                    ("bt_product", "Product (clothes/ecom)", None),
+                    ("bt_local", "Local shop", None),
+                    ("bt_other", "Other", None),
                 ),
             ),
         )
     if need == "automate":
         return LeadFlowReply(
-            body="Samajh gaya 👍 aap business automate karna chahte ho.\n\nSabse bada problem kya aa raha hai? 😊",
-            list_menu=ListMenuSpec(
-                button_label="Pick problem",
-                section_title="Automation",
-                rows=(
-                    ("ch_sales_low", "Sales kam hai", None),
-                    ("ch_no_leads", "Log aa nahi rahe", None),
-                    ("ch_marketing", "Marketing samajh nahi aa rahi", None),
-                    ("ch_not_sure", "Samajh nahi aa raha", None),
-                ),
-            ),
+            body="Samajh gaya 😊 aap business automate karna chahte ho.\n\nKis cheez ko automate karna chahte ho?",
+            buttons=(("am_leads", "Leads"), ("am_followup", "Follow-up"), ("am_support", "Support")),
         )
     return LeadFlowReply(
-        body="Samajh gaya 👍 aap business grow karna chahte ho.\n\nAbhi sabse bada problem kya lag raha hai? 😊",
-        list_menu=ListMenuSpec(
-            button_label="Pick problem",
-            section_title="Growth",
-            rows=(
-                ("ch_sales_low", "Sales kam hai", None),
-                ("ch_no_leads", "Log aa nahi rahe", None),
-                ("ch_marketing", "Marketing samajh nahi aa rahi", None),
-                ("ch_not_sure", "Samajh nahi aa raha", None),
-            ),
-        ),
+        body="Nice 🚀 start karna exciting hai.\n\nAap abhi kis stage pe ho?",
+        buttons=(("st_idea", "Idea hai"), ("st_plan", "Soch raha hoon"), ("st_ready", "Ready to start")),
     )
 
 
@@ -783,6 +766,31 @@ def _challenge_ack_copy(challenge: str) -> str:
         "Ye common phase hota hai.\n\n"
         "Koi tension nahi,\n"
         "isko fix kiya ja sakta hai."
+    )
+
+
+def _problem_question_for_need(need: str) -> LeadFlowReply:
+    if need == "grow":
+        return LeadFlowReply(
+            body="Abhi sabse bada problem kya aa raha hai?",
+            buttons=(
+                ("ch_sales_low", "Sales kam hai"),
+                ("ch_no_leads", "Log aa nahi rahe"),
+                ("ch_marketing", "Marketing samajh nahi aa rahi"),
+            ),
+        )
+    if need == "automate":
+        return LeadFlowReply(
+            body="Abhi sabse bada problem kya aa raha hai?",
+            buttons=(
+                ("ch_followups", "Follow-up slow"),
+                ("ch_manual", "Manual kaam zyada"),
+                ("ch_support", "Support late"),
+            ),
+        )
+    return LeadFlowReply(
+        body="Kis type ka business start karna hai?",
+        buttons=(("sb_online", "Online"), ("sb_shop", "Shop"), ("sb_service", "Service")),
     )
 
 
@@ -1128,7 +1136,40 @@ def create_app(settings: Settings) -> Flask:
                     continue
 
                 st_entry_check = get_conversation_state(sender)
-                if _is_new_user_state(st_entry_check) or _contains_entry_greeting(inbound):
+                if _contains_entry_greeting(inbound):
+                    if inbound.strip().lower() == "start" and str(st_entry_check.get("stage") or "") == "offer_shown":
+                        set_conversation_state(sender, {**st_entry_check, "funnel_stage": "offer_accept"})
+                        _finalize_wa_auto_reply(
+                            settings,
+                            sender,
+                            LeadFlowReply(
+                                body=_FUNNEL_PITCH,
+                                buttons=(("offer_yes", "Yes Start"), ("offer_details", "Need Details"), ("offer_later", "Later")),
+                            ),
+                            wa_mid,
+                        )
+                        return "", 200
+                    clear_conversation_state(sender)
+                    print("ENTRY FLOW TRIGGERED")
+                    tl_entry = build_preview_state_for_sales({}, inbound)["transcript_lines"]
+                    set_conversation_state(
+                        sender,
+                        {
+                            "entry_flow": "language_select",
+                            "stage": "",
+                            "step": "start",
+                            "lang": "en",
+                            "transcript_lines": tl_entry,
+                            "last_user_seen_at": datetime.now(timezone.utc).isoformat(),
+                        },
+                    )
+                    welcome_lang = LeadFlowReply(
+                        body="Welcome to StratXcel 🚀\n\nChoose your language:",
+                        buttons=_ENTRY_LANG_BUTTONS,
+                    )
+                    _finalize_wa_auto_reply(settings, sender, welcome_lang, wa_mid)
+                    return "", 200
+                if _is_new_user_state(st_entry_check):
                     clear_conversation_state(sender)
                     print("ENTRY FLOW TRIGGERED")
                     tl_entry = build_preview_state_for_sales({}, inbound)["transcript_lines"]
@@ -1283,7 +1324,7 @@ def create_app(settings: Settings) -> Flask:
                             "menu_choice": rid,
                             "step": "await_business",
                             "funnel_need": need,
-                            "funnel_stage": "ask_challenge",
+                            "funnel_stage": "ask_need_specific",
                             "funnel_answers": {},
                             "transcript_lines": tl3,
                         },
@@ -1316,30 +1357,53 @@ def create_app(settings: Settings) -> Flask:
                     if raw_interactive_id and st_sales.get("last_funnel_button_id") == raw_interactive_id and st_sales.get("last_funnel_stage") == funnel_stage:
                         print("[wa-webhook] duplicate funnel button ignored:", raw_interactive_id)
                         return "", 200
+                    if funnel_stage == "ask_need_specific":
+                        need = str(st_sales.get("funnel_need") or "grow")
+                        selected = raw_interactive_id or inbound
+                        if need == "grow":
+                            answers["business_type"] = selected
+                            st_next = {
+                                **st_sales,
+                                "funnel_stage": "ask_challenge",
+                                "funnel_answers": answers,
+                                "last_funnel_button_id": raw_interactive_id or "",
+                                "last_funnel_stage": funnel_stage,
+                                "stage": "question_1_done",
+                            }
+                            set_conversation_state(sender, st_next)
+                            _finalize_wa_auto_reply(settings, sender, _problem_question_for_need("grow"), wa_mid)
+                            return "", 200
+                        if need == "automate":
+                            answers["automation_target"] = selected
+                            st_next = {
+                                **st_sales,
+                                "funnel_stage": "ask_challenge",
+                                "funnel_answers": answers,
+                                "last_funnel_button_id": raw_interactive_id or "",
+                                "last_funnel_stage": funnel_stage,
+                                "stage": "question_1_done",
+                            }
+                            set_conversation_state(sender, st_next)
+                            _finalize_wa_auto_reply(settings, sender, _problem_question_for_need("automate"), wa_mid)
+                            return "", 200
+                        # start path
+                        answers["stage"] = selected
+                        st_next = {
+                            **st_sales,
+                            "funnel_stage": "ask_challenge",
+                            "funnel_answers": answers,
+                            "last_funnel_button_id": raw_interactive_id or "",
+                            "last_funnel_stage": funnel_stage,
+                            "stage": "question_1_done",
+                        }
+                        set_conversation_state(sender, st_next)
+                        _finalize_wa_auto_reply(settings, sender, _problem_question_for_need("start"), wa_mid)
+                        return "", 200
                     if funnel_stage == "ask_challenge":
-                        challenge = raw_interactive_id if (raw_interactive_id or "").startswith("ch_") else inbound
+                        challenge = raw_interactive_id if raw_interactive_id else inbound
                         answers["challenge"] = challenge
                         st_next = {**st_sales, "funnel_answers": answers, "last_funnel_button_id": raw_interactive_id or "", "last_funnel_stage": funnel_stage}
                         need = str(st_sales.get("funnel_need") or "grow")
-                        if need == "start":
-                            st_next["funnel_stage"] = "ask_stage"
-                            st_next["stage"] = "question_1_done"
-                            set_conversation_state(sender, st_next)
-                            _finalize_wa_auto_reply(
-                                settings,
-                                sender,
-                                LeadFlowReply(
-                                    body=(
-                                        "Samajh gaya 👍\n\n"
-                                        "Agar start karna hai,\n"
-                                        "toh pehle stage clear karna important hota hai.\n\n"
-                                        "Aap abhi kaha ho?"
-                                    ),
-                                    buttons=(("st_idea", "Idea stage"), ("st_running", "Already running")),
-                                ),
-                                wa_mid,
-                            )
-                            return "", 200
                         st_next["funnel_stage"] = "offer_accept"
                         st_next["stage"] = "question_1_done"
                         set_conversation_state(sender, st_next)
@@ -1354,26 +1418,6 @@ def create_app(settings: Settings) -> Flask:
                                     "Most log guesswork mein months waste kar dete hain.\n\n"
                                     f"{_FUNNEL_PITCH}"
                                 ),
-                                buttons=(("offer_yes", "Yes Start"), ("offer_details", "Need Details"), ("offer_later", "Later")),
-                            ),
-                            wa_mid,
-                        )
-                        return "", 200
-                    if funnel_stage == "ask_stage":
-                        stage_answer = inbound
-                        if raw_interactive_id == "st_idea":
-                            stage_answer = "Idea stage"
-                        elif raw_interactive_id == "st_running":
-                            stage_answer = "Already running"
-                        answers["stage"] = stage_answer
-                        answers["need"] = st_sales.get("funnel_need", "grow")
-                        st_next = {**st_sales, "funnel_stage": "offer_accept", "funnel_answers": answers, "last_funnel_button_id": raw_interactive_id or "", "last_funnel_stage": funnel_stage, "stage": "offer_shown"}
-                        set_conversation_state(sender, st_next)
-                        _finalize_wa_auto_reply(
-                            settings,
-                            sender,
-                            LeadFlowReply(
-                                body=_FUNNEL_PITCH,
                                 buttons=(("offer_yes", "Yes Start"), ("offer_details", "Need Details"), ("offer_later", "Later")),
                             ),
                             wa_mid,
