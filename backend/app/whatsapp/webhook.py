@@ -672,7 +672,15 @@ def create_app(settings: Settings) -> Flask:
             if not isinstance(msg_data, dict):
                 continue
             try:
-                raw_from = str(msg_data.get("from") or "")
+                raw_from = str(msg_data.get("from") or "").strip()
+                # Prevent webhook echo loops: ignore our own outbound messages.
+                if raw_from and (
+                    raw_from == str(getattr(settings, "phone_number_id", "") or "").strip()
+                    or raw_from == str(settings.wa_phone_number_id or "").strip()
+                    or (phone_number_id and raw_from == phone_number_id)
+                ):
+                    print("[wa-webhook] skip self/echo message from=", raw_from)
+                    continue
                 sender = normalize_phone_digits(raw_from)
                 wa_mid = str(msg_data.get("id") or "")
                 ts_iso = _wa_timestamp_iso(msg_data)
@@ -684,6 +692,19 @@ def create_app(settings: Settings) -> Flask:
                 st0 = get_conversation_state(sender)
 
                 message, raw_interactive_id, msg_type = _extract_message_payload(msg_data)
+                if msg_type not in {
+                    "text",
+                    "interactive",
+                    "image",
+                    "video",
+                    "audio",
+                    "document",
+                    "location",
+                    "contacts",
+                    "button",
+                }:
+                    print("[wa-webhook] skip non-user message type=", msg_type, "id=", wa_mid)
+                    continue
                 step = st0.get("step", "start")
                 inbound = (message or "").strip()
                 if raw_interactive_id:
