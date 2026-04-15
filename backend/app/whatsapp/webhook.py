@@ -1033,27 +1033,38 @@ def _normalize_user_input(raw_interactive_id: str, inbound: str) -> str:
     return (raw_interactive_id or inbound or "").strip().lower()
 
 
-def _extract_entities(text: str) -> dict:
+def _extract_entities(text: str) -> tuple[dict, float]:
     t = (text or "").lower()
     out: dict[str, str] = {}
+    hits = 0
     if any(x in t for x in ("explore", "just exploring", "learn", "understand", "confused", "don't understand", "dont understand")):
         out["stage"] = "exploring"
+        hits += 1
     elif any(x in t for x in ("start", "begin", "launch", "new")):
         out["stage"] = "starting"
         out["intent"] = "start"
+        hits += 2
     elif any(x in t for x in ("scale", "grow", "increase", "expand")):
         out["stage"] = "scaling"
         out["intent"] = "scale"
+        hits += 2
 
     if any(x in t for x in ("online", "social", "digital", "ads", "website")):
         out["mode"] = "online"
+        hits += 1
     elif any(x in t for x in ("offline", "shop", "store", "local")):
         out["mode"] = "offline"
+        hits += 1
 
     platform_map = {
         "youtube": ("youtube",),
         "instagram": ("instagram", "insta", "ig"),
         "dropshipping": ("dropshipping", "drop shipping"),
+        "ecommerce": ("ecommerce", "e-commerce", "shopify store", "online store"),
+        "agency": ("agency",),
+        "coaching": ("coach", "coaching"),
+        "freelancer": ("freelancer", "freelance"),
+        "local shop": ("local shop", "retail", "shop"),
         "facebook": ("facebook", "fb"),
         "whatsapp": ("whatsapp", "wa"),
         "amazon": ("amazon",),
@@ -1063,25 +1074,36 @@ def _extract_entities(text: str) -> dict:
         if any(n in t for n in needles):
             out["platform"] = key
             if not out.get("mode"):
-                out["mode"] = "online"
+                out["mode"] = "offline" if key == "local shop" else "online"
+            hits += 2
             break
 
     if any(x in t for x in ("views", "reach", "audience", "followers")):
         out["problem"] = "audience growth"
+        hits += 1
     elif any(x in t for x in ("sales", "no order", "orders", "revenue", "customers", "leads")):
         out["problem"] = "sales conversion"
+        hits += 1
     elif any(x in t for x in ("content", "what to post", "niche", "clarity", "idea")):
         out["problem"] = "content clarity"
+        hits += 1
     elif any(x in t for x in ("ad", "ads", "cpc", "roas")):
         out["problem"] = "ads performance"
+        hits += 1
 
     if any(x in t for x in ("consistent", "regular", "posting")):
         out["sub_problem"] = "consistency gap"
+        hits += 1
     elif any(x in t for x in ("setup", "technical", "profile", "channel setup")):
         out["sub_problem"] = "setup confusion"
+        hits += 1
     elif any(x in t for x in ("don't know", "dont know", "no idea", "confused")):
         out["sub_problem"] = "execution confusion"
-    return out
+        hits += 1
+
+    # Lightweight confidence scoring based on matched semantic signals.
+    confidence = min(1.0, hits / 4.0)
+    return out, confidence
 
 
 def _meaningful_interactions_count(state: dict) -> int:
@@ -1116,10 +1138,10 @@ def generate_dynamic_options(context: dict) -> list[str]:
     if step == "mode":
         return ["Online", "Offline", "Other"]
     if step == "platform":
-        if str(context.get("mode") or "").lower() == "offline":
-            return ["Retail shop", "Local service", "Franchise", "Other"]
-        return ["YouTube", "Instagram", "Dropshipping", "Facebook", "Other"]
+        return ["YouTube", "Instagram", "Ecommerce", "Agency", "Coaching", "Freelancer", "Local Shop", "Other"]
     if step in {"problem", "sub_problem"}:
+        if step == "sub_problem" and platform == "youtube":
+            return ["Yes", "No", "Sometimes", "Other"]
         if platform == "youtube":
             return [
                 "Not getting views",
@@ -1185,9 +1207,16 @@ def _strict_lang_render(lang: str, english_text: str, hinglish_text: str, hindi_
 
 
 def _ctx_insight_text(lang: str, ctx: dict) -> str:
-    stage = str(ctx.get("stage") or "current stage")
-    platform = str(ctx.get("platform") or "your platform")
-    problem = str(ctx.get("problem") or "your current challenge")
+    stage = str(ctx.get("stage") or "")
+    platform = str(ctx.get("platform") or "")
+    problem = str(ctx.get("problem") or "")
+    if not platform or not problem:
+        return _strict_lang_render(
+            lang,
+            "I'd like to understand your situation better.",
+            "Main aapki situation better samajhna chahta hoon.",
+            "मैं आपकी स्थिति को बेहतर समझना चाहता हूं।",
+        )
     en = (
         f"I understand your situation.\n\n"
         f"Since you are at '{stage}' and working on {platform},\n"
@@ -1207,6 +1236,61 @@ def _ctx_insight_text(lang: str, ctx: dict) -> str:
         "Ye improve ho sakta hai 😊"
     )
     return _strict_lang_render(lang, en, hing, hi)
+
+
+def _context_response_text(lang: str, ctx: dict) -> str:
+    stage = str(ctx.get("stage") or "your current stage")
+    platform = str(ctx.get("platform") or "your channel")
+    problem = str(ctx.get("problem") or "the current issue")
+    templates_en = (
+        f"Thanks for sharing this. Since you're in {stage} and focused on {platform}, we should solve {problem} first.",
+        f"That helps. For {platform} at your current stage ({stage}), {problem} is usually the bottleneck.",
+        f"Understood. Your {platform} journey is currently getting blocked by {problem}.",
+        f"Got it. At this stage ({stage}), fixing {problem} on {platform} gives the fastest progress.",
+        f"Clear. For {platform}, {problem} is the key gap right now.",
+        f"I see where you're coming from. {problem} on {platform} is the right place to focus next.",
+        f"Good context. Since you're in {stage}, we can simplify the path and remove {problem} first.",
+        f"You're not alone here. {problem} is common on {platform}, and we can work through it step by step.",
+        f"Helpful input. Let's make {platform} easier by resolving {problem} first.",
+        f"Thanks, this gives clarity. In your case, {problem} is the most important fix now.",
+        f"That makes sense. On {platform}, this stage usually needs sharper execution around {problem}.",
+        f"Perfect, now I understand. We'll prioritize {problem} and then unlock growth on {platform}.",
+    )
+    templates_hi = (
+        f"जानकारी देने के लिए धन्यवाद। आप {stage} स्टेज पर हैं और {platform} पर फोकस कर रहे हैं, इसलिए पहले {problem} ठीक करना सही रहेगा।",
+        f"समझ गया। {platform} पर इस स्टेज में अक्सर {problem} ही मुख्य रुकावट होती है।",
+        f"ठीक है। आपकी स्थिति में {platform} के लिए {problem} पर काम करना सबसे जरूरी है।",
+    )
+    templates_hing = (
+        f"Thanks for sharing. Aap {stage} stage pe ho aur {platform} pe focus kar rahe ho, to pehle {problem} solve karte hain.",
+        f"Got it. {platform} pe iss stage mein usually {problem} hi main bottleneck hota hai.",
+        f"Samajh gaya. Aapke case mein {problem} fix hoga to progress fast hoga 🙂",
+    )
+    idx = len(ctx.get("history") or []) % max(1, len(templates_en))
+    if lang == "english":
+        return _strict_lang_render(lang, templates_en[idx], templates_hing[idx % len(templates_hing)], templates_hi[idx % len(templates_hi)])
+    if lang == "hindi":
+        return _strict_lang_render(lang, templates_en[idx], templates_hing[idx % len(templates_hing)], templates_hi[idx % len(templates_hi)])
+    return _strict_lang_render(lang, templates_en[idx], templates_hing[idx % len(templates_hing)], templates_hi[idx % len(templates_hi)])
+
+
+def _resolve_button_value(cs: dict, user_input: str) -> str:
+    ui = (user_input or "").strip().lower()
+    m = re.match(r"^dyn_([a-z_]+)_(\d+|other)$", ui)
+    if not m:
+        return user_input
+    step = m.group(1)
+    idx_or_other = m.group(2)
+    opts = generate_dynamic_options({**cs, "current_step": step})
+    if idx_or_other == "other":
+        return "other"
+    try:
+        idx = int(idx_or_other)
+        if 0 <= idx < len(opts):
+            return str(opts[idx]).strip().lower()
+    except ValueError:
+        pass
+    return user_input
 
 
 def _buttons_from_options(lang: str, options: list[str], prefix: str) -> tuple[tuple[str, str], ...]:
@@ -1294,12 +1378,13 @@ def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: 
         cs = _init_consultant_state()
 
     user_input = _normalize_user_input(raw_interactive_id, inbound)
+    user_input = _resolve_button_value(cs, user_input)
     if not isinstance(cs.get("history"), list):
         cs["history"] = []
     if user_input:
         cs["history"].append(user_input)
 
-    extracted = _extract_entities(user_input)
+    extracted, confidence = _extract_entities(user_input)
     for k, v in extracted.items():
         # Step lock: once explicitly selected/set, ignore overwriting with repeated clicks.
         if not _is_locked(cs, k):
@@ -1316,6 +1401,19 @@ def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: 
     else:
         decision = _resolve_next_decision(cs)
         cs["current_step"] = decision
+        if confidence < 0.35 and not raw_interactive_id:
+            st_sales["consultant_state"] = cs
+            set_conversation_state(sender, st_sales)
+            print("STATE:", cs)
+            print("NEXT DECISION:", f"clarify_{decision}")
+            print("STEP:", cs.get("current_step"))
+            clarifier = _strict_lang_render(
+                lang,
+                "I want to avoid assumptions. Which option fits you best right now?",
+                "Assumption na karu, isliye batao abhi aapke liye sabse sahi option kaunsa hai?",
+                "मैं अनुमान नहीं लगाना चाहता। अभी आपके लिए सबसे सही विकल्प कौन सा है?",
+            )
+            return LeadFlowReply(body=clarifier, buttons=_buttons_from_options(lang, generate_dynamic_options({**cs, "current_step": decision}), f"dyn_{decision}"))
         if user_input == "other" or user_input.endswith("other"):
             cs["awaiting_other_for"] = decision
             cs["last_step_input"] = user_input
@@ -1366,9 +1464,9 @@ def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: 
     # Always answer + next options.
     q = _strict_lang_render(
         lang,
-        f"{_ctx_insight_text(lang, cs)}\n\n{_next_question_for_step(lang, next_step, cs)}",
-        f"{_ctx_insight_text(lang, cs)}\n\n{_next_question_for_step(lang, next_step, cs)}",
-        f"{_ctx_insight_text(lang, cs)}\n\n{_next_question_for_step(lang, next_step, cs)}",
+        f"{_context_response_text(lang, cs)}\n\n{_next_question_for_step(lang, next_step, cs)}",
+        f"{_context_response_text(lang, cs)}\n\n{_next_question_for_step(lang, next_step, cs)}",
+        f"{_context_response_text(lang, cs)}\n\n{_next_question_for_step(lang, next_step, cs)}",
     )
     if next_step == "offer":
         q = _strict_lang_render(
