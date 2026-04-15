@@ -64,6 +64,7 @@ export function PaymentsWorkspace() {
 
   async function createLink() {
     setLoading(true);
+    setLogsError("");
     try {
       const res = await fetch("/api/payments/create-link", {
         method: "POST",
@@ -79,6 +80,7 @@ export function PaymentsWorkspace() {
       const data = await res.json();
       if (!res.ok || !data?.ok) throw new Error(data?.error || "Could not create payment link");
       setLatestLink(String(data.payment_link || data.short_url || ""));
+      setLogsError("");
     } catch (e) {
       setLogsError(e?.message || "Could not create payment link");
     } finally {

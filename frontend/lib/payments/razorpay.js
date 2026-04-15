@@ -9,19 +9,52 @@ import Razorpay from "razorpay";
 
 /** @type {Razorpay | null} */
 let _instance = null;
+let _configLogged = false;
+
+function maskSecret(value) {
+  const v = String(value || "");
+  if (!v) return "(empty)";
+  if (v.length < 10) return "(set)";
+  return `${v.slice(0, 6)}...${v.slice(-3)} (len=${v.length})`;
+}
+
+function resolveKeys() {
+  const liveId = String(process.env.RAZORPAY_LIVE_KEY_ID || "").trim();
+  const fallbackId = String(process.env.RAZORPAY_KEY_ID || "").trim();
+  const liveSecret = String(process.env.RAZORPAY_LIVE_KEY_SECRET || "").trim();
+  const fallbackSecret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
+  const keyId = liveId || fallbackId;
+  const keySecret = liveSecret || fallbackSecret;
+  const idSource = liveId ? "RAZORPAY_LIVE_KEY_ID" : fallbackId ? "RAZORPAY_KEY_ID" : "(missing)";
+  const secretSource = liveSecret
+    ? "RAZORPAY_LIVE_KEY_SECRET"
+    : fallbackSecret
+      ? "RAZORPAY_KEY_SECRET"
+      : "(missing)";
+  return { keyId, keySecret, idSource, secretSource };
+}
 
 /**
  * @returns {Razorpay}
  */
 export function getRazorpay() {
-  const keyId = String(process.env.RAZORPAY_LIVE_KEY_ID || process.env.RAZORPAY_KEY_ID || "").trim();
-  const keySecret = String(
-    process.env.RAZORPAY_LIVE_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET || ""
-  ).trim();
+  const { keyId, keySecret, idSource, secretSource } = resolveKeys();
+
+  if (!_configLogged) {
+    _configLogged = true;
+    const mode = keyId.startsWith("rzp_live_") ? "live" : keyId.startsWith("rzp_test_") ? "test" : "unknown";
+    console.info(
+      `[razorpay-config] id_source=${idSource} secret_source=${secretSource} mode=${mode} key_id=${maskSecret(keyId)} key_secret=${maskSecret(keySecret)}`
+    );
+  }
+
   if (!keyId || !keySecret) {
     throw new Error(
       "Razorpay is not configured: set RAZORPAY_LIVE_KEY_ID and RAZORPAY_LIVE_KEY_SECRET"
     );
+  }
+  if (process.env.NODE_ENV === "production" && !keyId.startsWith("rzp_live_")) {
+    throw new Error("Unsafe Razorpay config in production: key id is not live.");
   }
   if (!_instance) {
     _instance = new Razorpay({ key_id: keyId, key_secret: keySecret });
@@ -91,6 +124,7 @@ export async function createPaymentLink({ amount, name, phone, description, emai
       console.error("[razorpay] unexpected create response:", link);
       throw new Error("Razorpay did not return short_url or id");
     }
+    console.info(`[razorpay] createPaymentLink success id=${String(id)} short_url=${String(shortUrl)}`);
     return { short_url: String(shortUrl), id: String(id), amount_paise: amountPaise };
   } catch (err) {
     const msg = err?.error?.description || err?.message || String(err);

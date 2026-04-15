@@ -7,6 +7,8 @@ import os
 from hashlib import sha256
 from typing import Any
 
+_CONFIG_LOGGED = False
+
 
 def _first_non_empty(*names: str) -> str:
     for name in names:
@@ -21,6 +23,35 @@ def _keys() -> tuple[str, str]:
     key_id = _first_non_empty("RAZORPAY_LIVE_KEY_ID", "RAZORPAY_KEY_ID")
     key_secret = _first_non_empty("RAZORPAY_LIVE_KEY_SECRET", "RAZORPAY_KEY_SECRET")
     return key_id, key_secret
+
+
+def _mask_secret(value: str, head: int = 8, tail: int = 3) -> str:
+    if not value:
+        return "(empty)"
+    if len(value) <= head + tail + 3:
+        return f"(set,len={len(value)})"
+    return f"{value[:head]}...{value[-tail:]} (len={len(value)})"
+
+
+def _log_checkout_config_once() -> None:
+    global _CONFIG_LOGGED
+    if _CONFIG_LOGGED:
+        return
+    _CONFIG_LOGGED = True
+    live_id = os.getenv("RAZORPAY_LIVE_KEY_ID", "").strip()
+    live_secret = os.getenv("RAZORPAY_LIVE_KEY_SECRET", "").strip()
+    fallback_id = os.getenv("RAZORPAY_KEY_ID", "").strip()
+    fallback_secret = os.getenv("RAZORPAY_KEY_SECRET", "").strip()
+    key_id, key_secret = _keys()
+    id_source = "RAZORPAY_LIVE_KEY_ID" if live_id else ("RAZORPAY_KEY_ID" if fallback_id else "(missing)")
+    secret_source = (
+        "RAZORPAY_LIVE_KEY_SECRET" if live_secret else ("RAZORPAY_KEY_SECRET" if fallback_secret else "(missing)")
+    )
+    print(
+        "[razorpay-checkout-config] "
+        f"id_source={id_source} secret_source={secret_source} mode={razorpay_mode()} "
+        f"key_id={_mask_secret(key_id)} key_secret={_mask_secret(key_secret)}"
+    )
 
 
 def public_key_id() -> str:
@@ -47,6 +78,7 @@ def ensure_safe_mode() -> None:
 
 
 def _razorpay_client():
+    _log_checkout_config_once()
     try:
         import razorpay
     except Exception as exc:  # pragma: no cover - import error surfaced to route
