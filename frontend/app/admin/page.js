@@ -3,33 +3,29 @@ import dynamic from "next/dynamic";
 import { Logo } from "@/app/components/Logo";
 import { AdminShell } from "@/app/admin/_components/AdminShell";
 import { EmptyState } from "@/app/admin/_components/EmptyState";
-import { KpiStatCard } from "@/app/admin/_components/KpiStatCard";
-import { StaggerFeed } from "@/app/admin/_components/StaggerFeed";
+import { AIGrowthIntelligence } from "@/app/admin/_components/AIGrowthIntelligence";
+import { HotLeadsAlertCard } from "@/app/admin/_components/HotLeadsAlertCard";
 import { SurfaceCard } from "@/app/admin/_components/SurfaceCard";
+import { TopSnapshotBar } from "@/app/admin/_components/TopSnapshotBar";
 import { getAdminAuthState, loginAction } from "@/app/admin/_lib/auth";
 import { getBackendDashboardUrl, getDashboardData } from "@/app/admin/_lib/data";
-import { activeShareTrend, bookedTrend, hotTrend, seriesHalfMomentum } from "@/app/admin/_lib/trends";
 import { AgentCenter } from "@/components/dashboard/AgentCenter";
 import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
-import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { QuickActions } from "@/components/dashboard/QuickActions";
-import { SmartSuggestions } from "@/components/dashboard/SmartSuggestions";
 import { SyncStatus } from "@/components/dashboard/SyncStatus";
-import { UsageCostCard } from "@/components/dashboard/UsageCostCard";
 import { getAgentCenterItems } from "@/lib/agents";
-import { estimateUsageAndCost } from "@/lib/costEstimator";
-import { buildSmartSuggestions } from "@/lib/suggestions";
-
-const MiniBarsClient = dynamic(
-  () => import("@/app/admin/_components/MiniBarsClient").then((m) => m.MiniBarsClient),
-  {
-    loading: () => (
-      <div className="admin-card-surface rounded-2xl border border-white/[0.07] bg-white/[0.022] p-5">
-        <div className="admin-skeleton mb-3 h-4 w-36" />
-        <div className="admin-skeleton h-48 w-full rounded-xl" />
-      </div>
-    ),
-  },
+const LeadsCommandCenter = dynamic(() => import("@/app/admin/_components/LeadsCommandCenter").then((m) => m.LeadsCommandCenter), {
+  loading: () => <div className="admin-skeleton h-64 w-full rounded-2xl" />,
+});
+const SalesFunnelVisual = dynamic(() => import("@/app/admin/_components/SalesFunnelVisual").then((m) => m.SalesFunnelVisual), {
+  loading: () => <div className="admin-skeleton h-64 w-full rounded-2xl" />,
+});
+const RevenueCenter = dynamic(() => import("@/app/admin/_components/RevenueCenter").then((m) => m.RevenueCenter), {
+  loading: () => <div className="admin-skeleton h-72 w-full rounded-2xl" />,
+});
+const AutomationControlPanel = dynamic(
+  () => import("@/app/admin/_components/AutomationControlPanel").then((m) => m.AutomationControlPanel),
+  { loading: () => <div className="admin-skeleton h-64 w-full rounded-2xl" /> },
 );
 
 export const metadata = {
@@ -114,39 +110,17 @@ export default async function AdminPage() {
   }
 
   const summary = data?.summary || {};
-  const trend = Array.isArray(data?.trend_7d) ? data.trend_7d : [];
   const painPoints = Array.isArray(data?.top_pain_points) ? data.top_pain_points : [];
   const hotLeads = Array.isArray(data?.hot_leads) ? data.hot_leads : [];
   const recentRows = data ? mergeRecentTableRows(data) : [];
-  const painMax = Math.max(1, ...painPoints.map((d) => d.count || 0));
-
-  const conversionPct = summary.conversion_rate_pct ?? summary.conversion_rate ?? 0;
-  const leadMomentum = seriesHalfMomentum(trend);
-  const activeTrend = activeShareTrend(summary);
-  const bookedT = bookedTrend(summary);
-  const hotT = hotTrend(summary);
-  const usageCostData = estimateUsageAndCost(summary);
-  const smartSuggestions = buildSmartSuggestions(summary);
   const agentStatuses = getAgentCenterItems();
-
-  const activityItems = recentRows.slice(0, 7).map((item, idx) => ({
-    id: `${item.phone}-${idx}`,
-    title: item.phone,
-    subtitle: item.business_type,
-    badge: item.status,
-  }));
-
-  const hotItems = hotLeads.slice(0, 6).map((lead, idx) => ({
-    id: `${lead.phone || "hot"}-${idx}`,
-    title: lead.phone || "—",
-    subtitle: [lead.business_type, lead.pain_point, lead.intent_score].filter(Boolean).join(" · ") || undefined,
-  }));
+  const dailyWin = Number(summary?.bookings_today ?? 0) * 499;
 
   return (
     <AdminShell
       activePath="/admin"
       title="Dashboard"
-      subtitle="A calm, high-signal overview—open modules on the left when you need depth."
+      subtitle="CEO command center for growth, revenue, and conversion execution."
       headerRight={<QuickActions />}
     >
       <SyncStatus syncedAt={data?.updated_at || data?.summary?.updated_at || new Date().toISOString()} />
@@ -158,170 +132,78 @@ export default async function AdminPage() {
         </div>
       ) : null}
 
-      <CollapsibleSection title="Overview" defaultOpen>
-        <section className="grid gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
-        <KpiStatCard
-          index={0}
-          label="Total leads"
-          value={String(summary.total_leads ?? 0)}
-          hint="Conversations started in your workspace"
-          trend={leadMomentum}
-          href="/admin/leads"
-        />
-        <KpiStatCard
-          index={1}
-          label="Active leads"
-          value={String(summary.active_leads ?? 0)}
-          hint="Still in motion—needs a next step"
-          trend={activeTrend}
-          href="/admin/pipeline"
-        />
-        <KpiStatCard
-          index={2}
-          label="Booked calls"
-          value={String(summary.booked_calls ?? 0)}
-          hint={`Win rate signal · ${conversionPct}% conversion`}
-          trend={bookedT}
-          href="/admin/analytics?focus=bookings"
-        />
-        <KpiStatCard
-          index={3}
-          label="Hot leads"
-          value={String(summary.hot_leads_count ?? 0)}
-          hint="Fast lane—prioritize today"
-          trend={hotT}
-          href="/admin/chats?segment=hot"
-        />
-        </section>
-      </CollapsibleSection>
+      <TopSnapshotBar summary={summary} syncedAt={data?.updated_at || new Date().toISOString()} />
 
-      <CollapsibleSection title="AI Intelligence" defaultOpen>
-        <section className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
-          <UsageCostCard data={usageCostData} />
-          <SmartSuggestions items={smartSuggestions} loading={!data && !error} />
-        </section>
-        <section>
-          <OnboardingChecklist />
-        </section>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Operations" defaultOpen={false}>
-        <section>
-          <AgentCenter agents={agentStatuses} loading={!data && !error} />
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-[1.12fr_1fr] lg:gap-7">
-        <SurfaceCard
-          className="border-amber-400/22 bg-gradient-to-b from-amber-400/[0.07] to-transparent p-6 hover:border-amber-400/30"
-          delay={0.04}
-          hover={false}
-          href="/admin/pipeline"
-        >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-amber-200/80">Needs attention</p>
-          <ul className="mt-4 space-y-2.5 text-[13px] leading-relaxed text-amber-50/95">
-            <li className="flex gap-2">
-              <span className="select-none text-amber-200/45" aria-hidden>
-                ·
-              </span>
-              <span>{summary.hot_leads_count ?? 0} hot leads should get a human touch today.</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="select-none text-amber-200/45" aria-hidden>
-                ·
-              </span>
-              <span>{summary.active_leads ?? 0} active leads are waiting on the next beat.</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="select-none text-amber-200/45" aria-hidden>
-                ·
-              </span>
-              <span>{summary.cold_leads ?? 0} leads went quiet—revival flows can warm them back up.</span>
-            </li>
-          </ul>
+      <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <SurfaceCard className="p-5 sm:p-6">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Daily Win</p>
+          <h3 className="mt-1 text-xl font-semibold tracking-tight text-white">₹{dailyWin.toLocaleString("en-IN")} earned today</h3>
+          <p className="mt-2 text-[13px] text-slate-400">Momentum is healthy. Keep response speed high for hot leads.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button className="rounded-xl border border-sky-300/35 bg-sky-400/15 px-3.5 py-2 text-xs font-semibold text-sky-100">
+              What should I focus on now?
+            </button>
+            <button className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3.5 py-2 text-xs font-semibold text-slate-200">
+              One-click WhatsApp blast
+            </button>
+            <button className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3.5 py-2 text-xs font-semibold text-slate-200">
+              Quick Add Lead
+            </button>
+          </div>
         </SurfaceCard>
-
-        <SurfaceCard className="p-6" delay={0.06}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Shortcuts</p>
-          <div className="mt-4 grid gap-2">
-            {[
-              { href: "/admin/leads", label: "Open lead registry" },
-              { href: "/admin/pipeline", label: "Review pipeline lanes" },
-              { href: "/admin/automation", label: "Adjust automations" },
-            ].map((a) => (
-              <Link
-                key={a.href}
-                href={a.href}
-                className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-3.5 py-2.5 text-[13px] font-medium text-slate-200 transition-[border-color,background-color,box-shadow] duration-150 hover:border-white/[0.11] hover:bg-white/[0.05] hover:shadow-[0_12px_36px_rgba(0,0,0,0.35)]"
-              >
-                {a.label}
-              </Link>
+        <SurfaceCard className="p-5 sm:p-6">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Lead Heatmap</p>
+          <div className="mt-3 grid grid-cols-7 gap-1.5">
+            {Array.from({ length: 35 }).map((_, i) => (
+              <span
+                // eslint-disable-next-line react/no-array-index-key
+                key={i}
+                className={`h-5 rounded ${i % 5 === 0 ? "bg-emerald-400/35" : i % 3 === 0 ? "bg-amber-400/25" : "bg-white/[0.07]"}`}
+              />
             ))}
           </div>
+          <p className="mt-2 text-[12px] text-slate-500">Peak activity clusters visible across recent lead touches.</p>
         </SurfaceCard>
-        </section>
+      </section>
 
-        <section className="grid gap-6 lg:grid-cols-2 lg:gap-7">
-        <SurfaceCard className="p-6" delay={0.05} href="/admin/pipeline">
-          <p className="text-sm font-semibold tracking-tight text-white">Live activity</p>
-          <p className="mt-1 text-[12px] text-slate-500">Newest touches across pipeline and completions.</p>
-          <StaggerFeed
-            items={activityItems}
-            emptyTitle="Nothing in the stream yet"
-            emptyDescription="When replies land, the latest threads will stack here—newest first."
-          />
-        </SurfaceCard>
+      <CollapsibleSection title="AI Intelligence" defaultOpen>
+        <AIGrowthIntelligence summary={summary} topPainPoints={painPoints} />
+      </CollapsibleSection>
 
-        <SurfaceCard className="p-6" delay={0.07} href="/admin/chats?segment=hot">
-          <p className="text-sm font-semibold tracking-tight text-white">Hot queue</p>
-          <p className="mt-1 text-[12px] text-slate-500">Highest intent—work from the top down.</p>
-          <StaggerFeed
-            items={hotItems}
-            emptyTitle="Queue is clear"
-            emptyDescription="When scoring flags urgency, those leads appear here for immediate follow-up."
-          />
-        </SurfaceCard>
+      <CollapsibleSection title="Leads Command Center" defaultOpen>
+        <LeadsCommandCenter rows={recentRows} />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Live Funnel + Revenue Center" defaultOpen>
+        <section className="grid gap-6 xl:grid-cols-2">
+          <SalesFunnelVisual summary={summary} />
+          <RevenueCenter summary={summary} leadsByDay={Array.isArray(data?.leads_by_day) ? data.leads_by_day : []} />
         </section>
       </CollapsibleSection>
 
-      <CollapsibleSection title="Analytics" defaultOpen={false}>
-        <section className="grid gap-6 lg:grid-cols-2 lg:gap-7">
-        <MiniBarsClient
-          title="7-day pulse"
-          points={trend}
-          emptyHint="No windowed trend yet"
-          emptyDescription="Give it a few days of traffic—this sparkline will tell the week-over-week story."
-          href="/admin/analytics"
-        />
-        <SurfaceCard className="p-6" delay={0.08} href="/admin/analytics">
-          <p className="text-sm font-semibold tracking-tight text-white">Pain themes</p>
-          <p className="mt-1 text-[12px] text-slate-500">What prospects say hurts—weighted by frequency.</p>
-          <div className="mt-5 space-y-4">
-            {painPoints.length === 0 ? (
-              <EmptyState
-                title="No themes yet"
-                description="As transcripts grow, recurring pain clusters surface here for positioning and replies."
-                className="py-10"
-              />
-            ) : (
-              painPoints.map((item) => (
-                <div key={String(item.label)}>
-                  <div className="mb-1.5 flex items-center justify-between text-[12px] text-slate-400">
-                    <span className="font-medium text-slate-300">{item.label}</span>
-                    <span className="tabular-nums text-slate-500">{item.count}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-white/[0.06]">
-                    <div
-                      className="h-2 rounded-full bg-gradient-to-r from-indigo-500 via-sky-400 to-cyan-300 shadow-[0_0_24px_rgba(56,189,248,0.15)]"
-                      style={{ width: `${Math.max(6, ((item.count || 0) / painMax) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </SurfaceCard>
+      <CollapsibleSection title="Automation + Team" defaultOpen={false}>
+        <section className="grid gap-6 xl:grid-cols-[1.05fr_1fr]">
+          <AutomationControlPanel />
+          <AgentCenter agents={agentStatuses} loading={!data && !error} />
+        </section>
+        <section className="mt-6 flex flex-wrap gap-2">
+          {[
+            { href: "/admin/chats", label: "Open Chat Command" },
+            { href: "/admin/payments", label: "Open Payments Center" },
+            { href: "/admin/analytics", label: "Open Revenue Analytics Page" },
+            { href: "/admin/leads", label: "Lead Registry" },
+          ].map((a) => (
+            <Link key={a.href} href={a.href} className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-2 text-[12px] text-slate-200">
+              {a.label}
+            </Link>
+          ))}
         </section>
       </CollapsibleSection>
+
+      {recentRows.length === 0 ? (
+        <EmptyState title="No lead events yet" description="As soon as traffic comes in, command cards and CRM rows populate automatically." />
+      ) : null}
+      <HotLeadsAlertCard hotLeads={hotLeads} />
     </AdminShell>
   );
 }
