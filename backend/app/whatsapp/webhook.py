@@ -603,6 +603,19 @@ _ENTRY_MENU_INBOUND = {
     "menu_expert": "I want to talk to an expert",
 }
 
+_EXPERT_Q1 = (
+    "Perfect 👍 team ko bata diya hai — expert connect karega.\n\n"
+    "Waise quick samajh loon —\n"
+    "aap idea stage pe ho ya already business chal raha hai?"
+)
+_EXPERT_Q2 = "Kis type ka help chahiye?\n(start / grow / automate)"
+_EXPERT_Q3 = "Rough idea de do — budget kis range mein soch rahe ho? (no pressure 👍)"
+_EXPERT_DONE = (
+    "Got it 👌\n"
+    "Context note kar liya hai.\n"
+    "Expert aapko jaldi connect karega."
+)
+
 
 def create_app(settings: Settings) -> Flask:
     app = Flask(__name__)
@@ -1028,6 +1041,23 @@ def create_app(settings: Settings) -> Flask:
                         return "", 200
                     st_menu = get_conversation_state(sender)
                     tl3 = build_preview_state_for_sales(st_menu, inbound)["transcript_lines"]
+                    if rid == "menu_expert":
+                        set_conversation_state(
+                            sender,
+                            {
+                                **st_menu,
+                                "entry_flow": "ready",
+                                "menu_choice": rid,
+                                "step": "await_business",
+                                "expert_flow_step": "stage",
+                                "expert_stage_answer": "",
+                                "expert_help_answer": "",
+                                "expert_budget_answer": "",
+                                "transcript_lines": tl3,
+                            },
+                        )
+                        _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_EXPERT_Q1), wa_mid)
+                        return "", 200
                     flow_inbound = _ENTRY_MENU_INBOUND[rid]
                     set_conversation_state(
                         sender,
@@ -1047,6 +1077,44 @@ def create_app(settings: Settings) -> Flask:
                         st_inc = get_conversation_state(sender)
                         st_inc["last_wa_mid"] = wa_mid
                         set_conversation_state(sender, st_inc)
+                    return "", 200
+
+                expert_step = str(st_sales.get("expert_flow_step") or "").strip()
+                if expert_step in {"stage", "help", "budget"}:
+                    if expert_step == "stage":
+                        st_next = {
+                            **st_sales,
+                            "expert_flow_step": "help",
+                            "expert_stage_answer": inbound,
+                        }
+                        set_conversation_state(sender, st_next)
+                        _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_EXPERT_Q2), wa_mid)
+                        return "", 200
+                    if expert_step == "help":
+                        low_help = inbound.lower()
+                        help_bucket = "start" if "start" in low_help else "grow" if "grow" in low_help else "automate" if "auto" in low_help else inbound
+                        st_next = {
+                            **st_sales,
+                            "expert_flow_step": "budget",
+                            "expert_help_answer": help_bucket,
+                        }
+                        set_conversation_state(sender, st_next)
+                        _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_EXPERT_Q3), wa_mid)
+                        return "", 200
+                    st_next = {
+                        **st_sales,
+                        "expert_flow_step": "done",
+                        "expert_budget_answer": inbound,
+                        "human_required": True,
+                        "sales_stage": sales_states.HUMAN_REQUIRED,
+                    }
+                    st_next["expert_context"] = {
+                        "stage": st_next.get("expert_stage_answer", ""),
+                        "help_type": st_next.get("expert_help_answer", ""),
+                        "budget": inbound,
+                    }
+                    set_conversation_state(sender, st_next)
+                    _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_EXPERT_DONE), wa_mid)
                     return "", 200
 
                 print("WEBHOOK HIT:", flow_inbound[:500])
