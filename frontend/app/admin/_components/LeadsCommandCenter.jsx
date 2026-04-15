@@ -53,6 +53,20 @@ export function LeadsCommandCenter({ rows = [] }) {
       </div>
 
       <div className="mt-4 overflow-x-auto">
+        {filtered.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/[0.14] bg-gradient-to-b from-white/[0.03] to-transparent p-8 text-center">
+            <p className="text-base font-semibold text-slate-100">No leads in this filter yet</p>
+            <p className="mt-2 text-[13px] text-slate-400">Great moment to trigger a follow-up or launch a focused campaign.</p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <button type="button" className="rounded-xl border border-sky-300/35 bg-sky-400/15 px-3 py-1.5 text-[11px] font-semibold text-sky-100">
+                One-click Follow-up
+              </button>
+              <button type="button" className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 py-1.5 text-[11px] font-semibold text-slate-200">
+                Add New Lead
+              </button>
+            </div>
+          </div>
+        ) : (
         <table className="admin-table min-w-[980px] w-full text-left text-[12px]">
           <thead>
             <tr>
@@ -91,6 +105,7 @@ export function LeadsCommandCenter({ rows = [] }) {
             })}
           </tbody>
         </table>
+        )}
       </div>
     </SurfaceCard>
   );

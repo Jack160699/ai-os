@@ -10,12 +10,12 @@ export function TopSnapshotBar({ summary, syncedAt }) {
   const avgReply = Number(summary?.avg_time_to_reply_min ?? 0);
 
   const cards = [
-    { label: "Total Leads Today", value: todayLeads, format: "number" },
-    { label: "Paid Customers Today", value: paidToday, format: "number" },
-    { label: "Revenue Today", value: revenueToday, format: "currency" },
-    { label: "Conversion %", value: conversion, format: "percent" },
-    { label: "Pending Followups", value: pendingFollowups, format: "number" },
-    { label: "Avg Response Time", value: avgReply, format: "time" },
+    { label: "Total Leads Today", value: todayLeads, format: "number", href: "/admin/leads" },
+    { label: "Paid Customers Today", value: paidToday, format: "number", href: "/admin/payments" },
+    { label: "Revenue Today", value: revenueToday, format: "currency", href: "/admin/analytics" },
+    { label: "Conversion %", value: conversion, format: "percent", href: "/admin/analytics?focus=conversion" },
+    { label: "Pending Followups", value: pendingFollowups, format: "number", href: "/admin/pipeline" },
+    { label: "Avg Response Time", value: avgReply, format: "time", href: "/admin/chats" },
   ];
 
   return (
@@ -44,11 +44,12 @@ export function TopSnapshotBar({ summary, syncedAt }) {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map((c) => (
-          <SurfaceCard key={c.label} className="p-5">
+          <SurfaceCard key={c.label} className="p-5" href={c.href}>
             <p className="text-[11px] uppercase tracking-[0.12em] text-slate-500">{c.label}</p>
             <p className="mt-3 text-2xl font-semibold tracking-tight text-white">
               <PremiumCounter value={c.value} format={c.format} />
             </p>
+            <p className="mt-2 text-[11px] text-slate-500">Open filtered view →</p>
           </SurfaceCard>
         ))}
       </div>
