@@ -690,12 +690,17 @@ _ENTRY_MENU_INBOUND = {
 SESSION_PRICE = 499
 _FUNNEL_Q_STAGE = "Aap abhi kaha ho?"
 _FUNNEL_PITCH = (
-    "Perfect 👍 ab clear hai.\n\n"
-    "Aapko exact pata chalega:\n"
-    "kya galat ho raha hai\n"
-    "aur next kya karna hai 👍\n\n"
-    f"Intro session fee: ₹{SESSION_PRICE}\n\n"
-    "Start karna chahoge?"
+    "Dekho 👍\n\n"
+    "Aapke case mein guesswork se kaam nahi chalega.\n\n"
+    "Ek baar exact samajh lena better rahega,\n"
+    "warna same issue repeat hota rahega.\n\n"
+    "1:1 Strategy Session mein:\n\n"
+    "• problem root cause samjhenge\n"
+    "• exact fix batayenge\n"
+    "• growth roadmap denge\n"
+    "• next best step clear karenge\n\n"
+    f"Intro fee ₹{SESSION_PRICE} hai.\n\n"
+    "Start karna chahoge? 😊"
 )
 
 
@@ -725,7 +730,7 @@ def _dynamic_challenge_question(need: str) -> LeadFlowReply:
         )
     if need == "automate":
         return LeadFlowReply(
-            body="Got it 👌\nAbhi sabse bada problem kya lag raha hai?",
+            body="Samajh gaya 👍 aap business automate karna chahte ho.\n\nSabse bada problem kya aa raha hai? 😊",
             list_menu=ListMenuSpec(
                 button_label="Pick problem",
                 section_title="Automation",
@@ -738,7 +743,7 @@ def _dynamic_challenge_question(need: str) -> LeadFlowReply:
             ),
         )
     return LeadFlowReply(
-        body="Nice 👍\nAbhi sabse bada problem kya lag raha hai?",
+        body="Samajh gaya 👍 aap business grow karna chahte ho.\n\nAbhi sabse bada problem kya lag raha hai? 😊",
         list_menu=ListMenuSpec(
             button_label="Pick problem",
             section_title="Growth",
@@ -749,6 +754,35 @@ def _dynamic_challenge_question(need: str) -> LeadFlowReply:
                 ("ch_not_sure", "Samajh nahi aa raha", None),
             ),
         ),
+    )
+
+
+def _challenge_ack_copy(challenge: str) -> str:
+    ch = (challenge or "").lower()
+    if "no_leads" in ch or "log aa nahi rahe" in ch:
+        return (
+            "Acha, matlab customers aa nahi rahe.\n"
+            "Ye common problem hai 👍\n\n"
+            "Aap alone nahi ho — bahut businesses yahi face karte hain.\n"
+            "Iska solution hota hai."
+        )
+    if "sales_low" in ch or "sales kam" in ch:
+        return (
+            "Samajh gaya — log aa rahe hain but sale convert nahi ho rahi.\n\n"
+            "Sahi baat hai, ye bhi common issue hai 👍\n"
+            "Isko fix kiya ja sakta hai."
+        )
+    if "marketing" in ch:
+        return (
+            "Bilkul, marketing clear na ho toh growth ruk jaati hai.\n\n"
+            "Ye common hai 👍\n"
+            "Isko structure karke fix kiya ja sakta hai."
+        )
+    return (
+        "Samajh gaya 👍\n"
+        "Ye common phase hota hai.\n\n"
+        "Koi tension nahi,\n"
+        "isko fix kiya ja sakta hai."
     )
 
 
@@ -1295,7 +1329,12 @@ def create_app(settings: Settings) -> Flask:
                                 settings,
                                 sender,
                                 LeadFlowReply(
-                                    body=_FUNNEL_Q_STAGE,
+                                    body=(
+                                        "Samajh gaya 👍\n\n"
+                                        "Agar start karna hai,\n"
+                                        "toh pehle stage clear karna important hota hai.\n\n"
+                                        "Aap abhi kaha ho?"
+                                    ),
                                     buttons=(("st_idea", "Idea stage"), ("st_running", "Already running")),
                                 ),
                                 wa_mid,
@@ -1308,7 +1347,13 @@ def create_app(settings: Settings) -> Flask:
                             settings,
                             sender,
                             LeadFlowReply(
-                                body=_FUNNEL_PITCH,
+                                body=(
+                                    f"{_challenge_ack_copy(challenge)}\n\n"
+                                    "Agar abhi clarity mil jaye,\n"
+                                    "toh kaafi time bach sakta hai.\n"
+                                    "Most log guesswork mein months waste kar dete hain.\n\n"
+                                    f"{_FUNNEL_PITCH}"
+                                ),
                                 buttons=(("offer_yes", "Yes Start"), ("offer_details", "Need Details"), ("offer_later", "Later")),
                             ),
                             wa_mid,
@@ -1338,13 +1383,15 @@ def create_app(settings: Settings) -> Flask:
                         rid = (raw_interactive_id or "").strip()
                         if rid == "offer_details" or "detail" in inbound.lower():
                             detail_body = (
-                                "Is session mein hum:\n\n"
-                                "• aapka pura system samjhenge\n"
-                                "• problem exact pakdenge\n"
-                                "• aur clear step-by-step plan denge\n\n"
-                                "Taaki aapko guess na karna pade 👍\n\n"
+                                "Simple bataun 👍\n\n"
+                                "Session ke baad aapko clear ho jayega:\n\n"
+                                "• abhi kya galat ho raha hai\n"
+                                "• kya improve karna hai\n"
+                                "• kaise grow karna hai\n"
+                                "• next step kya hona chahiye\n\n"
+                                "Taaki random try na karna pade.\n\n"
                                 f"Session ₹{SESSION_PRICE} ka hi hai.\n\n"
-                                "Start karna hai?"
+                                "Start karna hai? 😊"
                             )
                             st_det = {
                                 **st_sales,
