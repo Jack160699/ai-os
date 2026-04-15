@@ -752,8 +752,9 @@ def create_app(settings: Settings) -> Flask:
                 st_sales = get_conversation_state(sender)
                 display_sales = (st_sales.get("profile_name") or profile_name or "").strip()
                 preview_sales = build_preview_state_for_sales(st_sales, inbound)
-                sales_reply = try_handle(settings, sender, inbound, preview_sales, display_sales)
-                if sales_reply is not None:
+                handled, sales_reply = try_handle(settings, sender, inbound, preview_sales, display_sales)
+                if handled and sales_reply is not None:
+                    print("INTERCEPT OVERRIDE HIT")
                     merged_sales = {
                         **get_conversation_state(sender),
                         "transcript_lines": preview_sales["transcript_lines"],

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
@@ -39,15 +40,16 @@ def try_handle(
     message: str,
     state: dict,
     display_name: str,
-) -> "LeadFlowReply | None":
-    """Return a LeadFlowReply to short-circuit lead_flow, or None to continue."""
+) -> "tuple[bool, LeadFlowReply | None]":
+    """Return (True, reply) to short-circuit lead_flow, or (False, None) to continue."""
     from app.whatsapp.lead_flow import LeadFlowReply
 
+    print("INTERCEPT CHECK:", (message or "")[:500])
     step = str(state.get("step", "start"))
     txt = (message or "").strip()
-    print("INTERCEPT ACTIVE:", txt[:500] if txt else "(empty)")
     if not txt:
-        return None
+        print("INTERCEPT MISSED")
+        return False, None
 
     digits = normalize_phone_digits(sender)
     name = (display_name or "Customer").strip() or "Customer"
@@ -59,14 +61,14 @@ def try_handle(
         st = _bump_touch(st)
         set_conversation_state(sender, st)
         if booking:
-            return LeadFlowReply(
+            return True, LeadFlowReply(
                 body=(
                     "Book your strategy call:\n"
                     f"{booking}\n\n"
                     "Pick a slot that works — I'll keep this thread open for any quick questions."
                 ),
             )
-        return LeadFlowReply(
+        return True, LeadFlowReply(
             body=(
                 "Happy to get you on a strategy call — share 2–3 times that work this week "
                 "and we'll coordinate from here."
@@ -79,7 +81,7 @@ def try_handle(
         st = _bump_touch(st)
         set_conversation_state(sender, st)
         send_admin_human_required(settings, digits, name, step, txt)
-        return LeadFlowReply(
+        return True, LeadFlowReply(
             body=(
                 "I've flagged our team — a human will join this thread shortly. "
                 "Until then, tell me anything useful (timeline, budget band, must-haves) and I'll pass it along."
@@ -114,7 +116,7 @@ def try_handle(
             st["last_payment_link_url"] = short
             st = _bump_touch(st)
             set_conversation_state(sender, st)
-            return LeadFlowReply(
+            return True, LeadFlowReply(
                 body=(
                     "Here's your secure payment link:\n"
                     f"🔗 {short}\n\n"
@@ -122,7 +124,7 @@ def try_handle(
                 ),
             )
         except Exception as e:
-            return LeadFlowReply(
+            return True, LeadFlowReply(
                 body=(
                     "I can generate a secure payment link — our payments service is finishing setup on this line. "
                     "Meanwhile, say **book a strategy call** and we'll lock scope quickly.\n\n"
@@ -149,6 +151,18 @@ def try_handle(
         st = _bump_touch(st)
         set_conversation_state(sender, st)
         send_admin_pricing_offered(settings, digits, name, txt, q)
-        return LeadFlowReply(body=format_pricing_message(q))
+        return True, LeadFlowReply(body=format_pricing_message(q))
 
-    return None
+    # Broad "consulting / help my business" — catches phrases that used to die on the complete-step fallback.
+    if re.search(r"\b(consulting|consultant|business\s+consult|advisor|advisory)\b", txt, re.I):
+        st = _bump_touch(st)
+        set_conversation_state(sender, st)
+        return True, LeadFlowReply(
+            body=(
+                "I'd love to help — StratXcel focuses on starting, scaling, and automating businesses.\n\n"
+                "In one line: what stage are you at (idea, early revenue, or scaling) and what feels most stuck?"
+            ),
+        )
+
+    print("INTERCEPT MISSED")
+    return False, None

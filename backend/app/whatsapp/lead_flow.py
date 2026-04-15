@@ -34,13 +34,6 @@ from app.whatsapp.copy_variants import (
 
 BOOKING_YES_NO = (("booking_yes", "Yes"), ("booking_no", "No"))
 
-_SMART_DEFAULT_BODY = (
-    "Hey 👋 Welcome to StratXcel AI\n\n"
-    "We help you start, scale & automate businesses 🚀\n\n"
-    "What are you looking for today?"
-)
-
-
 @dataclass(frozen=True)
 class ListMenuSpec:
     """WhatsApp interactive list (used when more than three choices are needed)."""
@@ -511,7 +504,7 @@ def handle_lead_message(
                 },
             )
             return _welcome_reply()
-        return LeadFlowReply(body=_SMART_DEFAULT_BODY)
+        return LeadFlowReply(body="DEBUG: fallback triggered")
 
     set_conversation_state(
         sender,
