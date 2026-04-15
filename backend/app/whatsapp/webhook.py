@@ -522,10 +522,10 @@ def _localize_buttons(buttons: tuple[tuple[str, str], ...] | None, lang: str):
                 }.get(title, title)
             else:
                 label = {
-                    "Start Business": "Start Business",
-                    "Grow Business": "Grow Business",
-                    "Automate": "Automate",
-                    "Automate Business": "Automate Business",
+                    "Start Business": "Business start karna",
+                    "Grow Business": "Business grow karna",
+                    "Automate": "Business automate",
+                    "Automate Business": "Business automate karna",
                     "Talk to Expert": "Talk to Expert",
                 }.get(title, title)
         out.append((bid, label[:20]))
@@ -566,11 +566,25 @@ def _localize_list_menu(menu: ListMenuSpec | None, lang: str):
         tr = {
             "Something else": "Something else",
             "No marketing system": "Marketing issue",
+            "Choose topic": "Kya karna hai?",
+            "Start Business": "Business start karna",
+            "Grow Business": "Business grow karna",
+            "Automate Business": "Business automate karna",
+            "Pick challenge": "Sabse bada issue kya lag raha hai?",
         }.get(title, title)
         translated_rows.append((rid, tr[:24], desc))
     return ListMenuSpec(
-        button_label=menu.button_label or "Choose",
-        section_title=menu.section_title or "Options",
+        button_label={
+            "Choose topic": "Kya karna hai?",
+            "Pick challenge": "Issue choose karo",
+            "Pick pain point": "Issue choose karo",
+        }.get(menu.button_label or "Choose", menu.button_label or "Choose"),
+        section_title={
+            "Help topics": "Kya karna hai?",
+            "Growth": "Sabse bada issue kya lag raha hai?",
+            "Start stage": "Sabse bada issue kya lag raha hai?",
+            "Automation": "Sabse bada issue kya lag raha hai?",
+        }.get(menu.section_title or "Options", menu.section_title or "Options"),
         rows=tuple(translated_rows),
     )
 
@@ -588,8 +602,8 @@ def _default_buttons_for_state(sender: str, text: str) -> tuple[tuple[str, str],
         )
     if "kaha ho" in t or "where are you" in t or "idea stage" in t:
         return (("st_idea", "Idea stage"), ("st_running", "Already running"))
-    if stage == "ask_level" or "kis level pe" in t:
-        return (("lvl_start", "Just starting"), ("lvl_growth", "Serious growth"), ("lvl_scale", "Full scale"))
+    if stage == "ask_stage" or "abhi kaha ho" in t:
+        return (("st_idea", "Idea stage"), ("st_running", "Already running"))
     if stage == "offer_accept" or "start karna chahoge" in t:
         return (("offer_yes", "Yes Start"), ("offer_details", "Need Details"), ("offer_later", "Later"))
     return None
@@ -650,7 +664,8 @@ _ENTRY_MENU_INBOUND = {
     "menu_auto": "I want to automate my business operations",
 }
 
-_FUNNEL_Q_LEVEL = "Aap kis level pe start karna chahte ho?"
+SESSION_PRICE = 499
+_FUNNEL_Q_STAGE = "Aap abhi kaha ho?"
 _FUNNEL_PITCH = (
     "Perfect 👍 ab clear hai.\n\n"
     "Main aapko ek complete plan de sakta hoon jisme:\n"
@@ -658,7 +673,7 @@ _FUNNEL_PITCH = (
     "• execution steps\n"
     "• growth strategy\n\n"
     "Isse aap directly start kar paoge.\n\n"
-    "Ye plan ₹999 ka hai.\n\n"
+    f"Intro session fee: ₹{SESSION_PRICE}\n\n"
     "Start karna chahoge?"
 )
 
@@ -1217,6 +1232,9 @@ def create_app(settings: Settings) -> Flask:
 
                 funnel_stage = str(st_sales.get("funnel_stage") or "").strip()
                 if funnel_stage:
+                    if funnel_stage == "offer_closed":
+                        print("[wa-webhook] offer already closed, waiting for restart")
+                        return "", 200
                     # Explicit user human request is always allowed.
                     if _is_explicit_human_request(inbound):
                         preview_h = build_preview_state_for_sales(st_sales, inbound)
@@ -1225,29 +1243,45 @@ def create_app(settings: Settings) -> Flask:
                             _finalize_wa_auto_reply(settings, sender, h_reply, wa_mid)
                             return "", 200
                     answers = dict(st_sales.get("funnel_answers") or {})
+                    if raw_interactive_id and st_sales.get("last_funnel_button_id") == raw_interactive_id and st_sales.get("last_funnel_stage") == funnel_stage:
+                        print("[wa-webhook] duplicate funnel button ignored:", raw_interactive_id)
+                        return "", 200
                     if funnel_stage == "ask_challenge":
                         challenge = raw_interactive_id if (raw_interactive_id or "").startswith("ch_") else inbound
                         answers["challenge"] = challenge
-                        st_next = {**st_sales, "funnel_stage": "ask_level", "funnel_answers": answers}
+                        st_next = {
+                            **st_sales,
+                            "funnel_stage": "ask_stage",
+                            "funnel_answers": answers,
+                            "last_funnel_button_id": raw_interactive_id or "",
+                            "last_funnel_stage": funnel_stage,
+                        }
                         set_conversation_state(sender, st_next)
                         _finalize_wa_auto_reply(
                             settings,
                             sender,
-                            LeadFlowReply(body=_FUNNEL_Q_LEVEL, buttons=_dynamic_level_options(challenge)),
+                            LeadFlowReply(
+                                body=_FUNNEL_Q_STAGE,
+                                buttons=(("st_idea", "Idea stage"), ("st_running", "Already running")),
+                            ),
                             wa_mid,
                         )
                         return "", 200
-                    if funnel_stage == "ask_level":
-                        level = inbound
-                        if (raw_interactive_id or "").startswith("lvl_"):
-                            level = {
-                                "lvl_start": "Just starting",
-                                "lvl_growth": "Serious growth",
-                                "lvl_scale": "Full scale setup",
-                            }.get(raw_interactive_id, inbound)
-                        answers["level"] = level
+                    if funnel_stage == "ask_stage":
+                        stage_answer = inbound
+                        if raw_interactive_id == "st_idea":
+                            stage_answer = "Idea stage"
+                        elif raw_interactive_id == "st_running":
+                            stage_answer = "Already running"
+                        answers["stage"] = stage_answer
                         answers["need"] = st_sales.get("funnel_need", "grow")
-                        st_next = {**st_sales, "funnel_stage": "offer_accept", "funnel_answers": answers}
+                        st_next = {
+                            **st_sales,
+                            "funnel_stage": "offer_accept",
+                            "funnel_answers": answers,
+                            "last_funnel_button_id": raw_interactive_id or "",
+                            "last_funnel_stage": funnel_stage,
+                        }
                         set_conversation_state(sender, st_next)
                         _finalize_wa_auto_reply(
                             settings,
@@ -1263,11 +1297,18 @@ def create_app(settings: Settings) -> Flask:
                         rid = (raw_interactive_id or "").strip()
                         if rid == "offer_details" or "detail" in inbound.lower():
                             detail_body = (
-                                "Sure 👌\n"
-                                "1:1 session mein hum aapka case deep-dive karte hain,\n"
-                                "phir exact action plan dete hain.\n\n"
-                                "Fee ₹499 hai.\nStart karna chahoge? 😊"
+                                "Isme aapko:\n"
+                                "• complete roadmap\n"
+                                "• exact next steps\n"
+                                "• clarity milegi\n\n"
+                                f"Session fee ₹{SESSION_PRICE} hi rahega 👍"
                             )
+                            st_det = {
+                                **st_sales,
+                                "last_funnel_button_id": rid or "",
+                                "last_funnel_stage": funnel_stage,
+                            }
+                            set_conversation_state(sender, st_det)
                             _finalize_wa_auto_reply(
                                 settings,
                                 sender,
@@ -1276,6 +1317,13 @@ def create_app(settings: Settings) -> Flask:
                             )
                             return "", 200
                         if rid == "offer_later" or "later" in inbound.lower() or "baad" in inbound.lower():
+                            st_later = {
+                                **st_sales,
+                                "funnel_stage": "offer_closed",
+                                "last_funnel_button_id": rid or "offer_later",
+                                "last_funnel_stage": funnel_stage,
+                            }
+                            set_conversation_state(sender, st_later)
                             _finalize_wa_auto_reply(
                                 settings,
                                 sender,
@@ -1286,7 +1334,7 @@ def create_app(settings: Settings) -> Flask:
                         if rid == "offer_yes" or _is_yesish(inbound):
                             try:
                                 link = create_payment_link_http(
-                                    amount_rupees=499.0,
+                                    amount_rupees=float(SESSION_PRICE),
                                     name=(st_sales.get("profile_name") or "Customer"),
                                     phone_digits=sender,
                                     description="StratXcel Intro Strategy Session",
@@ -1296,16 +1344,18 @@ def create_app(settings: Settings) -> Flask:
                                 st_next = {
                                     **st_sales,
                                     "funnel_stage": "payment_pending",
-                                    "last_quote": {"basic": 499, "standard": 499, "premium": 499, "currency": "INR"},
+                                    "last_quote": {"basic": SESSION_PRICE, "standard": SESSION_PRICE, "premium": SESSION_PRICE, "currency": "INR"},
                                     "sales_stage": sales_states.PAYMENT_PENDING,
                                     "pending_payment_link_id": str(link.get("id") or ""),
                                     "last_payment_link_url": short,
                                     "payment_pending_since": datetime.now(timezone.utc).isoformat(),
                                     "payment_nudge_level": 0,
+                                    "last_funnel_button_id": rid or "offer_yes",
+                                    "last_funnel_stage": funnel_stage,
                                 }
                                 set_conversation_state(sender, st_next)
                                 pay_body = (
-                                    "Great 👍 secure payment yahan kar sakte ho:\n\n"
+                                    "Great 👍 yahan se secure payment kar sakte ho:\n\n"
                                     f"{short}\n\n"
                                     "Payment hote hi onboarding start ho jayega 🚀"
                                 )
