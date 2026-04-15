@@ -8,10 +8,42 @@ from hashlib import sha256
 from typing import Any
 
 
+def _first_non_empty(*names: str) -> str:
+    for name in names:
+        value = os.getenv(name, "").strip()
+        if value:
+            return value
+    return ""
+
+
 def _keys() -> tuple[str, str]:
-    key_id = os.getenv("RAZORPAY_KEY_ID", "").strip()
-    key_secret = os.getenv("RAZORPAY_KEY_SECRET", "").strip()
+    # Prefer explicit live credentials; fallback keeps older env names working.
+    key_id = _first_non_empty("RAZORPAY_LIVE_KEY_ID", "RAZORPAY_KEY_ID")
+    key_secret = _first_non_empty("RAZORPAY_LIVE_KEY_SECRET", "RAZORPAY_KEY_SECRET")
     return key_id, key_secret
+
+
+def public_key_id() -> str:
+    key_id, _ = _keys()
+    return key_id
+
+
+def razorpay_mode() -> str:
+    key_id, _ = _keys()
+    if key_id.startswith("rzp_live_"):
+        return "live"
+    if key_id.startswith("rzp_test_"):
+        return "test"
+    return "unknown"
+
+
+def ensure_safe_mode() -> None:
+    mode = razorpay_mode()
+    app_env = os.getenv("APP_ENV", "").strip().lower()
+    deployment_env = os.getenv("DEPLOY_ENV", "").strip().lower()
+    is_production = app_env in {"prod", "production", "live"} or deployment_env in {"prod", "production", "live"}
+    if is_production and mode != "live":
+        raise RuntimeError("Unsafe Razorpay config: non-live key detected in production env.")
 
 
 def _razorpay_client():
@@ -22,7 +54,10 @@ def _razorpay_client():
 
     key_id, key_secret = _keys()
     if not key_id or not key_secret:
-        raise RuntimeError("Razorpay keys missing. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.")
+        raise RuntimeError(
+            "Razorpay keys missing. Set RAZORPAY_LIVE_KEY_ID and RAZORPAY_LIVE_KEY_SECRET."
+        )
+    ensure_safe_mode()
     return razorpay.Client(auth=(key_id, key_secret))
 
 

@@ -29,7 +29,12 @@ from app.inbox.service import (
     mark_inbox_read,
 )
 from app.payments.internal import process_razorpay_internal
-from app.payments.checkout import create_checkout_order, verify_checkout_signature
+from app.payments.checkout import (
+    create_checkout_order,
+    public_key_id,
+    razorpay_mode,
+    verify_checkout_signature,
+)
 from app.memory.store import (
     append_conversion_event,
     append_payment_event,
@@ -2013,7 +2018,7 @@ def create_app(settings: Settings) -> Flask:
         except Exception as e:
             print("[api/create-order] error:", e)
             return _checkout_json({"error": str(e)}, 500)
-        key_id = os.getenv("RAZORPAY_KEY_ID", "").strip()
+        key_id = public_key_id()
         if not key_id:
             return _checkout_json({"error": "razorpay not configured"}, 503)
         return _checkout_json(
@@ -2037,6 +2042,9 @@ def create_app(settings: Settings) -> Flask:
             return _checkout_json({"error": "missing payment fields"}, 400)
 
         if not verify_checkout_signature(order_id=order_id, payment_id=payment_id, signature=signature):
+            print(
+                f"[payment-success] signature_verification=failed order_id={order_id} payment_id={payment_id}"
+            )
             return _checkout_json({"error": "invalid signature"}, 400)
 
         try:
@@ -2051,7 +2059,13 @@ def create_app(settings: Settings) -> Flask:
                 "amount_rupees": amount,
                 "status": "paid",
                 "source": "website_checkout",
+                "reason": "payment_captured",
             }
+        )
+        print(
+            "[payment-success] "
+            f"signature_verification=passed order_id={order_id} payment_id={payment_id} "
+            f"amount_rupees={amount} environment={razorpay_mode()}"
         )
         append_conversion_event(
             {
@@ -2082,6 +2096,13 @@ def create_app(settings: Settings) -> Flask:
                 "step": str(data.get("step") or "checkout"),
                 "amount_rupees": data.get("amount"),
             }
+        )
+        print(
+            "[payment-failed] "
+            f"order_id={str(data.get('razorpay_order_id') or '').strip()} "
+            f"payment_id={str(data.get('razorpay_payment_id') or '').strip()} "
+            f"reason={str(data.get('reason') or data.get('error_description') or 'payment_failed')} "
+            f"step={str(data.get('step') or 'checkout')} environment={razorpay_mode()}"
         )
         return _checkout_json({"status": "logged"}, 200)
 
