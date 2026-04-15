@@ -26,6 +26,18 @@ export async function POST(request) {
     cache: "no-store",
   });
 
-  const data = await res.json().catch(() => ({ error: "invalid_response" }));
-  return NextResponse.json(data, { status: res.status });
+  const text = await res.text().catch(() => "");
+  const ct = (res.headers.get("content-type") || "").toLowerCase();
+  if (!ct.includes("application/json")) {
+    return NextResponse.json(
+      { error: "checkout_upstream_error", detail: text.slice(0, 200) },
+      { status: res.status >= 400 ? res.status : 502 }
+    );
+  }
+  try {
+    const data = JSON.parse(text || "{}");
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ error: "checkout_upstream_invalid_json" }, { status: 502 });
+  }
 }

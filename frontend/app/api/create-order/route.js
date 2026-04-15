@@ -7,7 +7,9 @@ export async function POST(request) {
   let body = {};
   try {
     body = await request.json();
-  } catch {}
+  } catch {
+    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  }
 
   const res = await fetch(`${flaskBotBase()}/api/create-order`, {
     method: "POST",
@@ -15,6 +17,19 @@ export async function POST(request) {
     body: JSON.stringify({ amount: body?.amount ?? 499 }),
     cache: "no-store",
   });
-  const data = await res.json().catch(() => ({ error: "invalid_response" }));
-  return NextResponse.json(data, { status: res.status });
+
+  const text = await res.text().catch(() => "");
+  const ct = (res.headers.get("content-type") || "").toLowerCase();
+  if (!ct.includes("application/json")) {
+    return NextResponse.json(
+      { error: "checkout_upstream_error", detail: text.slice(0, 200) },
+      { status: res.status >= 400 ? res.status : 502 }
+    );
+  }
+  try {
+    const data = JSON.parse(text || "{}");
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ error: "checkout_upstream_invalid_json" }, { status: 502 });
+  }
 }

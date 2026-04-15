@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Script from "next/script";
 import { COLORS } from "@/lib/constants";
+import { checkoutFetch, parseCheckoutJson } from "@/lib/checkoutClient";
 
 const { brand, accent } = COLORS;
 
@@ -13,8 +14,32 @@ function baseBtnClasses(disabled) {
   return `inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-full px-6 text-[14px] font-semibold tracking-tight text-white shadow-[0_12px_34px_-12px_rgba(30,58,138,0.58)] ring-1 ring-blue-200/40 transition-[transform,box-shadow,filter] duration-200 ease-out sm:w-auto sm:px-7 ${disabledCls}`;
 }
 
+function friendlyError(data, status) {
+  const err = data?.error;
+  if (
+    err === "server_returned_non_json" ||
+    err === "checkout_upstream_error" ||
+    err === "checkout_upstream_invalid_json"
+  ) {
+    return "Checkout service is temporarily unavailable. Please try again in a moment.";
+  }
+  if (err === "invalid_json" || err === "empty_response") {
+    return "We could not reach the payment service. Check your connection and try again.";
+  }
+  if (status === 404) {
+    return "Payment setup is not available on this host. Our team has been notified — use WhatsApp to book, or try again later.";
+  }
+  if (status === 503 || err === "razorpay not configured") {
+    return "Payments are not configured yet. Please contact us to complete booking.";
+  }
+  if (typeof err === "string" && err.trim()) {
+    return err.length > 160 ? `${err.slice(0, 157)}…` : err;
+  }
+  return "Something went wrong starting checkout. Please try again.";
+}
+
 export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
-  const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState("idle"); // idle | loading | error
   const [status, setStatus] = useState("");
 
   const style = useMemo(
@@ -23,23 +48,26 @@ export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
   );
 
   async function handlePay() {
-    if (busy) return;
-    setBusy(true);
+    if (phase === "loading") return;
+    setPhase("loading");
     setStatus("");
     try {
-      const orderRes = await fetch("/api/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
-      });
-      const orderData = await orderRes.json();
-      if (!orderRes.ok || !orderData?.order_id || !orderData?.key) {
-        throw new Error(orderData?.error || "Failed to create order.");
+      const orderRes = await checkoutFetch("/api/create-order", { amount });
+      const { ok, data: orderData, status: orderStatus } = await parseCheckoutJson(orderRes);
+
+      if (!ok || !orderData?.order_id || !orderData?.key) {
+        setPhase("error");
+        setStatus(friendlyError(orderData, orderStatus));
+        return;
       }
 
       if (typeof window === "undefined" || !window.Razorpay) {
-        throw new Error("Razorpay SDK is not available.");
+        setPhase("error");
+        setStatus("Payment widget failed to load. Refresh the page and try again.");
+        return;
       }
+
+      setPhase("idle");
 
       const options = {
         key: orderData.key,
@@ -49,39 +77,44 @@ export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
         description: "Diagnosis Session",
         order_id: orderData.order_id,
         handler: async function (response) {
-          const successRes = await fetch("/api/payment-success", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+          setPhase("loading");
+          setStatus("Verifying payment…");
+          try {
+            const successRes = await checkoutFetch("/api/payment-success", {
               ...response,
               amount: orderData.amount,
               source: "website_checkout",
-            }),
-          });
-          const successData = await successRes.json().catch(() => ({}));
-          if (!successRes.ok || successData?.status !== "ok") {
-            setStatus("Payment captured but verification failed. Our team will review and contact you.");
-            return;
+            });
+            const { ok: sOk, data: successData, status: sStatus } = await parseCheckoutJson(successRes);
+            if (!sOk || successData?.status !== "ok") {
+              setPhase("error");
+              setStatus(friendlyError(successData, sStatus));
+              return;
+            }
+            setPhase("idle");
+            setStatus("Payment successful. We'll contact you shortly.");
+          } catch {
+            setPhase("error");
+            setStatus("We could not verify the payment. If you were charged, contact us with your receipt.");
           }
-          setStatus("Payment successful. We'll contact you shortly.");
         },
         modal: {
           ondismiss: function () {
-            if (!status) {
-              setStatus("Payment cancelled.");
-            }
+            setStatus((prev) => (prev === "Verifying payment…" ? prev : "Payment cancelled."));
           },
         },
       };
 
       const rzp = new window.Razorpay(options);
       rzp.open();
-    } catch (e) {
-      setStatus(e?.message || "Payment failed. Please try again.");
-    } finally {
-      setBusy(false);
+    } catch {
+      setPhase("error");
+      setStatus("Network error. Check your connection and try again.");
     }
   }
+
+  const busy = phase === "loading";
+  const isError = phase === "error" && status;
 
   return (
     <>
@@ -93,10 +126,23 @@ export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
           disabled={busy}
           className={[baseBtnClasses(busy), className].filter(Boolean).join(" ")}
           style={style}
+          aria-busy={busy}
         >
-          {busy ? "Processing..." : "Book Diagnosis Session"}
+          {busy ? "Opening checkout…" : "Book Diagnosis Session"}
         </button>
-        {status ? <p className="mt-3 text-sm text-slate-600">{status}</p> : null}
+        {busy && !status ? (
+          <p className="mt-3 text-sm text-slate-500" role="status">
+            Connecting to secure payment…
+          </p>
+        ) : null}
+        {status ? (
+          <p
+            className={`mt-3 text-sm ${isError || status === "Payment cancelled." ? "text-amber-800" : "text-slate-600"}`}
+            role={isError ? "alert" : "status"}
+          >
+            {status}
+          </p>
+        ) : null}
       </div>
     </>
   );

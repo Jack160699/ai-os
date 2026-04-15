@@ -54,6 +54,26 @@ from app.whatsapp.messaging import (
 )
 
 
+def _checkout_cors_preflight():
+    """Browser checkout may POST directly to Flask (Next /api/* missing on static hosts)."""
+    r = make_response("", 204)
+    r.headers["Access-Control-Allow-Origin"] = "*"
+    r.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    r.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    r.headers["Access-Control-Max-Age"] = "86400"
+    return r
+
+
+def _checkout_json(payload: dict, status: int = 200):
+    r = jsonify(payload)
+    r.status_code = status
+    r.headers["Access-Control-Allow-Origin"] = "*"
+    r.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    r.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    r.headers["Access-Control-Max-Age"] = "86400"
+    return r
+
+
 def _wa_timestamp_iso(msg_data: dict) -> str | None:
     ts = msg_data.get("timestamp")
     if ts is None:
@@ -1955,46 +1975,48 @@ def create_app(settings: Settings) -> Flask:
         unread_only = str(request.args.get("unread_only", "")).lower() in ("1", "true", "yes")
         return jsonify(build_inbox_list(q=q, temperature=temperature, unread_only=unread_only)), 200
 
-    @app.route("/api/create-order", methods=["POST"])
+    @app.route("/api/create-order", methods=["POST", "OPTIONS"])
     def api_create_order():
+        if request.method == "OPTIONS":
+            return _checkout_cors_preflight()
         data = request.get_json(silent=True) or {}
         raw_amount = data.get("amount", 499)
         try:
             amount = int(raw_amount)
         except (TypeError, ValueError):
-            return jsonify({"error": "invalid amount"}), 400
+            return _checkout_json({"error": "invalid amount"}, 400)
         if amount < 1:
-            return jsonify({"error": "invalid amount"}), 400
+            return _checkout_json({"error": "invalid amount"}, 400)
         try:
             order = create_checkout_order(amount)
         except Exception as e:
             print("[api/create-order] error:", e)
-            return jsonify({"error": str(e)}), 500
+            return _checkout_json({"error": str(e)}, 500)
         key_id = os.getenv("RAZORPAY_KEY_ID", "").strip()
         if not key_id:
-            return jsonify({"error": "razorpay not configured"}), 503
-        return (
-            jsonify(
-                {
-                    "order_id": str(order.get("id") or ""),
-                    "amount": amount,
-                    "key": key_id,
-                }
-            ),
+            return _checkout_json({"error": "razorpay not configured"}, 503)
+        return _checkout_json(
+            {
+                "order_id": str(order.get("id") or ""),
+                "amount": amount,
+                "key": key_id,
+            },
             200,
         )
 
-    @app.route("/api/payment-success", methods=["POST"])
+    @app.route("/api/payment-success", methods=["POST", "OPTIONS"])
     def api_payment_success():
+        if request.method == "OPTIONS":
+            return _checkout_cors_preflight()
         data = request.get_json(silent=True) or {}
         payment_id = str(data.get("razorpay_payment_id") or "").strip()
         order_id = str(data.get("razorpay_order_id") or "").strip()
         signature = str(data.get("razorpay_signature") or "").strip()
         if not payment_id or not order_id or not signature:
-            return jsonify({"error": "missing payment fields"}), 400
+            return _checkout_json({"error": "missing payment fields"}, 400)
 
         if not verify_checkout_signature(order_id=order_id, payment_id=payment_id, signature=signature):
-            return jsonify({"error": "invalid signature"}), 400
+            return _checkout_json({"error": "invalid signature"}, 400)
 
         try:
             amount = int(data.get("amount", 499))
@@ -2020,7 +2042,7 @@ def create_app(settings: Settings) -> Flask:
                 "amount_rupees": amount,
             }
         )
-        return jsonify({"status": "ok"}), 200
+        return _checkout_json({"status": "ok"}, 200)
 
     @app.route("/inbox/lead/<path:phone>", methods=["GET"])
     def inbox_lead_detail(phone: str):
