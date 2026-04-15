@@ -968,13 +968,18 @@ def _flow_text(lang: str, key: str) -> str:
 
 def _next_step(current_step: str) -> str | None:
     chain = {
-        "stage": "business_type",
-        "business_type": "mode",
-        "mode": "platform",
-        "platform": "sub_problem",
-        "sub_problem": "insight",
-        "insight": "offer",
+        "ask_stage": "ask_business_type",
+        "ask_business_type": "ask_subcategory",
+        "ask_subcategory": "ask_subcategory_detail",
+        "ask_subcategory_detail": "ask_challenge",
+        "ask_behavior_regular": "ask_behavior_niche",
+        "ask_behavior_niche": "ask_challenge",
+        "ask_challenge": "ask_lead_source",
+        "ask_lead_source": "offer_accept",
         "offer": None,
+        "offer_accept": "payment_pending",
+        "payment_pending": "onboarding",
+        "onboarding": None,
     }
     return chain.get(current_step)
 
@@ -1771,7 +1776,32 @@ def create_app(settings: Settings) -> Flask:
                         _finalize_wa_auto_reply(settings, sender, _second_level_question(sub, str(st_sales.get("funnel_mode", "online"))), wa_mid)
                         return "", 200
                     if funnel_stage == "ask_subcategory_detail":
-                        answers["subcategory_detail"] = raw_interactive_id or inbound
+                        detail = raw_interactive_id or inbound
+                        answers["subcategory_detail"] = detail
+                        if detail == "yt_no_audience":
+                            st_next = {
+                                **st_sales,
+                                "funnel_stage": "ask_behavior_regular",
+                                "funnel_answers": answers,
+                                "last_funnel_button_id": raw_interactive_id or "",
+                                "last_funnel_stage": funnel_stage,
+                            }
+                            set_conversation_state(sender, st_next)
+                            _finalize_wa_auto_reply(
+                                settings,
+                                sender,
+                                LeadFlowReply(
+                                    body=(
+                                        "I understand.\n\n"
+                                        "If views are low, this is usually positioning or consistency.\n\n"
+                                        "Let me understand one thing—\n\n"
+                                        "Are you posting regularly?"
+                                    ),
+                                    buttons=(("bh_yes", "Yes"), ("bh_no", "No"), ("bh_unsure", "Not sure")),
+                                ),
+                                wa_mid,
+                            )
+                            return "", 200
                         st_next = {
                             **st_sales,
                             "funnel_stage": "ask_challenge",
@@ -1786,6 +1816,50 @@ def create_app(settings: Settings) -> Flask:
                             LeadFlowReply(
                                 body=f"{_flow_text(lang_now, 'understand')}\n\n{_flow_text(lang_now, 'ask_problem')}",
                                 buttons=_flow_buttons(lang_now, ("pb_sales_low", "pb_no_customers", "pb_marketing")),
+                            ),
+                            wa_mid,
+                        )
+                        return "", 200
+                    if funnel_stage == "ask_behavior_regular":
+                        answers["posting_regular"] = raw_interactive_id or inbound
+                        st_next = {
+                            **st_sales,
+                            "funnel_stage": "ask_behavior_niche",
+                            "funnel_answers": answers,
+                            "last_funnel_button_id": raw_interactive_id or "",
+                            "last_funnel_stage": funnel_stage,
+                        }
+                        set_conversation_state(sender, st_next)
+                        _finalize_wa_auto_reply(
+                            settings,
+                            sender,
+                            LeadFlowReply(
+                                body="Got it.\n\nDo you have a clear niche?",
+                                buttons=(("ni_yes", "Yes"), ("ni_no", "No"), ("ni_unsure", "Not sure")),
+                            ),
+                            wa_mid,
+                        )
+                        return "", 200
+                    if funnel_stage == "ask_behavior_niche":
+                        answers["clear_niche"] = raw_interactive_id or inbound
+                        st_next = {
+                            **st_sales,
+                            "funnel_stage": "ask_challenge",
+                            "funnel_answers": answers,
+                            "last_funnel_button_id": raw_interactive_id or "",
+                            "last_funnel_stage": funnel_stage,
+                        }
+                        set_conversation_state(sender, st_next)
+                        _finalize_wa_auto_reply(
+                            settings,
+                            sender,
+                            LeadFlowReply(
+                                body=(
+                                    "I understand your context.\n\n"
+                                    "With low views, the root issue is often niche clarity + consistency.\n\n"
+                                    "What is the biggest problem right now?"
+                                ),
+                                buttons=_flow_buttons(get_user_lang(sender), ("pb_sales_low", "pb_no_customers", "pb_marketing")),
                             ),
                             wa_mid,
                         )
