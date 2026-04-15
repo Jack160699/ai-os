@@ -797,6 +797,171 @@ def _problem_question_for_need(need: str) -> LeadFlowReply:
     )
 
 
+def _flow_buttons(lang: str, ids: tuple[str, ...]) -> tuple[tuple[str, str], ...]:
+    labels = {
+        "english": {
+            "st_explore": "Just exploring",
+            "st_idea": "I have an idea",
+            "st_ready": "Ready to start",
+            "bt_online": "Online",
+            "bt_offline": "Offline",
+            "bt_notsure": "Not sure",
+            "sc_instagram": "Instagram",
+            "sc_youtube": "YouTube",
+            "sc_dropship": "Dropshipping",
+            "sc_products": "Selling products",
+            "sc_course": "Course / services",
+            "sc_notsure": "Not sure",
+            "of_running_shop": "Already have shop",
+            "of_start_new": "Start new",
+            "of_no_clarity": "No clarity",
+            "of_need_customers": "Need customers",
+            "of_other": "Other",
+            "yt_channel": "I already have a channel",
+            "yt_no_audience": "Not getting audience",
+            "yt_no_understanding": "Don’t understand anything",
+            "yt_content_confused": "Content confusion",
+            "yt_other": "Other",
+            "ig_page_exists": "Page already exists",
+            "ig_no_growth": "No growth",
+            "ig_no_leads": "No leads/sales",
+            "ig_content_confused": "Content confusion",
+            "ig_other": "Other",
+            "dp_store_not_set": "Store not set",
+            "dp_no_sales": "No sales",
+            "dp_ads_fail": "Ads not working",
+            "dp_confused_sell": "Confused what to sell",
+            "dp_other": "Other",
+            "pb_sales_low": "Sales low",
+            "pb_no_customers": "No customers",
+            "pb_marketing": "Marketing issue",
+            "pb_not_sure": "Not sure",
+            "offer_yes": "Yes Start",
+            "offer_details": "Need Details",
+            "offer_later": "Later",
+        },
+        "hinglish": {
+            "st_explore": "Bas explore kar raha",
+            "st_idea": "Idea hai",
+            "st_ready": "Start ke liye ready",
+            "bt_online": "Online",
+            "bt_offline": "Offline",
+            "bt_notsure": "Not sure",
+            "sc_instagram": "Instagram",
+            "sc_youtube": "YouTube",
+            "sc_dropship": "Dropshipping",
+            "sc_products": "Products sell",
+            "sc_course": "Course / service",
+            "sc_notsure": "Not sure",
+            "of_running_shop": "Shop already hai",
+            "of_start_new": "Naya start karna",
+            "of_no_clarity": "Clarity nahi",
+            "of_need_customers": "Customers chahiye",
+            "of_other": "Other",
+            "yt_channel": "Channel already hai",
+            "yt_no_audience": "Audience nahi aa rahi",
+            "yt_no_understanding": "Kuch samajh nahi aa raha",
+            "yt_content_confused": "Content confusion",
+            "yt_other": "Other",
+            "ig_page_exists": "Page already hai",
+            "ig_no_growth": "Growth nahi",
+            "ig_no_leads": "Leads/sales nahi",
+            "ig_content_confused": "Content confusion",
+            "ig_other": "Other",
+            "dp_store_not_set": "Store set nahi",
+            "dp_no_sales": "Sales nahi",
+            "dp_ads_fail": "Ads kaam nahi kar rahe",
+            "dp_confused_sell": "Kya sell karun confused",
+            "dp_other": "Other",
+            "pb_sales_low": "Sales kam",
+            "pb_no_customers": "Customers nahi aa rahe",
+            "pb_marketing": "Marketing issue",
+            "pb_not_sure": "Not sure",
+            "offer_yes": "Yes Start",
+            "offer_details": "Need Details",
+            "offer_later": "Later",
+        },
+        "hindi": {
+            "st_explore": "अभी देख रहा हूँ",
+            "st_idea": "मेरे पास आइडिया है",
+            "st_ready": "शुरू करने के लिए तैयार",
+            "bt_online": "ऑनलाइन",
+            "bt_offline": "ऑफलाइन",
+            "bt_notsure": "पक्का नहीं",
+            "sc_instagram": "इंस्टाग्राम",
+            "sc_youtube": "यूट्यूब",
+            "sc_dropship": "ड्रॉपशिपिंग",
+            "sc_products": "प्रोडक्ट बेचना",
+            "sc_course": "कोर्स / सर्विस",
+            "sc_notsure": "पक्का नहीं",
+            "of_running_shop": "दुकान पहले से है",
+            "of_start_new": "नया शुरू करना है",
+            "of_no_clarity": "कोई स्पष्टता नहीं",
+            "of_need_customers": "कस्टमर चाहिए",
+            "of_other": "अन्य",
+            "yt_channel": "मेरा चैनल पहले से है",
+            "yt_no_audience": "ऑडियंस नहीं आ रही",
+            "yt_no_understanding": "कुछ समझ नहीं आ रहा",
+            "yt_content_confused": "कंटेंट कन्फ्यूजन",
+            "yt_other": "अन्य",
+            "ig_page_exists": "पेज पहले से है",
+            "ig_no_growth": "ग्रोथ नहीं",
+            "ig_no_leads": "लीड्स/सेल्स नहीं",
+            "ig_content_confused": "कंटेंट कन्फ्यूजन",
+            "ig_other": "अन्य",
+            "dp_store_not_set": "स्टोर सेट नहीं",
+            "dp_no_sales": "सेल्स नहीं",
+            "dp_ads_fail": "ऐड्स काम नहीं कर रहे",
+            "dp_confused_sell": "क्या बेचना है कन्फ्यूजन",
+            "dp_other": "अन्य",
+            "pb_sales_low": "सेल्स कम",
+            "pb_no_customers": "कस्टमर नहीं आ रहे",
+            "pb_marketing": "मार्केटिंग समस्या",
+            "pb_not_sure": "पक्का नहीं",
+            "offer_yes": "हाँ, शुरू करें",
+            "offer_details": "और जानकारी",
+            "offer_later": "बाद में",
+        },
+    }
+    lk = lang if lang in labels else "english"
+    table = labels[lk]
+    return tuple((i, table.get(i, i)[:24]) for i in ids)
+
+
+def _flow_text(lang: str, key: str) -> str:
+    text = {
+        "english": {
+            "ask_stage": "What stage are you currently at?",
+            "ask_business_type": "What type of business are you planning?",
+            "ask_online_sub": "What exactly are you planning online?",
+            "ask_offline_sub": "What are you planning offline?",
+            "ask_problem": "What is the biggest problem right now?",
+            "understand": "I understand.\n\nAt this stage, most people struggle with clarity or execution.\n\nThis can be solved.",
+            "failsafe": "Something went wrong, let’s continue 😊",
+        },
+        "hinglish": {
+            "ask_stage": "Aap abhi kis stage pe ho?",
+            "ask_business_type": "Aap kis type ka business plan kar rahe ho?",
+            "ask_online_sub": "Online mein exactly kya plan kar rahe ho?",
+            "ask_offline_sub": "Offline mein kya plan hai?",
+            "ask_problem": "Abhi sabse bada problem kya aa raha hai?",
+            "understand": "Samajh gaya.\n\nIs stage pe clarity ya execution issue aata hai.\n\nYe solve ho sakta hai.",
+            "failsafe": "Kuch issue aaya, chalo continue karte hain 😊",
+        },
+        "hindi": {
+            "ask_stage": "आप अभी किस स्टेज पर हैं?",
+            "ask_business_type": "आप किस प्रकार का बिजनेस प्लान कर रहे हैं?",
+            "ask_online_sub": "ऑनलाइन में आप क्या प्लान कर रहे हैं?",
+            "ask_offline_sub": "ऑफलाइन में आप क्या प्लान कर रहे हैं?",
+            "ask_problem": "अभी सबसे बड़ी समस्या क्या आ रही है?",
+            "understand": "मैं समझ गया।\n\nइस स्टेज पर ज्यादातर लोगों को clarity या execution की समस्या होती है।\n\nइसे ठीक किया जा सकता है।",
+            "failsafe": "कुछ गड़बड़ हुई, चलिए आगे बढ़ते हैं 😊",
+        },
+    }
+    lk = lang if lang in text else "english"
+    return text[lk].get(key, key)
+
+
 def _exploration_question(mode: str) -> LeadFlowReply:
     if mode == "online":
         return LeadFlowReply(
@@ -1386,17 +1551,17 @@ def create_app(settings: Settings) -> Flask:
                     rid = (raw_interactive_id or "").strip()
                     lang: str | None = None
                     if rid == "lang_en":
-                        lang = "en"
+                        lang = "english"
                     elif rid == "lang_hi":
-                        lang = "hi"
+                        lang = "hindi"
                     elif rid == "lang_hinglish":
                         lang = "hinglish"
                     else:
                         low = inbound.lower()
                         if low in ("english", "en", "inglish") or "english" in low:
-                            lang = "en"
+                            lang = "english"
                         elif low in ("hindi", "hi", "हिंदी") or "hindi" in low:
-                            lang = "hi"
+                            lang = "hindi"
                         elif low in ("hinglish", "hin-glish") or "hinglish" in low:
                             lang = "hinglish"
                     if not lang:
@@ -1447,12 +1612,21 @@ def create_app(settings: Settings) -> Flask:
                             "menu_choice": rid,
                             "step": "await_business",
                             "funnel_need": need,
-                            "funnel_stage": "ask_need_specific",
+                            "funnel_stage": "ask_stage",
                             "funnel_answers": {},
                             "transcript_lines": tl3,
                         },
                     )
-                    _finalize_wa_auto_reply(settings, sender, _dynamic_challenge_question(need), wa_mid)
+                    lang_now = get_user_lang(sender)
+                    _finalize_wa_auto_reply(
+                        settings,
+                        sender,
+                        LeadFlowReply(
+                            body=_flow_text(lang_now, "ask_stage"),
+                            buttons=_flow_buttons(lang_now, ("st_explore", "st_idea", "st_ready")),
+                        ),
+                        wa_mid,
+                    )
                     return "", 200
 
                 st_sales = get_conversation_state(sender)
@@ -1480,67 +1654,76 @@ def create_app(settings: Settings) -> Flask:
                     if raw_interactive_id and st_sales.get("last_funnel_button_id") == raw_interactive_id and st_sales.get("last_funnel_stage") == funnel_stage:
                         print("[wa-webhook] duplicate funnel button ignored:", raw_interactive_id)
                         return "", 200
-                    if funnel_stage == "ask_need_specific":
-                        need = str(st_sales.get("funnel_need") or "grow")
-                        selected = raw_interactive_id or inbound
-                        if need == "grow":
-                            answers["business_type"] = selected
-                            mode = "offline" if "local" in selected else "online"
-                            st_next = {
-                                **st_sales,
-                                "funnel_stage": "ask_exploration",
-                                "funnel_mode": mode,
-                                "funnel_answers": answers,
-                                "last_funnel_button_id": raw_interactive_id or "",
-                                "last_funnel_stage": funnel_stage,
-                                "stage": "question_1_done",
-                            }
-                            set_conversation_state(sender, st_next)
-                            _finalize_wa_auto_reply(settings, sender, _exploration_question(mode), wa_mid)
-                            return "", 200
-                        if need == "automate":
-                            answers["automation_target"] = selected
-                            st_next = {
-                                **st_sales,
-                                "funnel_stage": "ask_challenge",
-                                "funnel_answers": answers,
-                                "last_funnel_button_id": raw_interactive_id or "",
-                                "last_funnel_stage": funnel_stage,
-                                "stage": "question_1_done",
-                            }
-                            set_conversation_state(sender, st_next)
-                            _finalize_wa_auto_reply(settings, sender, _problem_question_for_need("automate"), wa_mid)
-                            return "", 200
-                        # start path
-                        answers["stage"] = selected
-                        mode = "offline" if selected == "sb_shop" else "online"
+                    lang_now = get_user_lang(sender)
+                    if funnel_stage == "ask_stage":
+                        answers["stage"] = raw_interactive_id or inbound
                         st_next = {
                             **st_sales,
-                            "funnel_stage": "ask_exploration",
+                            "funnel_stage": "ask_business_type",
+                            "funnel_answers": answers,
+                            "last_funnel_button_id": raw_interactive_id or "",
+                            "last_funnel_stage": funnel_stage,
+                        }
+                        set_conversation_state(sender, st_next)
+                        _finalize_wa_auto_reply(
+                            settings,
+                            sender,
+                            LeadFlowReply(
+                                body=_flow_text(lang_now, "ask_business_type"),
+                                buttons=_flow_buttons(lang_now, ("bt_online", "bt_offline", "bt_notsure")),
+                            ),
+                            wa_mid,
+                        )
+                        return "", 200
+                    if funnel_stage == "ask_business_type":
+                        choice = raw_interactive_id or inbound
+                        answers["business_type"] = choice
+                        mode = "offline" if choice == "bt_offline" else "online"
+                        st_next = {
+                            **st_sales,
+                            "funnel_stage": "ask_subcategory",
                             "funnel_mode": mode,
                             "funnel_answers": answers,
                             "last_funnel_button_id": raw_interactive_id or "",
                             "last_funnel_stage": funnel_stage,
-                            "stage": "question_1_done",
                         }
                         set_conversation_state(sender, st_next)
-                        _finalize_wa_auto_reply(settings, sender, _exploration_question(mode), wa_mid)
+                        if mode == "online":
+                            _finalize_wa_auto_reply(
+                                settings,
+                                sender,
+                                LeadFlowReply(
+                                    body=_flow_text(lang_now, "ask_online_sub"),
+                                    buttons=_flow_buttons(lang_now, ("sc_instagram", "sc_youtube", "sc_dropship")),
+                                ),
+                                wa_mid,
+                            )
+                        else:
+                            _finalize_wa_auto_reply(
+                                settings,
+                                sender,
+                                LeadFlowReply(
+                                    body=_flow_text(lang_now, "ask_offline_sub"),
+                                    buttons=_flow_buttons(lang_now, ("of_running_shop", "of_start_new", "of_no_clarity")),
+                                ),
+                                wa_mid,
+                            )
                         return "", 200
-                    if funnel_stage == "ask_exploration":
-                        answers["focus_area"] = raw_interactive_id or inbound
+                    if funnel_stage == "ask_subcategory":
+                        sub = raw_interactive_id or inbound
+                        answers["subcategory"] = sub
                         st_next = {
                             **st_sales,
-                            "funnel_stage": "ask_exploration_detail",
+                            "funnel_stage": "ask_subcategory_detail",
                             "funnel_answers": answers,
-                            "funnel_mode": st_sales.get("funnel_mode", "online"),
                             "last_funnel_button_id": raw_interactive_id or "",
                             "last_funnel_stage": funnel_stage,
                         }
                         set_conversation_state(sender, st_next)
-                        _finalize_wa_auto_reply(settings, sender, _second_level_question(raw_interactive_id or inbound, str(st_sales.get("funnel_mode", "online"))), wa_mid)
+                        _finalize_wa_auto_reply(settings, sender, _second_level_question(sub, str(st_sales.get("funnel_mode", "online"))), wa_mid)
                         return "", 200
-                    if funnel_stage == "ask_exploration_detail":
-                        answers["exploration_detail"] = raw_interactive_id or inbound
+                    if funnel_stage == "ask_subcategory_detail":
+                        answers["subcategory_detail"] = raw_interactive_id or inbound
                         st_next = {
                             **st_sales,
                             "funnel_stage": "ask_challenge",
@@ -1553,18 +1736,8 @@ def create_app(settings: Settings) -> Flask:
                             settings,
                             sender,
                             LeadFlowReply(
-                                body=(
-                                    "I understand.\n\n"
-                                    "At this stage, most people struggle with clarity or execution.\n\n"
-                                    "This can be solved.\n\n"
-                                    "What is the biggest problem right now?"
-                                ),
-                                buttons=(
-                                    ("ch_sales_low", "Sales low"),
-                                    ("ch_no_leads", "No leads"),
-                                    ("ch_marketing", "Marketing confusion"),
-                                    ("ch_not_sure", "Not sure"),
-                                ),
+                                body=f"{_flow_text(lang_now, 'understand')}\n\n{_flow_text(lang_now, 'ask_problem')}",
+                                buttons=_flow_buttons(lang_now, ("pb_sales_low", "pb_no_customers", "pb_marketing")),
                             ),
                             wa_mid,
                         )
@@ -1781,6 +1954,11 @@ def create_app(settings: Settings) -> Flask:
                     print("[wa-webhook] outbound failed STATUS=", getattr(resp, "status_code", "?"), "body=", getattr(resp, "text", "")[:300])
             except Exception as e:
                 print("[wa-webhook] message loop error:", e)
+                try:
+                    if sender:
+                        send_whatsapp_text(settings, sender, _flow_text(get_user_lang(sender), "failsafe"))
+                except Exception:
+                    pass
 
         return "ok", 200
 
