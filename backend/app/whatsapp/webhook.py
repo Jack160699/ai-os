@@ -459,25 +459,44 @@ def _localize_text(text: str, lang: str) -> str:
         }
         return mapping.get(t, t)
     mapping_hinglish = {
-        "Welcome to StratXcel 🚀\n\nChoose your language:": "Welcome to StratXcel 🚀\n\nLanguage choose karo:",
-        "Please choose your language using the buttons below 👆": "Please language button se choose karo 👆",
-        "What would you like help with?": "Kis cheez mein help chahiye?",
-        "Pick one option below so we can route you correctly 👇": "Sahi route ke liye neeche se ek option pick karo 👇",
-        "Thanks for your message — a strategist will assist you shortly.": "Thanks for your message — strategist aapko shortly assist karega.",
-        "I've flagged our team — a human will join this thread shortly. Until then, tell me anything useful (timeline, budget band, must-haves) and I'll pass it along.": "Maine team ko inform kar diya hai — expert abhi connect karega. Tab tak timeline, budget range aur must-haves share karo.",
-        "Need help completing payment?": "Payment complete karne mein help chahiye?",
-        "Slots are limited today — want me to reserve this?": "Aaj slots limited hain — reserve kar du?",
+        "Welcome to StratXcel 🚀\n\nChoose your language:": "Welcome to StratXcel 🚀\n\nLanguage choose kar lo 😊",
+        "Please choose your language using the buttons below 👆": "No worries 😊\nNeeche se language button tap kar do 👆",
+        "What would you like help with?": "Kis cheez mein help chahiye? 😊",
+        "Pick one option below so we can route you correctly 👇": "Perfect 👍\nNeeche se ek option pick kar lo,\nmain sahi direction mein le jaata hoon 👇",
+        "Thanks for your message — a strategist will assist you shortly.": "Got it 👌\nAapka message mil gaya.\nStrategist abhi connect karega.",
+        "I've flagged our team — a human will join this thread shortly. Until then, tell me anything useful (timeline, budget band, must-haves) and I'll pass it along.": "Perfect 👍 team ko bata diya hai — ek expert abhi connect karega.\n\nTab tak bas thoda idea de do —\nidea stage pe ho ya already business chal raha hai?\nBudget ka rough range bhi bata do 👌",
+        "Need help completing payment?": "Payment complete karne mein help chahiye? 😊",
+        "Slots are limited today — want me to reserve this?": "Aaj slots limited hain 👀\nChaaho to main aapke liye reserve kar doon 👍",
     }
     out = mapping_hinglish.get(t, t)
-    return (
+    out = (
         out.replace("कृपया", "Please")
         .replace("मैंने", "Maine")
         .replace("आप", "aap")
         .replace("आपको", "aapko")
         .replace("धन्यवाद", "thanks")
         .replace("सहायता", "help")
-        .replace("साझा करें", "share karo")
+        .replace("साझा करें", "bata do")
+        .replace("share karo", "bata do")
+        .replace("must-haves", "must-have cheezein")
+        .replace("Kindly", "Please")
     )
+    if out == t:
+        # Dynamic lines (including AI-style lines): keep it short, friendly, and naturally Hinglish.
+        out = (
+            out.replace("Please ", "")
+            .replace("please ", "")
+            .replace("Could you", "Kya aap")
+            .replace("would you like", "chaahoge")
+            .replace("assist", "help")
+            .replace("share", "bata")
+            .replace("details", "details")
+        )
+        if "\n" not in out and len(out) > 90:
+            out = out.replace(". ", ".\n")
+        if not any(x in out for x in ("👍", "👌", "😊")):
+            out = f"{out} 👍"
+    return out
 
 
 def _localize_buttons(buttons: tuple[tuple[str, str], ...] | None, lang: str):
