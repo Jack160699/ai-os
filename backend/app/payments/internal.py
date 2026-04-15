@@ -8,6 +8,7 @@ from typing import Any
 from app.config import Settings
 from app.leads.admin_alerts import send_admin_payment_received
 from app.memory.store import (
+    append_conversion_event,
     append_lead_event,
     append_payment_event,
     append_thread_message,
@@ -53,6 +54,31 @@ def process_razorpay_internal(settings: Settings, data: dict[str, Any]) -> dict[
     if phone:
         mark_lead_payment_paid(phone, info)
         print(f"[razorpay-internal] lead_status=PAID phone={phone}")
+        try:
+            st_m = get_conversation_state(phone)
+            cs = st_m.get("consultant_state") if isinstance(st_m, dict) else None
+            if isinstance(cs, dict):
+                metrics = cs.get("metrics") if isinstance(cs.get("metrics"), dict) else {}
+                metrics["paid"] = int(metrics.get("paid", 0)) + 1
+                cs["metrics"] = metrics
+                cs["trust_phase"] = "post_payment"
+                st_m["consultant_state"] = cs
+                set_conversation_state(phone, st_m)
+                hist = cs.get("history") if isinstance(cs.get("history"), list) else []
+                append_conversion_event(
+                    {
+                        "date": datetime.now(timezone.utc).isoformat(),
+                        "phone": phone,
+                        "started": 0,
+                        "cta_shown": 0,
+                        "paid": 1,
+                        "source": str(st_m.get("lead_source") or st_m.get("funnel_need") or cs.get("platform") or "unknown"),
+                        "language": str(st_m.get("lang") or st_m.get("user_language") or "english"),
+                        "path_selected": " > ".join(str(x) for x in hist[-8:]),
+                    }
+                )
+        except Exception:
+            pass
 
     append_payment_event({"phone": phone or None, **info})
 
@@ -75,7 +101,7 @@ def process_razorpay_internal(settings: Settings, data: dict[str, Any]) -> dict[
     send_admin_payment_received(settings, phone or "", amount_display, service)
 
     if phone:
-        body = "Perfect 👍 payment received!\nAapka onboarding start ho gaya hai 🚀"
+        body = "Payment confirmed. Thank you.\n\nYour paid diagnosis is now active."
         receipt = (
             "Receipt / Invoice\n"
             f"Payment ID: {payment_id or '-'}\n"
@@ -83,9 +109,13 @@ def process_razorpay_internal(settings: Settings, data: dict[str, Any]) -> dict[
             "Status: SUCCESS"
         )
         welcome = (
-            "Welcome to StratXcel 🚀\n\n"
-            "Ab next step simple hai —\n"
-            "hum aapka business samajh ke best plan banayenge."
+            "Next step:\n"
+            "we will identify your exact growth blocker\n"
+            "and build your practical roadmap."
+        )
+        handoff = (
+            "A senior strategist has been assigned to your case.\n"
+            "You will now receive the guided handoff and session scheduling."
         )
         sched = "Quick call schedule kar lete hain —\n\naapke liye kya better hai?"
         try:
@@ -95,6 +125,8 @@ def process_razorpay_internal(settings: Settings, data: dict[str, Any]) -> dict[
             append_thread_message(phone, "assistant", receipt)
             send_whatsapp_text(settings, phone, welcome)
             append_thread_message(phone, "assistant", welcome)
+            send_whatsapp_text(settings, phone, handoff)
+            append_thread_message(phone, "assistant", handoff)
             send_interactive_buttons(
                 settings,
                 phone,

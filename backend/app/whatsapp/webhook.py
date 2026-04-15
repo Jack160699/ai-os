@@ -2,7 +2,9 @@ import json
 import hmac
 import os
 import re
-from datetime import datetime, timezone
+import io
+import csv
+from datetime import datetime, timedelta, timezone
 
 from flask import Flask, g, jsonify, make_response, request
 
@@ -26,7 +28,9 @@ from app.inbox.service import (
 )
 from app.payments.internal import process_razorpay_internal
 from app.memory.store import (
+    append_conversion_event,
     clear_conversation_state,
+    get_conversion_events,
     get_all_states,
     append_thread_message,
     get_conversation_state,
@@ -246,6 +250,26 @@ def _dashboard_api_payload(metrics: dict) -> dict:
         }
     )
     return payload
+
+
+def _log_conversion_snapshot(phone: str, st: dict, *, started: int = 0, cta_shown: int = 0, paid: int = 0) -> None:
+    cs = st.get("consultant_state") if isinstance(st, dict) else {}
+    if not isinstance(cs, dict):
+        cs = {}
+    history = cs.get("history") if isinstance(cs.get("history"), list) else []
+    path = " > ".join(str(x) for x in history[-8:])
+    append_conversion_event(
+        {
+            "date": datetime.now(timezone.utc).isoformat(),
+            "phone": phone,
+            "started": int(started),
+            "cta_shown": int(cta_shown),
+            "paid": int(paid),
+            "source": str(st.get("lead_source") or st.get("funnel_need") or cs.get("platform") or "unknown"),
+            "language": str(st.get("lang") or st.get("user_language") or "english"),
+            "path_selected": path,
+        }
+    )
 
 
 def _render_dashboard(metrics: dict) -> str:
@@ -1006,6 +1030,12 @@ def _init_consultant_state() -> dict:
         "last_step_input": "",
         "pain_questions_asked": 0,
         "trust_phase": "comfort",
+        "metrics": {
+            "greeted": 0,
+            "pain_identified": 0,
+            "cta_shown": 0,
+            "paid": 0,
+        },
     }
 
 
@@ -1254,9 +1284,9 @@ def _mirror_pain_text(lang: str, ctx: dict) -> str:
     problem = str(ctx.get("problem") or "this challenge")
     return _strict_lang_render(
         lang,
-        f"I hear you. Dealing with {problem} on {platform} can feel exhausting.",
-        f"Samajh sakta hoon. {platform} pe {problem} handle karna mentally heavy lag sakta hai.",
-        f"मैं समझ सकता हूं। {platform} पर {problem} संभालना थकाने वाला लग सकता है।",
+        f"I hear you. Managing {problem} on {platform} can feel frustrating.",
+        f"Samajh sakta hoon. {platform} pe {problem} manage karna frustrating lag sakta hai.",
+        f"मैं समझ सकता हूं। {platform} पर {problem} संभालना frustrating लग सकता है।",
     )
 
 
@@ -1276,9 +1306,18 @@ def _partial_insight_open_loop(lang: str, ctx: dict) -> str:
 def _gentle_urgency_text(lang: str) -> str:
     return _strict_lang_render(
         lang,
-        "Small delays here usually cost weeks of trial and missed revenue.",
-        "Yahaan chhoti delay bhi weeks ka trial aur lost revenue kara deti hai.",
-        "यहां छोटी देरी भी कई हफ्तों की ट्रायल और missed revenue का कारण बनती है।",
+        "If this stays unresolved, it often leads to weeks of guesswork and slow growth.",
+        "Agar ye unresolved raha to aksar weeks ki guesswork aur slow growth hoti hai.",
+        "अगर यह unresolved रहा, तो अक्सर कई हफ्तों की guesswork और slow growth होती है।",
+    )
+
+
+def _credibility_line(lang: str) -> str:
+    return _strict_lang_render(
+        lang,
+        "We see this pattern across many early and growth-stage businesses, so the diagnosis is usually fast and precise.",
+        "Ye pattern hum bahut early aur growth-stage businesses mein dekhte hain, isliye diagnosis fast aur precise hota hai.",
+        "यह pattern हमें कई early और growth-stage businesses में दिखता है, इसलिए diagnosis तेज़ और सटीक होता है।",
     )
 
 
@@ -1427,6 +1466,23 @@ def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: 
         cs["history"] = []
     if user_input:
         cs["history"].append(user_input)
+    if not isinstance(cs.get("metrics"), dict):
+        cs["metrics"] = {"greeted": 0, "pain_identified": 0, "cta_shown": 0, "paid": 0}
+
+    # Graceful return path after "Later".
+    if cs.get("trust_phase") == "nurture" and user_input in {"start", "resume", "continue"}:
+        cs["trust_phase"] = "comfort"
+        st_sales["consultant_state"] = cs
+        set_conversation_state(sender, st_sales)
+        return LeadFlowReply(
+            body=_strict_lang_render(
+                lang,
+                "Welcome back. We will continue from where we paused.\n\nWhat feels most urgent for you right now?",
+                "Welcome back. Jahan pause kiya tha wahi se continue karte hain.\n\nAbhi aapke liye sabse urgent kya lag raha hai?",
+                "Welcome back। हम वहीं से continue करेंगे जहां pause किया था।\n\nअभी आपके लिए सबसे urgent क्या लग रहा है?",
+            ),
+            buttons=_buttons_from_options(lang, generate_dynamic_options({**cs, "current_step": "problem"}), "dyn_problem"),
+        )
 
     # Offer interaction handling in dynamic engine.
     if str(cs.get("current_step") or "") == "offer":
@@ -1470,27 +1526,28 @@ def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: 
                 body=_strict_lang_render(
                     lang,
                     f"This is a focused paid diagnosis session (₹{SESSION_PRICE}).\n"
-                    "You get clarity on what is blocking growth and your exact priority plan.\n\n"
+                    "Outcome: identify the exact issue + build your clear action roadmap.\n\n"
                     "Would you like to book it?",
                     f"Ye focused paid diagnosis session (₹{SESSION_PRICE}) hai.\n"
-                    "Isme aapko clear milta hai growth ko kya block kar raha hai aur exact priority plan.\n\n"
+                    "Outcome: exact issue identify hoga + clear action roadmap banega.\n\n"
                     "Book karna chahoge?",
                     f"यह focused paid diagnosis session (₹{SESSION_PRICE}) है।\n"
-                    "इसमें आपको साफ समझ आता है कि growth को क्या block कर रहा है और exact priority plan क्या है।\n\n"
+                    "Outcome: exact issue identify होगा + clear action roadmap बनेगा।\n\n"
                     "क्या आप इसे बुक करना चाहेंगे?",
                 ),
                 buttons=_buttons_from_options(lang, ["Book Diagnosis", "Later", "Other"], "offer"),
             )
         if user_input == "later":
             cs["trust_phase"] = "nurture"
+            cs["followup_due_at"] = (datetime.now(timezone.utc) + timedelta(hours=6)).isoformat()
             st_sales["consultant_state"] = cs
             set_conversation_state(sender, st_sales)
             return LeadFlowReply(
                 body=_strict_lang_render(
                     lang,
-                    "Absolutely. No pressure.\nWhen you feel ready, message 'start' and I will continue from here.",
-                    "Bilkul. No pressure.\nJab ready ho, 'start' message karna, main yahi se continue karunga.",
-                    "बिल्कुल। कोई दबाव नहीं।\nजब आप तैयार हों, 'start' मैसेज करें, मैं यहीं से आगे बढ़ूंगा।",
+                    "Absolutely, no pressure.\nI will check in later with one simple next step.\nYou can also message 'start' anytime.",
+                    "Bilkul, no pressure.\nMain baad mein ek simple next step ke saath check-in karunga.\nAap kabhi bhi 'start' message kar sakte ho.",
+                    "बिल्कुल, कोई दबाव नहीं।\nमैं बाद में एक simple next step के साथ check-in करूंगा।\nआप कभी भी 'start' मैसेज कर सकते हैं।",
                 )
             )
 
@@ -1580,7 +1637,11 @@ def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: 
 
     # Always answer + next options.
     warm = _warm_welcome_text(lang) if len(cs.get("history") or []) <= 2 else ""
+    if warm:
+        cs["metrics"]["greeted"] = int(cs["metrics"].get("greeted", 0)) + 1
     mirror = _mirror_pain_text(lang, cs) if cs.get("problem") else _context_response_text(lang, cs)
+    if cs.get("problem"):
+        cs["metrics"]["pain_identified"] = 1
     partial = _partial_insight_open_loop(lang, cs) if cs.get("problem") else ""
     q = _strict_lang_render(
         lang,
@@ -1589,20 +1650,27 @@ def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: 
         "\n\n".join([x for x in [warm, mirror, partial, _next_question_for_step(lang, next_step, cs)] if x]),
     )
     if next_step == "offer":
+        cs["metrics"]["cta_shown"] = int(cs["metrics"].get("cta_shown", 0)) + 1
+        st_sales["consultant_state"] = cs
+        set_conversation_state(sender, st_sales)
+        _log_conversion_snapshot(sender, st_sales, started=0, cta_shown=1, paid=0)
         q = _strict_lang_render(
             lang,
             f"{_mirror_pain_text(lang, cs)}\n\n"
             f"{_partial_insight_open_loop(lang, cs)}\n\n"
+            f"{_credibility_line(lang)}\n\n"
             f"{_gentle_urgency_text(lang)}\n\n"
-            f"If you want, we can do a paid diagnosis session (₹{SESSION_PRICE}) and map your exact next moves.",
+            f"If you want, we can do a paid diagnosis session (₹{SESSION_PRICE}) to identify the core issue and give you a clear roadmap.",
             f"{_mirror_pain_text(lang, cs)}\n\n"
             f"{_partial_insight_open_loop(lang, cs)}\n\n"
+            f"{_credibility_line(lang)}\n\n"
             f"{_gentle_urgency_text(lang)}\n\n"
-            f"Agar aap chaho, hum paid diagnosis session (₹{SESSION_PRICE}) kar sakte hain aur exact next moves map karenge.",
+            f"Agar aap chaho, hum paid diagnosis session (₹{SESSION_PRICE}) kar sakte hain jisme core issue identify karke clear roadmap denge.",
             f"{_mirror_pain_text(lang, cs)}\n\n"
             f"{_partial_insight_open_loop(lang, cs)}\n\n"
+            f"{_credibility_line(lang)}\n\n"
             f"{_gentle_urgency_text(lang)}\n\n"
-            f"अगर आप चाहें, तो हम paid diagnosis session (₹{SESSION_PRICE}) कर सकते हैं और आपके exact next moves map करेंगे।",
+            f"अगर आप चाहें, तो हम paid diagnosis session (₹{SESSION_PRICE}) कर सकते हैं, जिसमें core issue identify करके clear roadmap देंगे।",
         )
         return LeadFlowReply(body=q, buttons=_buttons_from_options(lang, ["Book Diagnosis", "Need Details", "Later", "Other"], "offer"))
 
@@ -1616,6 +1684,8 @@ def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: 
         )
         return LeadFlowReply(body=fallback_body, buttons=_buttons_from_options(lang, generate_dynamic_options({"current_step": "problem", **cs}), "dyn_problem"))
 
+    st_sales["consultant_state"] = cs
+    set_conversation_state(sender, st_sales)
     return LeadFlowReply(body=q, buttons=_buttons_from_options(lang, generate_dynamic_options(cs), f"dyn_{next_step}"))
 def _insight_for_profile(answers: dict, lang: str) -> str:
     platform = str(answers.get("platform", "")).lower()
@@ -1814,6 +1884,41 @@ def create_app(settings: Settings) -> Flask:
             return jsonify({"error": "unauthorized"}), 401
         metrics = _compute_dashboard_metrics()
         return jsonify(_dashboard_api_payload(metrics)), 200
+
+    @app.route("/dashboard/conversion.json", methods=["GET"])
+    def dashboard_conversion_json():
+        if settings.dashboard_password and not _is_dashboard_authed(settings):
+            return jsonify({"error": "unauthorized"}), 401
+        return jsonify({"rows": get_conversion_events()}), 200
+
+    @app.route("/dashboard/conversion.csv", methods=["GET"])
+    def dashboard_conversion_csv():
+        if settings.dashboard_password and not _is_dashboard_authed(settings):
+            return jsonify({"error": "unauthorized"}), 401
+        rows = get_conversion_events()
+        out = io.StringIO()
+        writer = csv.DictWriter(
+            out,
+            fieldnames=["date", "started", "cta_shown", "paid", "source", "language", "path_selected"],
+        )
+        writer.writeheader()
+        for r in rows:
+            writer.writerow(
+                {
+                    "date": r.get("date", ""),
+                    "started": r.get("started", 0),
+                    "cta_shown": r.get("cta_shown", 0),
+                    "paid": r.get("paid", 0),
+                    "source": r.get("source", ""),
+                    "language": r.get("language", ""),
+                    "path_selected": r.get("path_selected", ""),
+                }
+            )
+        csv_text = out.getvalue()
+        resp = make_response(csv_text, 200)
+        resp.headers["Content-Type"] = "text/csv; charset=utf-8"
+        resp.headers["Content-Disposition"] = "attachment; filename=conversion_analytics.csv"
+        return resp
 
     @app.route("/lead/<path:phone>", methods=["GET"])
     def lead_transcript(phone: str):
@@ -2336,6 +2441,13 @@ def create_app(settings: Settings) -> Flask:
                             "consultant_state": _init_consultant_state(),
                             "transcript_lines": tl3,
                         },
+                    )
+                    _log_conversion_snapshot(
+                        sender,
+                        get_conversation_state(sender),
+                        started=1,
+                        cta_shown=0,
+                        paid=0,
                     )
                     lang_now = get_user_lang(sender)
                     cs_boot = _init_consultant_state()

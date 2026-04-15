@@ -169,6 +169,26 @@ def get_payment_events() -> list[dict]:
     return ev if isinstance(ev, list) else []
 
 
+def append_conversion_event(event: dict) -> None:
+    """Append one conversion analytics row for dashboard/CSV exports."""
+    memory = load_memory()
+    rows = memory.get("conversion_events")
+    if not isinstance(rows, list):
+        rows = []
+    row = {**event}
+    if not row.get("date"):
+        row["date"] = datetime.now(timezone.utc).isoformat()
+    rows.append(row)
+    memory["conversion_events"] = rows[-2000:]
+    save_memory(memory)
+
+
+def get_conversion_events() -> list[dict]:
+    memory = load_memory()
+    rows = memory.get("conversion_events")
+    return rows if isinstance(rows, list) else []
+
+
 def bump_revenue_total_rupees(amount_rupees: float) -> None:
     memory = load_memory()
     try:
