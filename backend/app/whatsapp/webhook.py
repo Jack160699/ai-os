@@ -1004,6 +1004,8 @@ def _init_consultant_state() -> dict:
         "current_step": None,
         "awaiting_other_for": "",
         "last_step_input": "",
+        "pain_questions_asked": 0,
+        "trust_phase": "comfort",
     }
 
 
@@ -1238,6 +1240,48 @@ def _ctx_insight_text(lang: str, ctx: dict) -> str:
     return _strict_lang_render(lang, en, hing, hi)
 
 
+def _warm_welcome_text(lang: str) -> str:
+    return _strict_lang_render(
+        lang,
+        "Welcome. You are in the right place.\n\nI will guide you step by step, no pressure.",
+        "Welcome. Aap bilkul sahi jagah aaye ho.\n\nMain step by step guide karunga, no pressure.",
+        "स्वागत है। आप सही जगह आए हैं।\n\nमैं आपको एक-एक कदम में गाइड करूंगा, बिना किसी दबाव के।",
+    )
+
+
+def _mirror_pain_text(lang: str, ctx: dict) -> str:
+    platform = str(ctx.get("platform") or "your business")
+    problem = str(ctx.get("problem") or "this challenge")
+    return _strict_lang_render(
+        lang,
+        f"I hear you. Dealing with {problem} on {platform} can feel exhausting.",
+        f"Samajh sakta hoon. {platform} pe {problem} handle karna mentally heavy lag sakta hai.",
+        f"मैं समझ सकता हूं। {platform} पर {problem} संभालना थकाने वाला लग सकता है।",
+    )
+
+
+def _partial_insight_open_loop(lang: str, ctx: dict) -> str:
+    platform = str(ctx.get("platform") or "your channel")
+    return _strict_lang_render(
+        lang,
+        f"I can already see one hidden gap in your {platform} flow.\n\n"
+        "It is fixable, but we should confirm one more thing before I give the exact diagnosis.",
+        f"Mujhe abhi se aapke {platform} flow mein ek hidden gap dikh raha hai.\n\n"
+        "Fix ho sakta hai, but exact diagnosis dene se pehle ek cheez confirm karni hogi.",
+        f"मुझे अभी से आपके {platform} फ्लो में एक hidden gap दिख रहा है।\n\n"
+        "इसे ठीक किया जा सकता है, लेकिन सटीक निदान देने से पहले एक चीज़ कन्फर्म करनी होगी।",
+    )
+
+
+def _gentle_urgency_text(lang: str) -> str:
+    return _strict_lang_render(
+        lang,
+        "Small delays here usually cost weeks of trial and missed revenue.",
+        "Yahaan chhoti delay bhi weeks ka trial aur lost revenue kara deti hai.",
+        "यहां छोटी देरी भी कई हफ्तों की ट्रायल और missed revenue का कारण बनती है।",
+    )
+
+
 def _context_response_text(lang: str, ctx: dict) -> str:
     stage = str(ctx.get("stage") or "your current stage")
     platform = str(ctx.get("platform") or "your channel")
@@ -1384,6 +1428,72 @@ def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: 
     if user_input:
         cs["history"].append(user_input)
 
+    # Offer interaction handling in dynamic engine.
+    if str(cs.get("current_step") or "") == "offer":
+        if user_input in {"book diagnosis", "yes start", "yes"}:
+            try:
+                link = create_payment_link_http(
+                    amount_rupees=float(SESSION_PRICE),
+                    name=(st_sales.get("profile_name") or "Customer"),
+                    phone_digits=sender,
+                    description="StratXcel Paid Diagnosis Session",
+                    email="",
+                )
+                short = str(link.get("short_url") or "")
+                st_sales["consultant_state"] = cs
+                st_sales["funnel_stage"] = "payment_pending"
+                st_sales["stage"] = "payment_pending"
+                st_sales["sales_stage"] = sales_states.PAYMENT_PENDING
+                st_sales["pending_payment_link_id"] = str(link.get("id") or "")
+                st_sales["last_payment_link_url"] = short
+                st_sales["payment_pending_since"] = datetime.now(timezone.utc).isoformat()
+                set_conversation_state(sender, st_sales)
+                return LeadFlowReply(
+                    body=_strict_lang_render(
+                        lang,
+                        f"Great. Here is your secure payment link:\n{short}\n\nOnce done, I will guide your exact next plan.",
+                        f"Perfect. Yahan aapka secure payment link hai:\n{short}\n\nPayment ke baad main exact next plan guide karunga.",
+                        f"बहुत बढ़िया। यह आपका secure payment link है:\n{short}\n\nपेमेंट के बाद मैं आपका exact next plan गाइड करूंगा।",
+                    )
+                )
+            except Exception:
+                return LeadFlowReply(
+                    body=_strict_lang_render(
+                        lang,
+                        "Payment link is taking a moment. Please type 'start' and I will retry immediately.",
+                        "Payment link banne mein thoda time lag raha hai. 'start' type karo, main turant retry karta hoon.",
+                        "पेमेंट लिंक बनने में थोड़ा समय लग रहा है। 'start' टाइप करें, मैं तुरंत फिर से कोशिश करूंगा।",
+                    )
+                )
+        if user_input == "need details":
+            return LeadFlowReply(
+                body=_strict_lang_render(
+                    lang,
+                    f"This is a focused paid diagnosis session (₹{SESSION_PRICE}).\n"
+                    "You get clarity on what is blocking growth and your exact priority plan.\n\n"
+                    "Would you like to book it?",
+                    f"Ye focused paid diagnosis session (₹{SESSION_PRICE}) hai.\n"
+                    "Isme aapko clear milta hai growth ko kya block kar raha hai aur exact priority plan.\n\n"
+                    "Book karna chahoge?",
+                    f"यह focused paid diagnosis session (₹{SESSION_PRICE}) है।\n"
+                    "इसमें आपको साफ समझ आता है कि growth को क्या block कर रहा है और exact priority plan क्या है।\n\n"
+                    "क्या आप इसे बुक करना चाहेंगे?",
+                ),
+                buttons=_buttons_from_options(lang, ["Book Diagnosis", "Later", "Other"], "offer"),
+            )
+        if user_input == "later":
+            cs["trust_phase"] = "nurture"
+            st_sales["consultant_state"] = cs
+            set_conversation_state(sender, st_sales)
+            return LeadFlowReply(
+                body=_strict_lang_render(
+                    lang,
+                    "Absolutely. No pressure.\nWhen you feel ready, message 'start' and I will continue from here.",
+                    "Bilkul. No pressure.\nJab ready ho, 'start' message karna, main yahi se continue karunga.",
+                    "बिल्कुल। कोई दबाव नहीं।\nजब आप तैयार हों, 'start' मैसेज करें, मैं यहीं से आगे बढ़ूंगा।",
+                )
+            )
+
     extracted, confidence = _extract_entities(user_input)
     for k, v in extracted.items():
         # Step lock: once explicitly selected/set, ignore overwriting with repeated clicks.
@@ -1446,6 +1556,13 @@ def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: 
     next_step = _resolve_next_decision(cs)
     cs["current_step"] = next_step
 
+    # Emotional funnel pacing: ask only 2-3 soft pain questions before offer.
+    if next_step in {"problem", "sub_problem"} and cs.get("pain_questions_asked", 0) < 3:
+        cs["pain_questions_asked"] = int(cs.get("pain_questions_asked", 0)) + 1
+    if int(cs.get("pain_questions_asked", 0)) >= 3 and cs.get("problem") and cs.get("sub_problem"):
+        next_step = "offer"
+        cs["current_step"] = "offer"
+
     # Offer control.
     enough_for_offer = bool(cs.get("problem") and cs.get("sub_problem") and _meaningful_interactions_count(cs) >= 3)
     if next_step == "insight" and enough_for_offer:
@@ -1462,24 +1579,32 @@ def _run_dynamic_consultant_step(sender: str, inbound: str, raw_interactive_id: 
     print("STEP:", cs.get("current_step"))
 
     # Always answer + next options.
+    warm = _warm_welcome_text(lang) if len(cs.get("history") or []) <= 2 else ""
+    mirror = _mirror_pain_text(lang, cs) if cs.get("problem") else _context_response_text(lang, cs)
+    partial = _partial_insight_open_loop(lang, cs) if cs.get("problem") else ""
     q = _strict_lang_render(
         lang,
-        f"{_context_response_text(lang, cs)}\n\n{_next_question_for_step(lang, next_step, cs)}",
-        f"{_context_response_text(lang, cs)}\n\n{_next_question_for_step(lang, next_step, cs)}",
-        f"{_context_response_text(lang, cs)}\n\n{_next_question_for_step(lang, next_step, cs)}",
+        "\n\n".join([x for x in [warm, mirror, partial, _next_question_for_step(lang, next_step, cs)] if x]),
+        "\n\n".join([x for x in [warm, mirror, partial, _next_question_for_step(lang, next_step, cs)] if x]),
+        "\n\n".join([x for x in [warm, mirror, partial, _next_question_for_step(lang, next_step, cs)] if x]),
     )
     if next_step == "offer":
         q = _strict_lang_render(
             lang,
-            f"{_ctx_insight_text(lang, cs)}\n\n"
-            "If this is not fixed early, it usually wastes time and effort.\n\n"
-            f"Would you like to start the intro session for ₹{SESSION_PRICE}?",
-            f"{_ctx_insight_text(lang, cs)}\n\n"
-            f"Agar ye early fix na ho to time waste hota hai.\n\n₹{SESSION_PRICE} intro session se start karna chahoge?",
-            f"{_ctx_insight_text(lang, cs)}\n\n"
-            f"अगर इसे जल्दी ठीक नहीं किया तो समय और मेहनत दोनों व्यर्थ होते हैं।\n\n₹{SESSION_PRICE} इंट्रो सेशन से शुरू करना चाहेंगे?",
+            f"{_mirror_pain_text(lang, cs)}\n\n"
+            f"{_partial_insight_open_loop(lang, cs)}\n\n"
+            f"{_gentle_urgency_text(lang)}\n\n"
+            f"If you want, we can do a paid diagnosis session (₹{SESSION_PRICE}) and map your exact next moves.",
+            f"{_mirror_pain_text(lang, cs)}\n\n"
+            f"{_partial_insight_open_loop(lang, cs)}\n\n"
+            f"{_gentle_urgency_text(lang)}\n\n"
+            f"Agar aap chaho, hum paid diagnosis session (₹{SESSION_PRICE}) kar sakte hain aur exact next moves map karenge.",
+            f"{_mirror_pain_text(lang, cs)}\n\n"
+            f"{_partial_insight_open_loop(lang, cs)}\n\n"
+            f"{_gentle_urgency_text(lang)}\n\n"
+            f"अगर आप चाहें, तो हम paid diagnosis session (₹{SESSION_PRICE}) कर सकते हैं और आपके exact next moves map करेंगे।",
         )
-        return LeadFlowReply(body=q, buttons=_buttons_from_options(lang, ["Yes Start", "Need Details", "Later", "Other"], "offer"))
+        return LeadFlowReply(body=q, buttons=_buttons_from_options(lang, ["Book Diagnosis", "Need Details", "Later", "Other"], "offer"))
 
     # No dead-end fallback.
     if next_step not in {"stage", "mode", "platform", "problem", "sub_problem", "insight"}:
