@@ -21,6 +21,7 @@ export const metadata = {
     "Run your business on a next-generation AI system: modules, agents, and automation in one operating environment — tiered by system complexity, not per-user pricing.",
 };
 import { PipelineRail } from "@/app/components/visuals/PipelineRail";
+import { BookDiagnosisCheckoutButton } from "@/components/marketing/BookDiagnosisCheckoutButton";
 
 const { ink, brand, accent, surface, white } = COLORS;
 
@@ -288,9 +289,7 @@ export default function Home() {
                 systems.
               </p>
               <CTARow className="mt-8 sm:mt-9">
-                <PrimaryButton href={whatsappHref} external>
-                  Get started
-                </PrimaryButton>
+                <BookDiagnosisCheckoutButton />
                 <GhostButton href="/system">View system</GhostButton>
               </CTARow>
               <CTAMicrocopy className="max-w-[20rem] text-left sm:max-w-none sm:text-center">

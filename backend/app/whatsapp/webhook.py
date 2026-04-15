@@ -28,8 +28,10 @@ from app.inbox.service import (
     mark_inbox_read,
 )
 from app.payments.internal import process_razorpay_internal
+from app.payments.checkout import create_checkout_order, verify_checkout_signature
 from app.memory.store import (
     append_conversion_event,
+    append_payment_event,
     clear_conversation_state,
     get_conversion_events,
     get_all_states,
@@ -1952,6 +1954,73 @@ def create_app(settings: Settings) -> Flask:
         temperature = request.args.get("temperature", "all") or "all"
         unread_only = str(request.args.get("unread_only", "")).lower() in ("1", "true", "yes")
         return jsonify(build_inbox_list(q=q, temperature=temperature, unread_only=unread_only)), 200
+
+    @app.route("/api/create-order", methods=["POST"])
+    def api_create_order():
+        data = request.get_json(silent=True) or {}
+        raw_amount = data.get("amount", 499)
+        try:
+            amount = int(raw_amount)
+        except (TypeError, ValueError):
+            return jsonify({"error": "invalid amount"}), 400
+        if amount < 1:
+            return jsonify({"error": "invalid amount"}), 400
+        try:
+            order = create_checkout_order(amount)
+        except Exception as e:
+            print("[api/create-order] error:", e)
+            return jsonify({"error": str(e)}), 500
+        key_id = os.getenv("RAZORPAY_KEY_ID", "").strip()
+        if not key_id:
+            return jsonify({"error": "razorpay not configured"}), 503
+        return (
+            jsonify(
+                {
+                    "order_id": str(order.get("id") or ""),
+                    "amount": amount,
+                    "key": key_id,
+                }
+            ),
+            200,
+        )
+
+    @app.route("/api/payment-success", methods=["POST"])
+    def api_payment_success():
+        data = request.get_json(silent=True) or {}
+        payment_id = str(data.get("razorpay_payment_id") or "").strip()
+        order_id = str(data.get("razorpay_order_id") or "").strip()
+        signature = str(data.get("razorpay_signature") or "").strip()
+        if not payment_id or not order_id or not signature:
+            return jsonify({"error": "missing payment fields"}), 400
+
+        if not verify_checkout_signature(order_id=order_id, payment_id=payment_id, signature=signature):
+            return jsonify({"error": "invalid signature"}), 400
+
+        try:
+            amount = int(data.get("amount", 499))
+        except (TypeError, ValueError):
+            amount = 499
+
+        append_payment_event(
+            {
+                "order_id": order_id,
+                "payment_id": payment_id,
+                "amount_rupees": amount,
+                "status": "paid",
+                "source": "website_checkout",
+            }
+        )
+        append_conversion_event(
+            {
+                "date": datetime.now(timezone.utc).isoformat(),
+                "source": str(data.get("source") or "website_checkout"),
+                "started": 0,
+                "cta_shown": 1,
+                "paid": 1,
+                "amount_rupees": amount,
+            }
+        )
+        return jsonify({"status": "ok"}), 200
 
     @app.route("/inbox/lead/<path:phone>", methods=["GET"])
     def inbox_lead_detail(phone: str):
