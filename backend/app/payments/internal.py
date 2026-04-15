@@ -15,8 +15,9 @@ from app.memory.store import (
     get_conversation_state,
     mark_lead_payment_paid,
     normalize_phone_digits,
+    set_conversation_state,
 )
-from app.whatsapp.messaging import send_whatsapp_text
+from app.whatsapp.messaging import send_interactive_buttons, send_whatsapp_text
 
 
 def process_razorpay_internal(settings: Settings, data: dict[str, Any]) -> dict[str, Any]:
@@ -74,13 +75,36 @@ def process_razorpay_internal(settings: Settings, data: dict[str, Any]) -> dict[
     send_admin_payment_received(settings, phone or "", amount_display, service)
 
     if phone:
-        body = (
-            "Payment received successfully ✅\n\n"
-            "Welcome onboard 🚀"
+        body = "Perfect 👍 payment received!\nAapka onboarding start ho gaya hai 🚀"
+        receipt = (
+            "Receipt / Invoice\n"
+            f"Payment ID: {payment_id or '-'}\n"
+            f"Amount: ₹{amount_display}\n"
+            "Status: SUCCESS"
         )
+        welcome = (
+            "Welcome to StratXcel 🚀\n\n"
+            "Ab next step simple hai —\n"
+            "hum aapka business samajh ke best plan banayenge."
+        )
+        sched = "Quick call schedule kar lete hain —\n\naapke liye kya better hai?"
         try:
             send_whatsapp_text(settings, phone, body)
             append_thread_message(phone, "assistant", body)
+            send_whatsapp_text(settings, phone, receipt)
+            append_thread_message(phone, "assistant", receipt)
+            send_whatsapp_text(settings, phone, welcome)
+            append_thread_message(phone, "assistant", welcome)
+            send_interactive_buttons(
+                settings,
+                phone,
+                sched,
+                (("onb_today", "Today"), ("onb_tomorrow", "Tomorrow"), ("onb_custom", "Custom")),
+            )
+            append_thread_message(phone, "assistant", sched)
+            st_paid = get_conversation_state(phone)
+            st_paid["onboarding_step"] = "await_call_slot"
+            set_conversation_state(phone, st_paid)
         except Exception as e:
             print(f"[razorpay-internal] user confirmation failed: {e}")
 

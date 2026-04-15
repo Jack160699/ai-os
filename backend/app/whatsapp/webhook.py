@@ -37,6 +37,7 @@ from app.memory.store import (
 )
 from app.sales import states as sales_states
 from app.sales.intercept import build_preview_state_for_sales, try_handle
+from app.sales.razorpay_link import create_payment_link_http
 from app.whatsapp.lead_flow import LeadFlowReply, ListMenuSpec, handle_lead_message
 from app.whatsapp.messaging import (
     send_interactive_buttons,
@@ -537,14 +538,12 @@ def _localize_list_menu(menu: ListMenuSpec | None, lang: str):
             ("menu_start", "बिज़नेस शुरू करें", None),
             ("menu_grow", "बिज़नेस बढ़ाएँ", None),
             ("menu_auto", "ऑटोमेट करें", None),
-            ("menu_expert", "एक्सपर्ट से बात", None),
         )
         return ListMenuSpec(button_label="विकल्प चुनें", section_title="मदद विषय", rows=rows)
     rows = (
         ("menu_start", "Start Business", None),
         ("menu_grow", "Grow Business", None),
         ("menu_auto", "Automate", None),
-        ("menu_expert", "Talk to Expert", None),
     )
     return ListMenuSpec(button_label="Choose", section_title="Help topics", rows=rows)
 
@@ -593,28 +592,36 @@ _ENTRY_MENU_LIST = ListMenuSpec(
         ("menu_start", "Start Business", None),
         ("menu_grow", "Grow Business", None),
         ("menu_auto", "Automate", None),
-        ("menu_expert", "Talk to Expert", None),
     ),
 )
 _ENTRY_MENU_INBOUND = {
     "menu_start": "I want to start a new business",
     "menu_grow": "I want to grow my existing business",
     "menu_auto": "I want to automate workflows and operations",
-    "menu_expert": "I want to talk to an expert",
 }
 
-_EXPERT_Q1 = (
-    "Perfect 👍 team ko bata diya hai — expert connect karega.\n\n"
-    "Waise quick samajh loon —\n"
-    "aap idea stage pe ho ya already business chal raha hai?"
+_FUNNEL_Q1 = (
+    "Nice 👍 chalo start karte hain\n\n"
+    "Aap idea stage pe ho ya already business chal raha hai?"
 )
-_EXPERT_Q2 = "Kis type ka help chahiye?\n(start / grow / automate)"
-_EXPERT_Q3 = "Rough idea de do — budget kis range mein soch rahe ho? (no pressure 👍)"
-_EXPERT_DONE = (
-    "Got it 👌\n"
-    "Context note kar liya hai.\n"
-    "Expert aapko jaldi connect karega."
+_FUNNEL_Q2 = "Kis type ka help chahiye?\n(start / grow / automate)"
+_FUNNEL_Q3 = "Online karna hai ya offline?"
+_FUNNEL_Q4 = "Rough idea de do — budget kis range mein soch rahe ho? (no pressure 👍)"
+_FUNNEL_PITCH = (
+    "Perfect 👍 ab clear hai.\n\n"
+    "Main aapko ek complete plan de sakta hoon jisme:\n"
+    "• roadmap\n"
+    "• execution steps\n"
+    "• growth strategy\n\n"
+    "Isse aap directly start kar paoge.\n\n"
+    "Ye plan ₹999 ka hai.\n\n"
+    "Start karna chahoge?"
 )
+
+
+def _is_yesish(text: str) -> bool:
+    t = (text or "").strip().lower()
+    return t in {"yes", "y", "haan", "ha", "ok", "okay", "sure", "start", "go", "go ahead", "yes start"}
 
 
 def create_app(settings: Settings) -> Flask:
@@ -958,6 +965,33 @@ def create_app(settings: Settings) -> Flask:
                     print("[wa-webhook] skip bot already sent for wa_mid=", wa_mid)
                     continue
 
+                st_paid_onb = get_conversation_state(sender)
+                onb_step = str(st_paid_onb.get("onboarding_step") or "").strip()
+                if onb_step:
+                    rid = (raw_interactive_id or "").strip()
+                    if onb_step == "await_call_slot":
+                        slot = ""
+                        if rid == "onb_today":
+                            slot = "Today"
+                        elif rid == "onb_tomorrow":
+                            slot = "Tomorrow"
+                        elif rid == "onb_custom":
+                            slot = "Custom"
+                        elif inbound:
+                            slot = inbound
+                        if slot:
+                            st_next = {**st_paid_onb, "onboarding_step": "await_business_type", "preferred_call_slot": slot}
+                            set_conversation_state(sender, st_next)
+                            ask_bt = "Call se pehle thoda bata do —\naapka business kis type ka hai?"
+                            _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=ask_bt), wa_mid)
+                            return "", 200
+                    elif onb_step == "await_business_type":
+                        st_next = {**st_paid_onb, "onboarding_step": "done", "onboarding_business_type": inbound}
+                        set_conversation_state(sender, st_next)
+                        done = "Perfect 👍 noted.\nTeam aapko call details share karegi."
+                        _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=done), wa_mid)
+                        return "", 200
+
                 st_onb = get_conversation_state(sender)
                 entry_flow = (st_onb.get("entry_flow") or "").strip()
                 if entry_flow and entry_flow not in ("language_select", "menu", "ready"):
@@ -1041,23 +1075,6 @@ def create_app(settings: Settings) -> Flask:
                         return "", 200
                     st_menu = get_conversation_state(sender)
                     tl3 = build_preview_state_for_sales(st_menu, inbound)["transcript_lines"]
-                    if rid == "menu_expert":
-                        set_conversation_state(
-                            sender,
-                            {
-                                **st_menu,
-                                "entry_flow": "ready",
-                                "menu_choice": rid,
-                                "step": "await_business",
-                                "expert_flow_step": "stage",
-                                "expert_stage_answer": "",
-                                "expert_help_answer": "",
-                                "expert_budget_answer": "",
-                                "transcript_lines": tl3,
-                            },
-                        )
-                        _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_EXPERT_Q1), wa_mid)
-                        return "", 200
                     flow_inbound = _ENTRY_MENU_INBOUND[rid]
                     set_conversation_state(
                         sender,
@@ -1066,9 +1083,16 @@ def create_app(settings: Settings) -> Flask:
                             "entry_flow": "ready",
                             "menu_choice": rid,
                             "step": "await_business",
+                            "lead_flow_step": "stage",
+                            "lead_business_model_answer": "",
+                            "lead_help_type_answer": "",
+                            "lead_channel_answer": "",
+                            "lead_budget_answer": "",
                             "transcript_lines": tl3,
                         },
                     )
+                    _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_FUNNEL_Q1), wa_mid)
+                    return "", 200
 
                 st_sales = get_conversation_state(sender)
                 if (st_sales.get("entry_flow") or "").strip() != "ready":
@@ -1079,42 +1103,96 @@ def create_app(settings: Settings) -> Flask:
                         set_conversation_state(sender, st_inc)
                     return "", 200
 
-                expert_step = str(st_sales.get("expert_flow_step") or "").strip()
-                if expert_step in {"stage", "help", "budget"}:
-                    if expert_step == "stage":
+                funnel_step = str(st_sales.get("lead_flow_step") or "").strip()
+                if funnel_step in {"stage", "help", "channel", "budget", "offer_accept"}:
+                    if funnel_step == "stage":
                         st_next = {
                             **st_sales,
-                            "expert_flow_step": "help",
-                            "expert_stage_answer": inbound,
+                            "lead_flow_step": "help",
+                            "lead_business_model_answer": inbound,
                         }
                         set_conversation_state(sender, st_next)
-                        _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_EXPERT_Q2), wa_mid)
+                        _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_FUNNEL_Q2), wa_mid)
                         return "", 200
-                    if expert_step == "help":
+                    if funnel_step == "help":
                         low_help = inbound.lower()
-                        help_bucket = "start" if "start" in low_help else "grow" if "grow" in low_help else "automate" if "auto" in low_help else inbound
+                        help_bucket = (
+                            "start"
+                            if "start" in low_help
+                            else "grow"
+                            if "grow" in low_help
+                            else "automate"
+                            if "auto" in low_help
+                            else inbound
+                        )
                         st_next = {
                             **st_sales,
-                            "expert_flow_step": "budget",
-                            "expert_help_answer": help_bucket,
+                            "lead_flow_step": "channel",
+                            "lead_help_type_answer": help_bucket,
                         }
                         set_conversation_state(sender, st_next)
-                        _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_EXPERT_Q3), wa_mid)
+                        _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_FUNNEL_Q3), wa_mid)
                         return "", 200
-                    st_next = {
-                        **st_sales,
-                        "expert_flow_step": "done",
-                        "expert_budget_answer": inbound,
-                        "human_required": True,
-                        "sales_stage": sales_states.HUMAN_REQUIRED,
-                    }
-                    st_next["expert_context"] = {
-                        "stage": st_next.get("expert_stage_answer", ""),
-                        "help_type": st_next.get("expert_help_answer", ""),
-                        "budget": inbound,
-                    }
+                    if funnel_step == "channel":
+                        st_next = {
+                            **st_sales,
+                            "lead_flow_step": "budget",
+                            "lead_channel_answer": inbound,
+                        }
+                        set_conversation_state(sender, st_next)
+                        _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_FUNNEL_Q4), wa_mid)
+                        return "", 200
+                    if funnel_step == "budget":
+                        st_next = {
+                            **st_sales,
+                            "lead_flow_step": "offer_accept",
+                            "lead_budget_answer": inbound,
+                        }
+                        set_conversation_state(sender, st_next)
+                        _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_FUNNEL_PITCH), wa_mid)
+                        return "", 200
+                    # offer_accept
+                    if _is_yesish(inbound):
+                        quote = {"basic": 999, "standard": 999, "premium": 999, "currency": "INR"}
+                        try:
+                            link = create_payment_link_http(
+                                amount_rupees=999.0,
+                                name=(st_sales.get("profile_name") or "Customer"),
+                                phone_digits=sender,
+                                description="StratXcel Plan",
+                                email="",
+                            )
+                            short = str(link.get("short_url") or "")
+                        except Exception:
+                            short = ""
+                        if short:
+                            st_next = {
+                                **st_sales,
+                                "lead_flow_step": "payment_pending",
+                                "last_quote": quote,
+                                "sales_stage": sales_states.PAYMENT_PENDING,
+                                "pending_payment_link_id": str(link.get("id") or ""),
+                                "last_payment_link_url": short,
+                                "payment_pending_since": datetime.now(timezone.utc).isoformat(),
+                                "payment_nudge_level": 0,
+                            }
+                            set_conversation_state(sender, st_next)
+                            pay_body = (
+                                "Great 👍 yahan se secure payment kar sakte ho:\n\n"
+                                f"{short}\n\n"
+                                "Payment ke baad turant onboarding start ho jayega 🚀"
+                            )
+                            _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=pay_body), wa_mid)
+                            return "", 200
+                    st_next = {**st_sales}
+                    st_next["lead_flow_step"] = "offer_accept"
                     set_conversation_state(sender, st_next)
-                    _finalize_wa_auto_reply(settings, sender, LeadFlowReply(body=_EXPERT_DONE), wa_mid)
+                    _finalize_wa_auto_reply(
+                        settings,
+                        sender,
+                        LeadFlowReply(body="No worries 😊 jab ready ho, bas 'yes' likh do aur payment link bhej deta hoon."),
+                        wa_mid,
+                    )
                     return "", 200
 
                 print("WEBHOOK HIT:", flow_inbound[:500])
