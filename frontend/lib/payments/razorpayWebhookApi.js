@@ -81,12 +81,14 @@ async function forwardToFlask(body) {
 }
 
 export async function POST(request) {
-  const secret = String(process.env.RAZORPAY_WEBHOOK_SECRET || "").trim();
+  const secret = String(
+    process.env.RAZORPAY_LIVE_WEBHOOK_SECRET || process.env.RAZORPAY_WEBHOOK_SECRET || ""
+  ).trim();
   const rawBody = await request.text();
   const signature = request.headers.get("x-razorpay-signature") || request.headers.get("X-Razorpay-Signature") || "";
 
   if (!secret) {
-    console.error("[razorpay-webhook] RAZORPAY_WEBHOOK_SECRET not set");
+    console.error("[razorpay-webhook] RAZORPAY_LIVE_WEBHOOK_SECRET not set");
     return Response.json({ ok: false, error: "webhook not configured" }, { status: 503 });
   }
 

@@ -1,6 +1,7 @@
 /**
  * Razorpay client + payment link creation (StratXcel AI OS).
- * Env: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
+ * Env: RAZORPAY_LIVE_KEY_ID, RAZORPAY_LIVE_KEY_SECRET
+ * Fallback: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
  * Next.js uses the same logic from frontend/lib/payments/razorpay.js — keep in sync.
  */
 
@@ -13,10 +14,14 @@ let _instance = null;
  * @returns {Razorpay}
  */
 export function getRazorpay() {
-  const keyId = String(process.env.RAZORPAY_KEY_ID || "").trim();
-  const keySecret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
+  const keyId = String(process.env.RAZORPAY_LIVE_KEY_ID || process.env.RAZORPAY_KEY_ID || "").trim();
+  const keySecret = String(
+    process.env.RAZORPAY_LIVE_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET || ""
+  ).trim();
   if (!keyId || !keySecret) {
-    throw new Error("Razorpay is not configured: set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET");
+    throw new Error(
+      "Razorpay is not configured: set RAZORPAY_LIVE_KEY_ID and RAZORPAY_LIVE_KEY_SECRET"
+    );
   }
   if (!_instance) {
     _instance = new Razorpay({ key_id: keyId, key_secret: keySecret });

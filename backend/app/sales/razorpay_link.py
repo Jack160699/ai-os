@@ -11,8 +11,8 @@ import requests
 
 
 def _keys() -> tuple[str, str]:
-    kid = os.getenv("RAZORPAY_KEY_ID", "").strip()
-    sec = os.getenv("RAZORPAY_KEY_SECRET", "").strip()
+    kid = (os.getenv("RAZORPAY_LIVE_KEY_ID", "") or os.getenv("RAZORPAY_KEY_ID", "")).strip()
+    sec = (os.getenv("RAZORPAY_LIVE_KEY_SECRET", "") or os.getenv("RAZORPAY_KEY_SECRET", "")).strip()
     return kid, sec
 
 
@@ -26,7 +26,7 @@ def create_payment_link_http(
 ) -> dict[str, Any]:
     kid, sec = _keys()
     if not kid or not sec:
-        raise RuntimeError("RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET not set on bot host")
+        raise RuntimeError("RAZORPAY_LIVE_KEY_ID / RAZORPAY_LIVE_KEY_SECRET not set on bot host")
 
     paise = max(100, int(round(float(amount_rupees) * 100)))
     auth = base64.b64encode(f"{kid}:{sec}".encode()).decode()
