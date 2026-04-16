@@ -1,7 +1,7 @@
 /**
  * Razorpay client + payment link creation (StratXcel AI OS).
  * Env:
- * - Public key id: NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID (or RAZORPAY_LIVE_KEY_ID server-side)
+ * - Key id: RAZORPAY_LIVE_KEY_ID (server-side only for create-link route)
  * - Secret: RAZORPAY_LIVE_KEY_SECRET (server-side only)
  * Non-production fallback: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
  * (Kept in sync with backend/payments/razorpay.js for the monorepo layout.)
@@ -23,7 +23,7 @@ function maskSecret(value) {
 function resolveKeys() {
   const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production" ||
     String(process.env.VERCEL_ENV || "").toLowerCase() === "production";
-  const liveId = String(process.env.RAZORPAY_LIVE_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID || "").trim();
+  const liveId = String(process.env.RAZORPAY_LIVE_KEY_ID || "").trim();
   const fallbackId = String(process.env.RAZORPAY_KEY_ID || "").trim();
   const liveSecret = String(process.env.RAZORPAY_LIVE_KEY_SECRET || "").trim();
   const fallbackSecret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
@@ -31,17 +31,26 @@ function resolveKeys() {
   const keySecret = isProd ? liveSecret : (liveSecret || fallbackSecret);
   const idSource = process.env.RAZORPAY_LIVE_KEY_ID
     ? "RAZORPAY_LIVE_KEY_ID"
-    : process.env.NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID
-      ? "NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID"
-      : fallbackId
-        ? "RAZORPAY_KEY_ID"
-        : "(missing)";
+    : fallbackId
+      ? "RAZORPAY_KEY_ID"
+      : "(missing)";
   const secretSource = liveSecret
     ? "RAZORPAY_LIVE_KEY_SECRET"
     : fallbackSecret
       ? "RAZORPAY_KEY_SECRET"
       : "(missing)";
   return { keyId, keySecret, idSource, secretSource, isProd };
+}
+
+export function getResolvedRazorpayKeySource() {
+  const { keyId, keySecret, idSource, secretSource, isProd } = resolveKeys();
+  return {
+    idSource,
+    secretSource,
+    isProd,
+    keyPrefix: keyId ? keyId.slice(0, 8) : "missing",
+    hasSecret: Boolean(keySecret),
+  };
 }
 
 /**

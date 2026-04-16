@@ -3,10 +3,14 @@
  * Body JSON: { amount, name, phone, description?, email? }
  */
 
-import { createPaymentLink } from "@/lib/payments/razorpay";
+import { createPaymentLink, getResolvedRazorpayKeySource } from "@/lib/payments/razorpay";
 
 export async function POST(request) {
   try {
+    const src = getResolvedRazorpayKeySource();
+    console.log(
+      `[payments/create-link] create-link key prefix: ${src.keyPrefix} source=${src.idSource} has_secret=${src.hasSecret} env=${src.isProd ? "production" : "non_production"}`
+    );
     const body = await request.json().catch(() => ({}));
     const { amount, name, phone, description, email } = body;
 
