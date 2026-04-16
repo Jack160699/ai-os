@@ -131,6 +131,7 @@ export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
           },
         },
       };
+      console.log("Razorpay key prefix:", String(options.key || "").slice(0, 8));
 
       const rzp = new window.Razorpay(options);
       rzp.on("payment.failed", async function (resp) {
@@ -160,6 +161,7 @@ export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
     try {
       const orderRes = await checkoutFetch("/api/create-order", { amount });
       const { ok, data: orderData, status: orderStatus } = await parseCheckoutJson(orderRes);
+      console.log("Razorpay key prefix:", String(orderData?.key || "").slice(0, 8));
 
       if (!ok || !orderData?.order_id || !orderData?.key) {
         setPhase("error");

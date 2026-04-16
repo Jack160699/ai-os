@@ -2029,6 +2029,7 @@ def create_app(settings: Settings) -> Flask:
         key_id = public_key_id()
         if not key_id:
             return _checkout_json({"error": "razorpay not configured"}, 503)
+        print(f"[api/create-order] Razorpay key prefix: {key_id[:8]}")
         return _checkout_json(
             {
                 "order_id": str(order.get("id") or ""),

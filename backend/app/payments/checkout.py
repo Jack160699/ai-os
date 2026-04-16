@@ -25,6 +25,19 @@ def _keys() -> tuple[str, str]:
     return key_id, key_secret
 
 
+def _is_production_env() -> bool:
+    candidates = (
+        os.getenv("APP_ENV", ""),
+        os.getenv("DEPLOY_ENV", ""),
+        os.getenv("FLASK_ENV", ""),
+        os.getenv("NODE_ENV", ""),
+        os.getenv("VERCEL_ENV", ""),
+        os.getenv("ENVIRONMENT", ""),
+    )
+    normalized = {str(v).strip().lower() for v in candidates if str(v).strip()}
+    return bool(normalized.intersection({"prod", "production", "live"}))
+
+
 def _mask_secret(value: str, head: int = 8, tail: int = 3) -> str:
     if not value:
         return "(empty)"
@@ -55,6 +68,7 @@ def _log_checkout_config_once() -> None:
 
 
 def public_key_id() -> str:
+    ensure_safe_mode()
     key_id, _ = _keys()
     return key_id
 
@@ -70,9 +84,7 @@ def razorpay_mode() -> str:
 
 def ensure_safe_mode() -> None:
     mode = razorpay_mode()
-    app_env = os.getenv("APP_ENV", "").strip().lower()
-    deployment_env = os.getenv("DEPLOY_ENV", "").strip().lower()
-    is_production = app_env in {"prod", "production", "live"} or deployment_env in {"prod", "production", "live"}
+    is_production = _is_production_env()
     if is_production and mode != "live":
         raise RuntimeError("Unsafe Razorpay config: non-live key detected in production env.")
 
