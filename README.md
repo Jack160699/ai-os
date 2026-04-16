@@ -1,8 +1,8 @@
 # Stratxcel (master monorepo)
 
-Single GitHub repository for Stratxcel: corporate site, AI OS, public AI marketing, demos, backend, and shared packages. Legacy standalone repos (**stratxcel-site**, **ai-os**, **honest-asset-management**, **grand-dhillon-website**, consulting demos) should be archived after traffic moves here.
+Single **GitHub repository** for Stratxcel: corporate site, AI OS, public AI marketing, demos, backend, and shared packages. Older standalone clones should be archived after DNS and Vercel point at **this** repo only.
 
-**Merge status:** The former `stratxcel-site` marketing UI is already superseded by `apps/ai-os` (same page/components, plus Razorpay and admin). No additional file copy was required. Hotel / honest-asset / consulting sources are not vendored in-tree; `apps/demo-site` reads optional `NEXT_PUBLIC_DEMO_*` URLs so you can link existing deployments until you physically merge those repos.
+**Merge status:** Legacy standalone marketing apps are superseded by `apps/ai-os` (same surface area, plus Razorpay and admin). Demo sources can stay external until merged; `apps/demo-site` supports optional `NEXT_PUBLIC_DEMO_*` URLs.
 
 Turborepo workspace layout:
 
@@ -74,14 +74,48 @@ Expected ports:
 
 ## Deployment
 
-### Frontends (Vercel)
+### Frontends (Vercel) — required setup
 
-Create one Vercel project per app. In each project set **Root Directory** to the app path (e.g. `apps/main-site`, `apps/ai-os`, `apps/ai-marketing`, `apps/demo-site`). Each app includes a `vercel.json` that runs **`npm install` and `turbo build` from the repository root** so workspace packages (`@stratxcel/*`) resolve correctly.
+Deployments clone **whatever Git repository is connected to the Vercel project**. If build logs show a repo URL that is **not** this monorepo, fix it in Vercel first (no amount of `vercel.json` can override the wrong Git remote).
 
-1. Root Directory: e.g. `apps/ai-os`
-2. Env vars (per app): e.g. `NEXT_PUBLIC_API_URL`, `ADMIN_DASHBOARD_PASSWORD`, `BOT_API_URL`, Razorpay keys for apps that handle payments (`apps/main-site` and `apps/ai-os` for checkout / payment links).
-3. For `apps/demo-site`, optionally set `NEXT_PUBLIC_DEMO_HOTEL_URL`, `NEXT_PUBLIC_DEMO_HONEST_ASSET_URL`, `NEXT_PUBLIC_DEMO_PREMIUM_CONSULTING_URL` to point at live demo deployments.
-4. Deploy.
+**Step 1 — Connect the correct GitHub repository**
+
+1. Vercel → your project → **Settings** → **Git**.
+2. Confirm **Connected Git Repository** is this monorepo only (not any legacy standalone project).  
+3. If it still shows an old standalone repo, use **Disconnect** then **Connect Git Repository** and select **this** repo only.
+
+**Step 2 — Root Directory (required for every Vercel project)**
+
+| Vercel project (example) | Root Directory must be |
+|--------------------------|-------------------------|
+| Corporate / main site | `apps/main-site` |
+| AI OS | `apps/ai-os` |
+| Public AI marketing | `apps/ai-marketing` |
+| Demo portfolio | `apps/demo-site` |
+
+Leave **Root Directory empty** only if you intend to deploy **main site** using the repository root `vercel.json` (see below). For AI OS, marketing, or demos, **always** set the matching `apps/...` path.
+
+**Step 3 — `vercel.json` behavior**
+
+- **Repository root** `vercel.json`: when Root Directory is empty (`.`), install runs at repo root and the build runs `turbo` for **`@stratxcel/main-site`** with output `apps/main-site/.next`.
+- **Per app** `apps/<name>/vercel.json`: when Root Directory is `apps/<name>`, install/build use `cd ../..` so `npm install` and `turbo` run from the **monorepo root** (workspace packages resolve).
+
+**Step 4 — Turbo filter ↔ `package.json` name**
+
+| Root Directory | `package.json` `name` | Turbo `--filter` |
+|----------------|----------------------|------------------|
+| `apps/main-site` | `@stratxcel/main-site` | `@stratxcel/main-site` |
+| `apps/ai-os` | `@stratxcel/ai-os` | `@stratxcel/ai-os` |
+| `apps/ai-marketing` | `@stratxcel/ai-marketing` | `@stratxcel/ai-marketing` |
+| `apps/demo-site` | `@stratxcel/demo-site` | `@stratxcel/demo-site` |
+
+**Step 5 — Environment variables**
+
+Per app: e.g. `NEXT_PUBLIC_API_URL`, `ADMIN_DASHBOARD_PASSWORD`, `BOT_API_URL`, and Razorpay-related vars on apps that handle payments. For `apps/demo-site`, optionally set `NEXT_PUBLIC_DEMO_HOTEL_URL`, `NEXT_PUBLIC_DEMO_HONEST_ASSET_URL`, `NEXT_PUBLIC_DEMO_PREMIUM_CONSULTING_URL`.
+
+**Step 6 — Redeploy**
+
+Trigger a new deployment after Git and Root Directory changes so logs show the correct clone URL and app path.
 
 ### Backend (VPS / Render / Railway / Docker-ready path)
 
