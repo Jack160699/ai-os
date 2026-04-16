@@ -1,0 +1,31 @@
+import Link from "next/link";
+import { URLS } from "@stratxcel/config";
+
+export function SiteFooter() {
+  return (
+    <footer className="border-t border-zinc-200 bg-zinc-50/50">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-12 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div>
+          <p className="text-[15px] font-semibold tracking-tight text-[var(--sx-navy)]">Stratxcel</p>
+          <p className="mt-1 text-sm text-zinc-500">
+            © {new Date().getFullYear()} Stratxcel. All rights reserved.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-zinc-600">
+          <Link href="/pricing" className="hover:text-[var(--sx-navy)]">
+            Pricing
+          </Link>
+          <Link href="/contact" className="hover:text-[var(--sx-navy)]">
+            Contact
+          </Link>
+          <a href={URLS.aiOs} className="hover:text-[var(--sx-navy)]" rel="noopener noreferrer">
+            AI OS
+          </a>
+          <a href={URLS.demo} className="hover:text-[var(--sx-navy)]" rel="noopener noreferrer">
+            Demos
+          </a>
+        </div>
+      </div>
+    </footer>
+  );
+}
