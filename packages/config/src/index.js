@@ -9,3 +9,15 @@ export const URLS = {
 
 export const CONTACT_EMAIL = "hello@stratxcel.com";
 export const WHATSAPP_NUMBER = "917777812777";
+
+/** Optional live URLs for portfolio demos (set per Vercel project / .env). */
+export const DEMO_URLS = {
+  hotel: trimUrl(process.env.NEXT_PUBLIC_DEMO_HOTEL_URL),
+  honestAsset: trimUrl(process.env.NEXT_PUBLIC_DEMO_HONEST_ASSET_URL),
+  premiumConsulting: trimUrl(process.env.NEXT_PUBLIC_DEMO_PREMIUM_CONSULTING_URL),
+};
+
+function trimUrl(value) {
+  const s = String(value || "").trim();
+  return s.replace(/\/+$/, "");
+}

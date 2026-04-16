@@ -1,6 +1,10 @@
-# Stratxcel monorepo (ai-os)
+# Stratxcel (master monorepo)
 
-Turborepo workspace for Stratxcel surfaces and shared packages:
+Single GitHub repository for Stratxcel: corporate site, AI OS, public AI marketing, demos, backend, and shared packages. Legacy standalone repos (**stratxcel-site**, **ai-os**, **honest-asset-management**, **grand-dhillon-website**, consulting demos) should be archived after traffic moves here.
+
+**Merge status:** The former `stratxcel-site` marketing UI is already superseded by `apps/ai-os` (same page/components, plus Razorpay and admin). No additional file copy was required. Hotel / honest-asset / consulting sources are not vendored in-tree; `apps/demo-site` reads optional `NEXT_PUBLIC_DEMO_*` URLs so you can link existing deployments until you physically merge those repos.
+
+Turborepo workspace layout:
 
 - `apps/ai-os` — Next.js AI OS (marketing + `/admin`, APIs including Razorpay)
 - `apps/main-site` — Corporate site (stratxcel.in target)
@@ -13,7 +17,7 @@ Turborepo workspace for Stratxcel surfaces and shared packages:
 ## Structure
 
 ```text
-ai-os/
+stratxcel/   (repository root; folder may still be named ai-os locally)
   apps/
     ai-os/
     main-site/
@@ -72,13 +76,12 @@ Expected ports:
 
 ### Frontends (Vercel)
 
-Create one Vercel project per app under `apps/` (e.g. root directory `apps/main-site` for stratxcel.in, `apps/ai-os` for ai.stratxcel.in).
+Create one Vercel project per app. In each project set **Root Directory** to the app path (e.g. `apps/main-site`, `apps/ai-os`, `apps/ai-marketing`, `apps/demo-site`). Each app includes a `vercel.json` that runs **`npm install` and `turbo build` from the repository root** so workspace packages (`@stratxcel/*`) resolve correctly.
 
-1. Set project root to the app folder (e.g. `apps/ai-os`).
-2. Add env vars:
-   - `NEXT_PUBLIC_API_URL=https://<your-backend-domain>`
-   - `ADMIN_DASHBOARD_PASSWORD=<password>`
-3. Deploy.
+1. Root Directory: e.g. `apps/ai-os`
+2. Env vars (per app): e.g. `NEXT_PUBLIC_API_URL`, `ADMIN_DASHBOARD_PASSWORD`, `BOT_API_URL`, Razorpay keys for apps that handle payments (`apps/main-site` and `apps/ai-os` for checkout / payment links).
+3. For `apps/demo-site`, optionally set `NEXT_PUBLIC_DEMO_HOTEL_URL`, `NEXT_PUBLIC_DEMO_HONEST_ASSET_URL`, `NEXT_PUBLIC_DEMO_PREMIUM_CONSULTING_URL` to point at live demo deployments.
+4. Deploy.
 
 ### Backend (VPS / Render / Railway / Docker-ready path)
 

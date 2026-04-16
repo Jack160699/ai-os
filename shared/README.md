@@ -2,4 +2,4 @@
 
 Shared cross-stack configuration artifacts.
 
-- `branding.json`: brand identity and palette used by frontend/backend tooling.
+- `branding.json`: brand identity and palette used by Next apps / backend tooling.
