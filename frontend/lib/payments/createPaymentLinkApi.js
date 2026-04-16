@@ -7,6 +7,24 @@ import { createPaymentLink, getResolvedRazorpayKeySource } from "@/lib/payments/
 
 export async function POST(request) {
   try {
+    console.log({
+      has_key_id: !!process.env.RAZORPAY_LIVE_KEY_ID,
+      has_secret: !!process.env.RAZORPAY_LIVE_KEY_SECRET,
+      node_env: process.env.NODE_ENV,
+    });
+
+    const liveKeyId = String(process.env.RAZORPAY_LIVE_KEY_ID || "").trim();
+    const liveKeySecret = String(process.env.RAZORPAY_LIVE_KEY_SECRET || "").trim();
+    const missing = [];
+    if (!liveKeyId) missing.push("RAZORPAY_LIVE_KEY_ID");
+    if (!liveKeySecret) missing.push("RAZORPAY_LIVE_KEY_SECRET");
+    if (missing.length > 0) {
+      return Response.json(
+        { ok: false, error: `LIVE KEY MISSING: ${missing.join(", ")}` },
+        { status: 500 }
+      );
+    }
+
     const src = getResolvedRazorpayKeySource();
     console.log(
       `[payments/create-link] create-link key prefix: ${src.keyPrefix} source=${src.idSource} has_secret=${src.hasSecret} env=${src.isProd ? "production" : "non_production"}`

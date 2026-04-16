@@ -68,7 +68,11 @@ export function getRazorpay() {
   }
 
   if (!keyId || !keySecret) {
-    if (isProd) throw new Error("LIVE KEY MISSING");
+    if (isProd) {
+      if (!keyId && !keySecret) throw new Error("LIVE KEY MISSING: RAZORPAY_LIVE_KEY_ID, RAZORPAY_LIVE_KEY_SECRET");
+      if (!keyId) throw new Error("LIVE KEY MISSING: RAZORPAY_LIVE_KEY_ID");
+      throw new Error("LIVE KEY MISSING: RAZORPAY_LIVE_KEY_SECRET");
+    }
     throw new Error("Razorpay is not configured: set RAZORPAY_LIVE_KEY_ID and RAZORPAY_LIVE_KEY_SECRET");
   }
   if (isProd && !keyId.startsWith("rzp_live_")) {
