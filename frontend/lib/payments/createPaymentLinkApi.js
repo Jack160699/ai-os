@@ -58,8 +58,9 @@ export async function POST(request) {
       amount_paise: out.amount_paise,
     });
   } catch (e) {
-    const message = e?.message || String(e);
-    console.error("[payments/create-link]", message);
+    const message = e instanceof Error ? e.message : String(e);
+    const stack = e instanceof Error ? e.stack : "";
+    console.error("[payments/create-link] full error:", message, stack || e);
     return Response.json({ ok: false, error: message }, { status: 500 });
   }
 }

@@ -5,11 +5,11 @@
  * - Secret: RAZORPAY_LIVE_KEY_SECRET (server-side only)
  * Non-production fallback: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
  * (Kept in sync with backend/payments/razorpay.js for the monorepo layout.)
+ *
+ * Dynamic import avoids Next.js bundler/runtime crashes from top-level `require` in `razorpay`.
  */
 
-import Razorpay from "razorpay";
-
-/** @type {Razorpay | null} */
+/** @type {import("razorpay") | null} */
 let _instance = null;
 let _configLogged = false;
 
@@ -54,9 +54,9 @@ export function getResolvedRazorpayKeySource() {
 }
 
 /**
- * @returns {Razorpay}
+ * @returns {Promise<import("razorpay")>}
  */
-export function getRazorpay() {
+export async function getRazorpay() {
   const { keyId, keySecret, idSource, secretSource, isProd } = resolveKeys();
 
   if (!_configLogged) {
@@ -79,6 +79,7 @@ export function getRazorpay() {
     throw new Error("Unsafe Razorpay config in production: key id is not live.");
   }
   if (!_instance) {
+    const { default: Razorpay } = await import("razorpay");
     _instance = new Razorpay({ key_id: keyId, key_secret: keySecret });
   }
   return _instance;
@@ -89,7 +90,7 @@ export function getRazorpay() {
  * @returns {Promise<{ short_url: string, id: string, amount_paise: number }>}
  */
 export async function createPaymentLink({ amount, name, phone, description, email }) {
-  const rp = getRazorpay();
+  const rp = await getRazorpay();
   const rupees = Number(String(amount).replace(/,/g, "").trim());
   if (!Number.isFinite(rupees) || rupees <= 0) {
     throw new Error("Invalid amount");

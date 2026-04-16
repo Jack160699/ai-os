@@ -22,6 +22,7 @@ export function PaymentsWorkspace() {
   const [customer, setCustomer] = useState("");
   const [phone, setPhone] = useState("");
   const [description, setDescription] = useState("Diagnosis Session");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [latestLink, setLatestLink] = useState("");
   const [loading, setLoading] = useState(false);
   const [logsLoading, setLogsLoading] = useState(true);
@@ -75,6 +76,7 @@ export function PaymentsWorkspace() {
           name: customer,
           phone,
           description,
+          email: customerEmail.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -119,6 +121,7 @@ export function PaymentsWorkspace() {
           name: customer,
           phone,
           description,
+          email: customerEmail.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -166,6 +169,7 @@ export function PaymentsWorkspace() {
           <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone with country code digits (required)" className="h-10 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 text-[13px] text-slate-100 outline-none focus:border-white/[0.14]" />
           <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount (INR)" type="number" className="h-10 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 text-[13px] text-slate-100 outline-none focus:border-white/[0.14]" />
           <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" className="h-10 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 text-[13px] text-slate-100 outline-none focus:border-white/[0.14]" />
+          <input value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="Customer email (optional if RAZORPAY_CUSTOMER_EMAIL_FALLBACK is set on server)" type="email" className="h-10 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 text-[13px] text-slate-100 outline-none focus:border-white/[0.14]" />
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={createLink} disabled={loading} className="rounded-xl border border-sky-400/35 bg-sky-500/20 px-3.5 py-2 text-[12px] font-semibold text-sky-200 transition hover:border-sky-300/45 hover:bg-sky-500/28 disabled:cursor-not-allowed disabled:opacity-70">
               {loading ? "Please wait..." : "Generate link"}
