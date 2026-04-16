@@ -31,6 +31,20 @@ def _keys() -> tuple[str, str]:
     return key_id, key_secret
 
 
+def key_source_details() -> dict[str, str]:
+    live_id = os.getenv("RAZORPAY_LIVE_KEY_ID", "").strip()
+    fallback_id = os.getenv("RAZORPAY_KEY_ID", "").strip()
+    is_prod = _is_production_env()
+    key_id, _ = _keys()
+    source = "RAZORPAY_LIVE_KEY_ID" if live_id else ("RAZORPAY_KEY_ID" if fallback_id else "(missing)")
+    return {
+        "env": "production" if is_prod else "non_production",
+        "source": source,
+        "prefix": key_id[:8] if key_id else "",
+        "fallback_disabled": "1" if is_prod else "0",
+    }
+
+
 def _is_production_env() -> bool:
     candidates = (
         os.getenv("APP_ENV", ""),

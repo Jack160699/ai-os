@@ -31,6 +31,7 @@ from app.inbox.service import (
 from app.payments.internal import process_razorpay_internal
 from app.payments.checkout import (
     create_checkout_order,
+    key_source_details,
     public_key_id,
     razorpay_mode,
     verify_checkout_signature,
@@ -2029,7 +2030,13 @@ def create_app(settings: Settings) -> Flask:
         key_id = public_key_id()
         if not key_id:
             return _checkout_json({"error": "razorpay not configured"}, 503)
-        print(f"[api/create-order] Razorpay key prefix: {key_id[:8]}")
+        src = key_source_details()
+        print(
+            "[api/create-order] "
+            f"source={src.get('source')} env={src.get('env')} "
+            f"fallback_disabled={src.get('fallback_disabled')} "
+            f"Razorpay key prefix: {src.get('prefix')}"
+        )
         return _checkout_json(
             {
                 "order_id": str(order.get("id") or ""),

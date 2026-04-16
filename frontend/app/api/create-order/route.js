@@ -28,6 +28,15 @@ export async function POST(request) {
   }
   try {
     const data = JSON.parse(text || "{}");
+    const returnedKey = String(data?.key || "");
+    const liveKey = String(process.env.RAZORPAY_LIVE_KEY_ID || "");
+    const publicLiveKey = String(process.env.NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID || "");
+    const matches = liveKey && publicLiveKey ? String(liveKey === publicLiveKey) : "unknown";
+    console.log(
+      `[next/api/create-order] returned_prefix=${returnedKey.slice(0, 8)} ` +
+        `live_prefix=${liveKey.slice(0, 8)} public_live_prefix=${publicLiveKey.slice(0, 8)} ` +
+        `live_public_match=${matches} cache=no-store`
+    );
     return NextResponse.json(data, { status: res.status });
   } catch {
     return NextResponse.json({ error: "checkout_upstream_invalid_json" }, { status: 502 });
