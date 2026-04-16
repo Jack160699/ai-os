@@ -1,6 +1,8 @@
 /**
  * Razorpay client + payment link creation (StratXcel AI OS).
- * Env: RAZORPAY_LIVE_KEY_ID, RAZORPAY_LIVE_KEY_SECRET
+ * Env:
+ * - Public key id: NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID (or RAZORPAY_LIVE_KEY_ID server-side)
+ * - Secret: RAZORPAY_LIVE_KEY_SECRET (server-side only)
  * Non-production fallback: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
  * (Kept in sync with backend/payments/razorpay.js for the monorepo layout.)
  */
@@ -21,13 +23,19 @@ function maskSecret(value) {
 function resolveKeys() {
   const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production" ||
     String(process.env.VERCEL_ENV || "").toLowerCase() === "production";
-  const liveId = String(process.env.RAZORPAY_LIVE_KEY_ID || "").trim();
+  const liveId = String(process.env.RAZORPAY_LIVE_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID || "").trim();
   const fallbackId = String(process.env.RAZORPAY_KEY_ID || "").trim();
   const liveSecret = String(process.env.RAZORPAY_LIVE_KEY_SECRET || "").trim();
   const fallbackSecret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
   const keyId = isProd ? liveId : (liveId || fallbackId);
   const keySecret = isProd ? liveSecret : (liveSecret || fallbackSecret);
-  const idSource = liveId ? "RAZORPAY_LIVE_KEY_ID" : fallbackId ? "RAZORPAY_KEY_ID" : "(missing)";
+  const idSource = process.env.RAZORPAY_LIVE_KEY_ID
+    ? "RAZORPAY_LIVE_KEY_ID"
+    : process.env.NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID
+      ? "NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID"
+      : fallbackId
+        ? "RAZORPAY_KEY_ID"
+        : "(missing)";
   const secretSource = liveSecret
     ? "RAZORPAY_LIVE_KEY_SECRET"
     : fallbackSecret
