@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { BookDiagnosisCheckoutButton } from "@stratxcel/ui";
 import { CONTACT, SOCIAL } from "@stratxcel/config";
@@ -43,29 +44,52 @@ export function HomePageContent() {
   return (
     <>
       {/* Hero */}
-      <section className="border-b border-zinc-100 bg-white">
-        <div className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 sm:pb-20 sm:pt-14">
-          <h1 className="mt-3 max-w-[26ch] text-[2rem] font-semibold leading-[1.12] tracking-[-0.03em] text-[var(--sx-navy)] sm:text-5xl">
-            Your business does not need more effort.
-            <br />
-            It needs better systems.
-          </h1>
-          <p className="mt-4 max-w-[64ch] text-[16px] leading-[1.65] text-zinc-600 sm:text-[17px]">
-            We identify operational leaks, fix execution gaps, and build systems that actually scale.
-          </p>
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+      <section className="relative overflow-hidden border-b border-zinc-100 bg-white">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-15%,rgba(15,23,42,0.045),transparent)]"
+          aria-hidden
+        />
+        <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-12 sm:px-6 sm:pb-24 sm:pt-16 lg:pb-28 lg:pt-20">
+          <div className="relative lg:min-h-[4.5rem]">
             <Link
-              href="/#contact"
-              className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-7 text-[15px] font-semibold text-white shadow-sm transition hover:bg-[var(--sx-navy-soft)] active:scale-[0.99]"
+              href="/"
+              className="mb-10 inline-flex w-fit shrink-0 lg:absolute lg:right-0 lg:top-0 lg:mb-0"
+              aria-label="Stratxcel home"
             >
-              Get Business Diagnosis (₹2200)
+              <Image
+                src="/logo-v2.png"
+                alt="Stratxcel"
+                width={220}
+                height={64}
+                className="h-8 w-auto sm:h-9 lg:h-10"
+                priority
+              />
             </Link>
-            <Link
-              href="/#how-we-work"
-              className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-zinc-300 bg-white px-7 text-[15px] font-semibold text-[var(--sx-navy)] transition hover:border-zinc-400 hover:bg-zinc-50"
-            >
-              Understand How This Works
-            </Link>
+            <div className="max-w-[40rem] lg:max-w-[46rem] lg:pr-48">
+              <h1 className="text-[2rem] font-semibold leading-[1.1] tracking-[-0.035em] text-[var(--sx-navy)] sm:text-[2.75rem] sm:leading-[1.08] lg:text-5xl lg:leading-[1.06]">
+                Your business doesn’t need more effort.
+                <br />
+                It needs better systems.
+              </h1>
+              <p className="mt-5 max-w-[38rem] text-[15px] leading-[1.7] text-zinc-600 sm:text-[17px] sm:leading-[1.65]">
+                We uncover growth bottlenecks, fix execution gaps, and build systems that help serious businesses
+                scale.
+              </p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
+                <Link
+                  href="/#pricing"
+                  className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-7 text-[15px] font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition hover:bg-[var(--sx-navy-soft)] active:scale-[0.99] sm:min-w-[12rem]"
+                >
+                  Request Business Diagnosis
+                </Link>
+                <Link
+                  href="/#how-we-work"
+                  className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-zinc-200 bg-white/80 px-7 text-[15px] font-semibold text-[var(--sx-navy)] backdrop-blur-sm transition hover:border-zinc-300 hover:bg-white sm:min-w-[12rem]"
+                >
+                  See How We Work
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
