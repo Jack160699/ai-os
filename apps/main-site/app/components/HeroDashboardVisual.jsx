@@ -6,10 +6,10 @@ export function HeroDashboardVisual() {
       aria-hidden
     >
       <div className="relative aspect-[4/5] w-full sm:aspect-[5/6] lg:aspect-square">
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#0c1222] via-[#121a2e] to-[#0a0f18] p-[1px] shadow-[0_24px_64px_-12px_rgba(12,18,34,0.45)] ring-1 ring-white/[0.06]">
-          <div className="flex h-full flex-col overflow-hidden rounded-[15px] bg-[#0c1222]">
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#141c2e] via-[#0e1524] to-[#080c14] p-px shadow-[0_2px_0_rgba(255,255,255,0.04)_inset,0_28px_56px_-16px_rgba(12,18,34,0.55),0_12px_28px_-12px_rgba(12,18,34,0.35)] ring-1 ring-white/[0.08]">
+          <div className="flex h-full flex-col overflow-hidden rounded-[15px] bg-[#0c1222] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-24px_48px_-32px_rgba(0,0,0,0.45)]">
             {/* Window chrome */}
-            <div className="flex h-10 shrink-0 items-center gap-2 border-b border-white/[0.06] px-3">
+            <div className="flex h-10 shrink-0 items-center gap-2 border-b border-white/[0.07] bg-gradient-to-b from-white/[0.05] to-transparent px-3">
               <div className="flex gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-white/[0.12]" />
                 <span className="h-2.5 w-2.5 rounded-full bg-white/[0.08]" />
@@ -34,7 +34,7 @@ export function HeroDashboardVisual() {
                   ].map(([label, val]) => (
                     <div
                       key={label}
-                      className="rounded-lg border border-white/[0.06] bg-white/[0.03] px-2 py-1.5 sm:px-2.5 sm:py-2"
+                      className="rounded-lg border border-white/[0.08] bg-white/[0.035] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_2px_6px_-2px_rgba(0,0,0,0.35)] sm:px-2.5 sm:py-2"
                     >
                       <div className="text-[8px] font-medium uppercase tracking-wider text-white/40 sm:text-[9px]">
                         {label}
@@ -46,7 +46,7 @@ export function HeroDashboardVisual() {
                   ))}
                 </div>
                 {/* Chart area */}
-                <div className="relative flex-1 min-h-[88px] rounded-lg border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-transparent p-2 sm:min-h-[100px]">
+                <div className="relative flex-1 min-h-[88px] rounded-lg border border-white/[0.08] bg-gradient-to-b from-white/[0.055] via-white/[0.02] to-transparent p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_4px_12px_-4px_rgba(0,0,0,0.4)] sm:min-h-[100px]">
                   <svg className="h-full w-full" viewBox="0 0 200 80" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="sx-hero-chart" x1="0" y1="0" x2="0" y2="1">
@@ -76,7 +76,7 @@ export function HeroDashboardVisual() {
                   </div>
                 </div>
                 {/* Flow strip */}
-                <div className="flex items-center gap-1 rounded-lg border border-white/[0.05] bg-white/[0.02] px-2 py-1.5">
+                <div className="flex items-center gap-1 rounded-lg border border-white/[0.07] bg-white/[0.025] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_2px_8px_-4px_rgba(0,0,0,0.35)]">
                   {["Intake", "Route", "Execute", "Review"].map((step, i) => (
                     <div key={step} className="flex min-w-0 flex-1 items-center gap-1">
                       <span className="truncate text-[8px] font-medium text-white/45 sm:text-[9px]">{step}</span>
@@ -93,7 +93,7 @@ export function HeroDashboardVisual() {
           </div>
         </div>
         {/* Soft glow */}
-        <div className="pointer-events-none absolute -inset-8 -z-10 rounded-[32px] bg-[radial-gradient(ellipse_at_center,rgba(37,99,235,0.12),transparent_65%)] blur-2xl" />
+        <div className="pointer-events-none absolute -inset-10 -z-10 rounded-[36px] bg-[radial-gradient(ellipse_at_50%_40%,rgba(37,99,235,0.14),rgba(12,18,34,0.06)_45%,transparent_70%)] blur-2xl" />
       </div>
     </div>
   );

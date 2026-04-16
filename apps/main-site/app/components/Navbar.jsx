@@ -40,7 +40,7 @@ export function Navbar() {
   }, [open]);
 
   const navLinkClass =
-    "text-[14px] font-medium tracking-tight text-zinc-600 transition-colors duration-200 hover:text-[var(--sx-navy)]";
+    "py-1 text-[13px] font-medium tracking-[-0.01em] text-zinc-500 antialiased transition-colors duration-200 ease-out hover:text-[var(--sx-navy)]";
 
   const headerSurface = scrolled
     ? "border-b border-zinc-200/90 bg-white/95 shadow-[0_1px_0_rgba(0,0,0,0.04)] backdrop-blur-md"
@@ -56,14 +56,14 @@ export function Navbar() {
       >
         <div
           className={[
-            "relative mx-auto flex h-[56px] max-w-6xl items-center justify-between px-4 transition-[height] duration-300 sm:h-[60px] sm:px-6",
+            "relative mx-auto flex h-[56px] max-w-6xl items-center justify-between px-4 transition-[height] duration-300 sm:h-[60px] sm:px-6 xl:px-8 min-[1440px]:px-10",
             scrolled ? "sm:h-[56px]" : "",
           ].join(" ")}
         >
           <StratxcelBrand />
 
           <nav
-            className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-9 lg:flex"
+            className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-6 min-[1440px]:gap-7 lg:flex"
             aria-label="Primary"
           >
             {links.map((l) => (
@@ -76,7 +76,7 @@ export function Navbar() {
           <div className="hidden shrink-0 items-center lg:flex">
             <Link
               href="/#pricing"
-              className="inline-flex h-10 min-h-[44px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-5 text-[14px] font-semibold tracking-tight text-white shadow-sm transition duration-200 hover:bg-[var(--sx-navy-soft)] active:scale-[0.98]"
+              className="inline-flex h-[38px] min-h-[44px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-[1.125rem] text-[13px] font-semibold tracking-[-0.01em] text-white shadow-[0_1px_2px_rgba(12,18,34,0.12)] ring-1 ring-black/[0.08] transition-[background-color,box-shadow,transform,color] duration-200 ease-out hover:bg-[var(--sx-navy-soft)] hover:shadow-[0_4px_14px_-4px_rgba(12,18,34,0.35)] active:scale-[0.98]"
             >
               Request Diagnosis
             </Link>
@@ -88,7 +88,7 @@ export function Navbar() {
             aria-controls="mobile-nav-panel"
             aria-label={open ? "Close menu" : "Open menu"}
             onClick={() => setOpen((v) => !v)}
-            className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-zinc-200/80 bg-white/70 text-zinc-800 shadow-sm backdrop-blur-sm transition hover:bg-white lg:hidden"
+            className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-zinc-200/80 bg-white/70 text-zinc-800 shadow-sm backdrop-blur-sm transition-[background-color,box-shadow,border-color] duration-200 ease-out hover:border-zinc-300 hover:bg-white hover:shadow-md active:scale-[0.97] lg:hidden"
           >
             <span className="sr-only">Menu</span>
             <span className="relative block h-5 w-5" aria-hidden>
@@ -176,7 +176,7 @@ export function Navbar() {
               <Link
                 href="/#pricing"
                 onClick={() => setOpen(false)}
-                className="flex h-12 w-full items-center justify-center rounded-full bg-[var(--sx-navy)] text-[15px] font-semibold text-white shadow-sm transition active:scale-[0.99]"
+                className="flex h-12 w-full items-center justify-center rounded-full bg-[var(--sx-navy)] text-[15px] font-semibold text-white shadow-[0_1px_2px_rgba(12,18,34,0.12)] ring-1 ring-black/[0.08] transition-[background-color,box-shadow,transform] duration-200 ease-out hover:bg-[var(--sx-navy-soft)] hover:shadow-[0_6px_20px_-8px_rgba(12,18,34,0.4)] active:scale-[0.99]"
               >
                 Request Diagnosis
               </Link>

@@ -49,8 +49,8 @@ export function HomePageContent() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_15%_-5%,rgba(12,18,34,0.055),transparent_52%),radial-gradient(ellipse_55%_50%_at_100%_15%,rgba(37,99,235,0.045),transparent_48%)]"
           aria-hidden
         />
-        <div className="relative mx-auto flex min-h-[calc(100dvh-3.5rem)] max-w-6xl flex-col justify-center px-4 py-11 sm:min-h-[calc(100dvh-3.75rem)] sm:px-6 sm:py-14 lg:min-h-[calc(100dvh-3.85rem)] lg:py-16 xl:py-20">
-          <div className="grid w-full items-center gap-11 lg:grid-cols-[minmax(0,1fr)_minmax(260px,420px)] lg:gap-x-14 xl:grid-cols-[minmax(0,1.02fr)_minmax(280px,440px)] xl:gap-x-16">
+        <div className="relative mx-auto flex min-h-[calc(100dvh-3.5rem)] max-w-6xl flex-col justify-center px-4 py-11 sm:min-h-[calc(100dvh-3.75rem)] sm:px-6 sm:py-14 lg:min-h-[calc(100dvh-3.85rem)] lg:py-[4.25rem] xl:px-8 xl:py-20 min-[1440px]:px-10 min-[1440px]:py-[5.25rem]">
+          <div className="grid w-full items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(260px,420px)] lg:gap-x-12 lg:gap-y-12 xl:grid-cols-[minmax(0,1.02fr)_minmax(280px,440px)] xl:gap-x-14 min-[1440px]:gap-x-[4.25rem] min-[1440px]:gap-y-14">
             <div className="min-w-0">
               <h1 className="sx-hero-fade-up sx-hero-fade-up-d1 max-w-[16ch] text-[2.125rem] font-bold leading-[1.08] tracking-[-0.038em] text-[var(--sx-navy)] sm:max-w-[19ch] sm:text-[2.35rem] sm:leading-[1.06] lg:max-w-[17ch] lg:text-[2.65rem] lg:leading-[1.04] xl:text-5xl xl:leading-[1.03]">
                 Your business doesn’t need more effort.
@@ -64,13 +64,13 @@ export function HomePageContent() {
               <div className="sx-hero-cta-rise mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
                 <Link
                   href="/#pricing"
-                  className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-7 text-[15px] font-semibold text-white shadow-[0_2px_8px_rgba(12,18,34,0.12)] transition duration-200 hover:bg-[var(--sx-navy-soft)] active:scale-[0.99] sm:min-w-[13.5rem]"
+                  className="inline-flex h-[46px] min-h-[48px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-8 text-[15px] font-semibold tracking-[-0.01em] text-white shadow-[0_1px_2px_rgba(12,18,34,0.14),0_4px_12px_-4px_rgba(12,18,34,0.2)] ring-1 ring-black/[0.06] transition-[background-color,box-shadow,transform] duration-200 ease-out hover:bg-[var(--sx-navy-soft)] hover:shadow-[0_2px_4px_rgba(12,18,34,0.12),0_12px_28px_-10px_rgba(12,18,34,0.38)] active:scale-[0.99] sm:min-w-[13.75rem]"
                 >
                   Request Business Diagnosis
                 </Link>
                 <Link
                   href="/#how-we-work"
-                  className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-zinc-300/90 bg-white px-7 text-[15px] font-semibold text-[var(--sx-navy)] transition duration-200 hover:border-zinc-400 hover:bg-zinc-50/80 sm:min-w-[13.5rem]"
+                  className="inline-flex h-[46px] min-h-[48px] items-center justify-center rounded-full border border-zinc-300/95 bg-white px-8 text-[15px] font-semibold tracking-[-0.01em] text-[var(--sx-navy)] shadow-[0_1px_0_rgba(255,255,255,0.9)_inset] transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out hover:border-zinc-400 hover:bg-zinc-50 hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)] active:scale-[0.99] sm:min-w-[13.75rem]"
                 >
                   See How We Work
                 </Link>
