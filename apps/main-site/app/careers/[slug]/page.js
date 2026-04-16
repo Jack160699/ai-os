@@ -4,7 +4,8 @@ import { CONTACT_EMAIL } from "@stratxcel/config";
 const ROLE_MAP = {
   "business-development-intern": {
     title: "Business Development Intern",
-    overview: "Learn practical business development in real operating conditions — not theoretical scripts.",
+    overview:
+      "Start your career where business development is treated as a disciplined system, not random cold calls.",
     do: [
       "Prospecting and lead list building",
       "Outreach drafting and follow-up discipline",
@@ -16,7 +17,8 @@ const ROLE_MAP = {
   },
   "marketing-intern": {
     title: "Marketing Intern",
-    overview: "Build brand and marketing systems with a business-first mindset.",
+    overview:
+      "Learn modern marketing execution with real campaigns, clear accountability, and measurable outcomes.",
     do: ["Content system support", "Campaign planning basics", "Performance reporting hygiene"],
     learn: ["Brand thinking", "Distribution basics", "Consistency and craft"],
     who: ["Curious learners", "Writers and builders", "Detail-oriented execution"],
@@ -24,7 +26,8 @@ const ROLE_MAP = {
   },
   "operations-intern": {
     title: "Operations Intern",
-    overview: "Learn execution frameworks, coordination, and workflow discipline.",
+    overview:
+      "Build operator-grade execution discipline through workflow systems, coordination, and delivery rhythms.",
     do: ["Process mapping", "Coordination support", "Checklists and operating cadence"],
     learn: ["Ops thinking", "Structured execution", "Team coordination"],
     who: ["Organized and reliable", "Comfortable with follow-through", "Systems mindset"],
@@ -32,7 +35,8 @@ const ROLE_MAP = {
   },
   "it-tech-intern": {
     title: "IT / Tech Intern",
-    overview: "Work on web systems, dashboards, and automations that ship to real users.",
+    overview:
+      "Work on production web systems and internal tools that solve real operational problems.",
     do: ["Frontend fixes and UI hygiene", "Automation support", "Basic integrations and documentation"],
     learn: ["Production quality", "Testing mindset", "Execution cadence"],
     who: ["Builders", "Comfortable debugging", "Willing to learn production discipline"],
@@ -40,7 +44,8 @@ const ROLE_MAP = {
   },
   "finance-intern": {
     title: "Finance Intern",
-    overview: "Learn business finance operations: GST basics, invoicing, reporting, and hygiene.",
+    overview:
+      "Learn practical business finance operations: GST basics, invoicing discipline, and reporting hygiene.",
     do: ["Invoice support", "GST-related coordination", "Reporting structure and checks"],
     learn: ["Business finance basics", "Operational reporting", "Accuracy discipline"],
     who: ["Detail oriented", "Comfortable with documentation", "Serious about correctness"],
@@ -48,7 +53,8 @@ const ROLE_MAP = {
   },
   "hr-talent-intern": {
     title: "HR / Talent Intern",
-    overview: "Learn people systems, hiring basics, and coordination with professional standards.",
+    overview:
+      "Understand how growing companies hire, coordinate, and build reliable people systems.",
     do: ["Candidate coordination", "Interview scheduling hygiene", "Hiring pipeline documentation"],
     learn: ["Hiring fundamentals", "People systems", "Professional communication"],
     who: ["Structured communicators", "Reliable follow-through", "Discretion and clarity"],
@@ -56,7 +62,8 @@ const ROLE_MAP = {
   },
   "founders-associate": {
     title: "Founder's Associate",
-    overview: "A high-ownership role supporting founder-led execution across strategy, ops, and delivery.",
+    overview:
+      "A high-ownership role for people who want frontline exposure to founder-led execution and decision-making.",
     do: ["Research and synthesis", "Execution tracking", "Client-facing coordination where needed"],
     learn: ["Operator mindset", "Systems thinking", "Professional standards"],
     who: ["High ownership", "Fast learner", "Strong writing + clarity"],
@@ -64,7 +71,8 @@ const ROLE_MAP = {
   },
   "business-development-associate": {
     title: "Business Development Associate (Full-time)",
-    overview: "Own outbound and pipeline discipline with clear targets and coaching.",
+    overview:
+      "Own pipeline execution with clear targets, strong coaching, and a long-term growth path in business development.",
     do: ["Outbound prospecting", "Follow-up consistency", "Pipeline reporting and iteration"],
     learn: ["Business development as a system", "Communication", "Execution discipline"],
     who: ["Coachability", "Consistency", "Comfortable with targets"],
@@ -98,6 +106,9 @@ export default function RolePage({ params }) {
           {role.title}
         </h1>
         <p className="mt-5 text-[15px] leading-[1.7] text-zinc-600">{role.overview}</p>
+        <p className="mt-4 text-sm text-zinc-500">
+          This role is built for serious learners who want real responsibility, real standards, and real growth.
+        </p>
 
         <Section title="What you will do" items={role.do} />
         <Section title="What you will learn" items={role.learn} />

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BookDiagnosisCheckoutButton } from "@stratxcel/ui";
-import { CONTACT } from "@stratxcel/config";
+import { CONTACT, SOCIAL } from "@stratxcel/config";
 
 export function HomePageContent() {
   const trust = [
@@ -20,6 +20,14 @@ export function HomePageContent() {
     { title: "Founder's Associate", slug: "founders-associate" },
     { title: "Business Development Associate (Full-time)", slug: "business-development-associate" },
   ];
+  const socialRows = [
+    ["LinkedIn", SOCIAL.linkedin],
+    ["Instagram", SOCIAL.instagram],
+    ["Facebook", SOCIAL.facebook],
+    ["X", SOCIAL.x],
+    ["YouTube", SOCIAL.youtube],
+    ["GitHub", SOCIAL.github],
+  ].filter(([, href]) => href);
 
   return (
     <>
@@ -105,7 +113,13 @@ export function HomePageContent() {
       {/* What we solve / build */}
       <section id="work" className="scroll-mt-[72px] border-b border-zinc-100 bg-white py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="text-xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-2xl">What We Solve</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-2xl">
+            Why people come to us
+          </h2>
+          <p className="mt-4 max-w-[72ch] text-[15px] leading-[1.7] text-zinc-600">
+            Operations feel messy, growth slows down, and too much depends on the owner. We solve this
+            through systems.
+          </p>
           <ul className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {[
               "Operational chaos",
@@ -121,7 +135,9 @@ export function HomePageContent() {
               </li>
             ))}
           </ul>
-          <h3 className="mt-10 text-lg font-semibold tracking-tight text-[var(--sx-navy)]">What We Build</h3>
+          <h3 className="mt-10 text-lg font-semibold tracking-tight text-[var(--sx-navy)]">
+            What we actually build
+          </h3>
           <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {[
               "Business Systems",
@@ -309,6 +325,22 @@ export function HomePageContent() {
             >
               Diagnosis session — ₹499
             </Link>
+          </div>
+          <div className="mt-8 rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-4">
+            <p className="text-sm font-semibold text-[var(--sx-navy)]">Social & company channels</p>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-zinc-600">
+              {socialRows.length ? (
+                socialRows.map(([label, href]) => (
+                  <a key={label} href={href} className="hover:text-[var(--sx-navy)]" rel="noopener noreferrer">
+                    {label}
+                  </a>
+                ))
+              ) : (
+                <p className="text-zinc-500">
+                  LinkedIn · Instagram · Facebook · X · YouTube · GitHub (add official URLs in environment).
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </section>
