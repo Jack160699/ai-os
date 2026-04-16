@@ -21,22 +21,32 @@ def _first_non_empty(*names: str) -> str:
 def _keys() -> tuple[str, str]:
     live_id = os.getenv("RAZORPAY_LIVE_KEY_ID", "").strip()
     live_secret = os.getenv("RAZORPAY_LIVE_KEY_SECRET", "").strip()
+    test_id = os.getenv("RAZORPAY_TEST_KEY_ID", "").strip()
+    test_secret = os.getenv("RAZORPAY_TEST_KEY_SECRET", "").strip()
     if _is_production_env():
         if not live_id or not live_secret:
             raise RuntimeError("LIVE KEY MISSING")
         return live_id, live_secret
     # Non-production fallback stays enabled for local/dev.
-    key_id = _first_non_empty("RAZORPAY_LIVE_KEY_ID", "RAZORPAY_KEY_ID")
-    key_secret = _first_non_empty("RAZORPAY_LIVE_KEY_SECRET", "RAZORPAY_KEY_SECRET")
+    key_id = _first_non_empty("RAZORPAY_LIVE_KEY_ID", "RAZORPAY_KEY_ID", "RAZORPAY_TEST_KEY_ID")
+    key_secret = _first_non_empty("RAZORPAY_LIVE_KEY_SECRET", "RAZORPAY_KEY_SECRET", "RAZORPAY_TEST_KEY_SECRET")
+    if test_id and key_id == test_id and test_secret and key_secret == test_secret:
+        # Explicit test pair is acceptable only outside production.
+        return key_id, key_secret
     return key_id, key_secret
 
 
 def key_source_details() -> dict[str, str]:
     live_id = os.getenv("RAZORPAY_LIVE_KEY_ID", "").strip()
     fallback_id = os.getenv("RAZORPAY_KEY_ID", "").strip()
+    test_id = os.getenv("RAZORPAY_TEST_KEY_ID", "").strip()
     is_prod = _is_production_env()
     key_id, _ = _keys()
-    source = "RAZORPAY_LIVE_KEY_ID" if live_id else ("RAZORPAY_KEY_ID" if fallback_id else "(missing)")
+    source = (
+        "RAZORPAY_LIVE_KEY_ID"
+        if live_id
+        else ("RAZORPAY_KEY_ID" if fallback_id else ("RAZORPAY_TEST_KEY_ID" if test_id else "(missing)"))
+    )
     return {
         "env": "production" if is_prod else "non_production",
         "source": source,
@@ -46,6 +56,18 @@ def key_source_details() -> dict[str, str]:
 
 
 def _is_production_env() -> bool:
+    hosted_markers = (
+        os.getenv("RENDER", ""),
+        os.getenv("RAILWAY_ENVIRONMENT", ""),
+        os.getenv("RAILWAY_STATIC_URL", ""),
+        os.getenv("K_SERVICE", ""),
+        os.getenv("DYNO", ""),
+        os.getenv("AWS_EXECUTION_ENV", ""),
+        os.getenv("GCP_PROJECT", ""),
+        os.getenv("FLY_APP_NAME", ""),
+    )
+    if any(str(v).strip() for v in hosted_markers):
+        return True
     candidates = (
         os.getenv("APP_ENV", ""),
         os.getenv("DEPLOY_ENV", ""),
@@ -75,13 +97,29 @@ def _log_checkout_config_once() -> None:
     live_secret = os.getenv("RAZORPAY_LIVE_KEY_SECRET", "").strip()
     fallback_id = os.getenv("RAZORPAY_KEY_ID", "").strip()
     fallback_secret = os.getenv("RAZORPAY_KEY_SECRET", "").strip()
+    test_id = os.getenv("RAZORPAY_TEST_KEY_ID", "").strip()
+    test_secret = os.getenv("RAZORPAY_TEST_KEY_SECRET", "").strip()
     is_prod = _is_production_env()
-    key_id = live_id if (is_prod and live_id) else _first_non_empty("RAZORPAY_LIVE_KEY_ID", "RAZORPAY_KEY_ID")
-    key_secret = (
-        live_secret if (is_prod and live_secret) else _first_non_empty("RAZORPAY_LIVE_KEY_SECRET", "RAZORPAY_KEY_SECRET")
+    key_id = (
+        live_id
+        if (is_prod and live_id)
+        else _first_non_empty("RAZORPAY_LIVE_KEY_ID", "RAZORPAY_KEY_ID", "RAZORPAY_TEST_KEY_ID")
     )
-    id_source = "RAZORPAY_LIVE_KEY_ID" if live_id else ("RAZORPAY_KEY_ID" if fallback_id else "(missing)")
-    secret_source = "RAZORPAY_LIVE_KEY_SECRET" if live_secret else ("RAZORPAY_KEY_SECRET" if fallback_secret else "(missing)")
+    key_secret = (
+        live_secret
+        if (is_prod and live_secret)
+        else _first_non_empty("RAZORPAY_LIVE_KEY_SECRET", "RAZORPAY_KEY_SECRET", "RAZORPAY_TEST_KEY_SECRET")
+    )
+    id_source = (
+        "RAZORPAY_LIVE_KEY_ID"
+        if live_id
+        else ("RAZORPAY_KEY_ID" if fallback_id else ("RAZORPAY_TEST_KEY_ID" if test_id else "(missing)"))
+    )
+    secret_source = (
+        "RAZORPAY_LIVE_KEY_SECRET"
+        if live_secret
+        else ("RAZORPAY_KEY_SECRET" if fallback_secret else ("RAZORPAY_TEST_KEY_SECRET" if test_secret else "(missing)"))
+    )
     print(
         "[razorpay-checkout-config] "
         f"env={'production' if is_prod else 'non_production'} "

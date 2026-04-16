@@ -2037,6 +2037,7 @@ def create_app(settings: Settings) -> Flask:
             f"fallback_disabled={src.get('fallback_disabled')} "
             f"Razorpay key prefix: {src.get('prefix')}"
         )
+        print(f"[api/create-order] FINAL create-order key prefix: {src.get('prefix')}")
         return _checkout_json(
             {
                 "order_id": str(order.get("id") or ""),
