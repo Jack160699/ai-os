@@ -19,7 +19,13 @@ def _first_non_empty(*names: str) -> str:
 
 
 def _keys() -> tuple[str, str]:
-    # Prefer explicit live credentials; fallback keeps older env names working.
+    live_id = os.getenv("RAZORPAY_LIVE_KEY_ID", "").strip()
+    live_secret = os.getenv("RAZORPAY_LIVE_KEY_SECRET", "").strip()
+    if _is_production_env():
+        if not live_id or not live_secret:
+            raise RuntimeError("LIVE KEY MISSING")
+        return live_id, live_secret
+    # Non-production fallback stays enabled for local/dev.
     key_id = _first_non_empty("RAZORPAY_LIVE_KEY_ID", "RAZORPAY_KEY_ID")
     key_secret = _first_non_empty("RAZORPAY_LIVE_KEY_SECRET", "RAZORPAY_KEY_SECRET")
     return key_id, key_secret
@@ -55,13 +61,16 @@ def _log_checkout_config_once() -> None:
     live_secret = os.getenv("RAZORPAY_LIVE_KEY_SECRET", "").strip()
     fallback_id = os.getenv("RAZORPAY_KEY_ID", "").strip()
     fallback_secret = os.getenv("RAZORPAY_KEY_SECRET", "").strip()
-    key_id, key_secret = _keys()
-    id_source = "RAZORPAY_LIVE_KEY_ID" if live_id else ("RAZORPAY_KEY_ID" if fallback_id else "(missing)")
-    secret_source = (
-        "RAZORPAY_LIVE_KEY_SECRET" if live_secret else ("RAZORPAY_KEY_SECRET" if fallback_secret else "(missing)")
+    is_prod = _is_production_env()
+    key_id = live_id if (is_prod and live_id) else _first_non_empty("RAZORPAY_LIVE_KEY_ID", "RAZORPAY_KEY_ID")
+    key_secret = (
+        live_secret if (is_prod and live_secret) else _first_non_empty("RAZORPAY_LIVE_KEY_SECRET", "RAZORPAY_KEY_SECRET")
     )
+    id_source = "RAZORPAY_LIVE_KEY_ID" if live_id else ("RAZORPAY_KEY_ID" if fallback_id else "(missing)")
+    secret_source = "RAZORPAY_LIVE_KEY_SECRET" if live_secret else ("RAZORPAY_KEY_SECRET" if fallback_secret else "(missing)")
     print(
         "[razorpay-checkout-config] "
+        f"env={'production' if is_prod else 'non_production'} "
         f"id_source={id_source} secret_source={secret_source} mode={razorpay_mode()} "
         f"key_id={_mask_secret(key_id)} key_secret={_mask_secret(key_secret)}"
     )

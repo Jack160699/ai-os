@@ -1,7 +1,7 @@
 /**
  * Razorpay client + payment link creation (StratXcel AI OS).
  * Env: RAZORPAY_LIVE_KEY_ID, RAZORPAY_LIVE_KEY_SECRET
- * Fallback: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
+ * Non-production fallback: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
  * Next.js uses the same logic from frontend/lib/payments/razorpay.js — keep in sync.
  */
 
@@ -19,26 +19,28 @@ function maskSecret(value) {
 }
 
 function resolveKeys() {
+  const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production" ||
+    String(process.env.VERCEL_ENV || "").toLowerCase() === "production";
   const liveId = String(process.env.RAZORPAY_LIVE_KEY_ID || "").trim();
   const fallbackId = String(process.env.RAZORPAY_KEY_ID || "").trim();
   const liveSecret = String(process.env.RAZORPAY_LIVE_KEY_SECRET || "").trim();
   const fallbackSecret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
-  const keyId = liveId || fallbackId;
-  const keySecret = liveSecret || fallbackSecret;
+  const keyId = isProd ? liveId : (liveId || fallbackId);
+  const keySecret = isProd ? liveSecret : (liveSecret || fallbackSecret);
   const idSource = liveId ? "RAZORPAY_LIVE_KEY_ID" : fallbackId ? "RAZORPAY_KEY_ID" : "(missing)";
   const secretSource = liveSecret
     ? "RAZORPAY_LIVE_KEY_SECRET"
     : fallbackSecret
       ? "RAZORPAY_KEY_SECRET"
       : "(missing)";
-  return { keyId, keySecret, idSource, secretSource };
+  return { keyId, keySecret, idSource, secretSource, isProd };
 }
 
 /**
  * @returns {Razorpay}
  */
 export function getRazorpay() {
-  const { keyId, keySecret, idSource, secretSource } = resolveKeys();
+  const { keyId, keySecret, idSource, secretSource, isProd } = resolveKeys();
   if (!_configLogged) {
     _configLogged = true;
     const mode = keyId.startsWith("rzp_live_") ? "live" : keyId.startsWith("rzp_test_") ? "test" : "unknown";
@@ -47,11 +49,10 @@ export function getRazorpay() {
     );
   }
   if (!keyId || !keySecret) {
-    throw new Error(
-      "Razorpay is not configured: set RAZORPAY_LIVE_KEY_ID and RAZORPAY_LIVE_KEY_SECRET"
-    );
+    if (isProd) throw new Error("LIVE KEY MISSING");
+    throw new Error("Razorpay is not configured: set RAZORPAY_LIVE_KEY_ID and RAZORPAY_LIVE_KEY_SECRET");
   }
-  if (process.env.NODE_ENV === "production" && !keyId.startsWith("rzp_live_")) {
+  if (isProd && !keyId.startsWith("rzp_live_")) {
     throw new Error("Unsafe Razorpay config in production: key id is not live.");
   }
   if (!_instance) {

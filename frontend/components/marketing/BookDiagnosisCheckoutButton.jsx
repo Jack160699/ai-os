@@ -132,6 +132,14 @@ export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
         },
       };
       console.log("Razorpay key prefix:", String(options.key || "").slice(0, 8));
+      if (
+        (process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_VERCEL_ENV === "production") &&
+        !String(options.key || "").startsWith("rzp_live_")
+      ) {
+        setPhase("error");
+        setStatus("LIVE KEY MISSING");
+        return;
+      }
 
       const rzp = new window.Razorpay(options);
       rzp.on("payment.failed", async function (resp) {

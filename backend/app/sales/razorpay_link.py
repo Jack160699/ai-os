@@ -10,9 +10,28 @@ from typing import Any
 import requests
 
 
+def _is_production_env() -> bool:
+    candidates = (
+        os.getenv("APP_ENV", ""),
+        os.getenv("DEPLOY_ENV", ""),
+        os.getenv("FLASK_ENV", ""),
+        os.getenv("NODE_ENV", ""),
+        os.getenv("VERCEL_ENV", ""),
+        os.getenv("ENVIRONMENT", ""),
+    )
+    normalized = {str(v).strip().lower() for v in candidates if str(v).strip()}
+    return bool(normalized.intersection({"prod", "production", "live"}))
+
+
 def _keys() -> tuple[str, str]:
-    kid = (os.getenv("RAZORPAY_LIVE_KEY_ID", "") or os.getenv("RAZORPAY_KEY_ID", "")).strip()
-    sec = (os.getenv("RAZORPAY_LIVE_KEY_SECRET", "") or os.getenv("RAZORPAY_KEY_SECRET", "")).strip()
+    live_id = os.getenv("RAZORPAY_LIVE_KEY_ID", "").strip()
+    live_secret = os.getenv("RAZORPAY_LIVE_KEY_SECRET", "").strip()
+    if _is_production_env():
+        if not live_id or not live_secret:
+            raise RuntimeError("LIVE KEY MISSING")
+        return live_id, live_secret
+    kid = (live_id or os.getenv("RAZORPAY_KEY_ID", "")).strip()
+    sec = (live_secret or os.getenv("RAZORPAY_KEY_SECRET", "")).strip()
     return kid, sec
 
 
