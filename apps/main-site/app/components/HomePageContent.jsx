@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { BookDiagnosisCheckoutButton } from "@stratxcel/ui";
-import { CountUpNumber } from "@/app/components/CountUpNumber";
 import { DashboardMockup } from "@/app/components/DashboardMockup";
 
 const sectionEase = [0.22, 1, 0.36, 1];
@@ -17,6 +16,12 @@ const fadeUp = (reduce, delay = 0) => ({
 
 export function HomePageContent() {
   const reduce = useReducedMotion();
+  const trustBadges = [
+    "Stratxcel OPC Private Limited",
+    "MSME Registered",
+    "Startup India Recognized",
+    "Built for Growth-Focused Businesses",
+  ];
 
   return (
     <>
@@ -28,19 +33,19 @@ export function HomePageContent() {
               className="text-[13px] font-semibold uppercase tracking-[0.14em] text-zinc-500"
               {...fadeUp(reduce, 0)}
             >
-              Revenue systems
+              Stratxcel OPC Private Limited
             </motion.p>
             <motion.h1
               className="mt-4 max-w-xl text-[2.125rem] font-semibold leading-[1.12] tracking-[-0.03em] text-[var(--sx-navy)] sm:text-5xl sm:leading-[1.08]"
               {...fadeUp(reduce, 0.04)}
             >
-              We build systems that grow revenue.
+              We build systems serious businesses can grow on.
             </motion.h1>
             <motion.p
               className="mt-5 max-w-lg text-[17px] leading-relaxed text-zinc-600 sm:text-lg"
               {...fadeUp(reduce, 0.08)}
             >
-              AI, automation, and operating systems for serious businesses.
+              Operations, automation, talent, and execution frameworks built for ambitious Indian businesses.
             </motion.p>
             <motion.div
               className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
@@ -52,13 +57,13 @@ export function HomePageContent() {
                 href="/contact"
                 className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-7 text-[15px] font-semibold text-white shadow-sm transition hover:bg-[var(--sx-navy-soft)] active:scale-[0.99]"
               >
-                Book Strategy Call
+                Book Consultation
               </Link>
               <Link
-                href="/#results"
+                href="/how-we-work"
                 className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-zinc-300 bg-white px-7 text-[15px] font-semibold text-[var(--sx-navy)] transition hover:border-zinc-400 hover:bg-zinc-50"
               >
-                See Results
+                See How We Work
               </Link>
             </motion.div>
           </div>
@@ -86,76 +91,59 @@ export function HomePageContent() {
         </div>
       </section>
 
-      {/* Trust */}
+      {/* Trust strip */}
       <section className="border-b border-zinc-100 bg-zinc-50/60 py-14 sm:py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="grid gap-10 sm:grid-cols-3 sm:gap-8">
-            {[
-              {
-                label: "Revenue influenced",
-                node: (
-                  <>
-                    <CountUpNumber end={85} formatter={(n) => `₹${n}+`} />
-                    <span className="text-zinc-600"> Lakhs</span>
-                  </>
-                ),
-              },
-              {
-                label: "Systems built",
-                node: (
-                  <>
-                    <CountUpNumber end={50} formatter={(n) => `${n}+`} />
-                  </>
-                ),
-              },
-              {
-                label: "Hours saved",
-                node: (
-                  <>
-                    <CountUpNumber end={1000} formatter={(n) => `${n.toLocaleString("en-IN")}+`} />
-                  </>
-                ),
-              },
-            ].map((m) => (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {trustBadges.map((badge) => (
               <motion.div
-                key={m.label}
-                className="text-center sm:text-left"
+                key={badge}
+                className="rounded-xl border border-zinc-200 bg-white px-4 py-4 text-center sm:text-left"
                 {...fadeUp(reduce, 0)}
               >
-                <p className="text-3xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-4xl">
-                  {m.node}
-                </p>
-                <p className="mt-2 text-sm font-medium text-zinc-500">{m.label}</p>
+                <p className="text-[13px] font-semibold tracking-tight text-[var(--sx-navy)]">{badge}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Services */}
-      <section id="services" className="scroll-mt-[72px] border-b border-zinc-100 bg-white py-20 sm:py-24">
+      {/* What we solve */}
+      <section id="solve" className="scroll-mt-[72px] border-b border-zinc-100 bg-white py-20 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <motion.div {...fadeUp(reduce, 0)}>
             <h2 className="text-2xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-3xl">
-              Services
+              What We Solve
             </h2>
             <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-zinc-600">
-              Three ways we engage. Each engagement is scoped, measurable, and built for operators.
+              We remove core execution bottlenecks that slow growth and dilute leadership focus.
             </p>
           </motion.div>
-          <div className="mt-12 grid gap-6 sm:grid-cols-3">
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
-                title: "Revenue Systems",
-                body: "Pipeline design, CRM discipline, and instrumentation so leadership sees signal — not noise.",
+                title: "Operational chaos",
+                body: "Undefined workflows and unclear accountability.",
               },
               {
-                title: "Operations Automation",
-                body: "Workflows that remove manual handoffs without sacrificing control, auditability, or quality.",
+                title: "Slow follow-up",
+                body: "Delayed responses and inconsistent lead handling.",
               },
               {
-                title: "AI Enablement",
-                body: "Governed AI where it compounds: intake, routing, follow-ups, and reporting — not slide decks.",
+                title: "Weak execution",
+                body: "Plans without operating rhythm or scorecards.",
+              },
+              {
+                title: "Manual processes",
+                body: "Teams losing hours in repeatable tasks.",
+              },
+              {
+                title: "Growth bottlenecks",
+                body: "Revenue blocked by fragmented systems.",
+              },
+              {
+                title: "Owner dependency",
+                body: "Businesses that cannot scale without constant founder intervention.",
               },
             ].map((card, i) => (
               <motion.article
@@ -175,12 +163,47 @@ export function HomePageContent() {
         </div>
       </section>
 
+      {/* What we build */}
+      <section id="build" className="scroll-mt-[72px] border-b border-zinc-100 bg-zinc-50/40 py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <motion.div {...fadeUp(reduce, 0)}>
+            <h2 className="text-2xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-3xl">
+              What We Build
+            </h2>
+            <p className="mt-3 max-w-xl text-[15px] text-zinc-600">
+              Structured systems for consistent growth, cleaner operations, and better team execution.
+            </p>
+          </motion.div>
+          <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              "Business Systems",
+              "Automation Workflows",
+              "Operational Frameworks",
+              "Revenue Infrastructure",
+              "Talent Readiness Programs",
+              "Growth Execution Models",
+            ].map((item, i) => (
+              <motion.li
+                key={item}
+                className="rounded-xl border border-zinc-200 bg-white px-4 py-4 text-[14px] font-medium text-[var(--sx-navy)]"
+                initial={reduce ? false : { opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={reduce ? { duration: 0 } : { duration: 0.35, delay: i * 0.04, ease: sectionEase }}
+              >
+                {item}
+              </motion.li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       {/* Results */}
       <section id="results" className="scroll-mt-[72px] border-b border-zinc-100 bg-zinc-50/40 py-20 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <motion.div {...fadeUp(reduce, 0)}>
             <h2 className="text-2xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-3xl">Results</h2>
-            <p className="mt-3 max-w-xl text-[15px] text-zinc-600">Outcomes from live systems — not experiments.</p>
+            <p className="mt-3 max-w-xl text-[15px] text-zinc-600">Real business outcomes from execution-driven systems.</p>
           </motion.div>
           <ul className="mt-12 space-y-6">
             {[
@@ -207,7 +230,7 @@ export function HomePageContent() {
         </div>
       </section>
 
-      {/* Why */}
+      {/* Why Stratxcel */}
       <section id="why" className="scroll-mt-[72px] border-b border-zinc-100 bg-white py-20 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <motion.div className="max-w-2xl" {...fadeUp(reduce, 0)}>
@@ -215,16 +238,16 @@ export function HomePageContent() {
               Why Stratxcel
             </h2>
             <p className="mt-6 text-xl font-medium leading-snug tracking-tight text-[var(--sx-navy)] sm:text-2xl">
-              {"We don't sell tools."}
+              We work selectively.
               <br />
-              <span className="text-zinc-600">We build systems that compound.</span>
+              <span className="text-zinc-600">We commit fully. We value outcomes over noise.</span>
             </p>
           </motion.div>
           <ul className="mt-12 grid gap-6 sm:grid-cols-3">
             {[
-              "Fast execution — senior-led delivery with weekly operating clarity.",
-              "Business-first thinking — scope tied to revenue and risk, not vanity features.",
-              "Clean implementation — documented, testable, handoff-ready systems.",
+              "Deep Commitment — we stay close to the system until it works in real operating conditions.",
+              "Systems Thinking — every workflow is designed for compounding reliability, not short-term hacks.",
+              "Long-Term Value — implementation quality that supports future scale, hiring, and governance.",
             ].map((text, i) => (
               <motion.li
                 key={i}
@@ -235,6 +258,96 @@ export function HomePageContent() {
               </motion.li>
             ))}
           </ul>
+        </div>
+      </section>
+
+      {/* Founder note */}
+      <section id="founder-note" className="scroll-mt-[72px] border-b border-zinc-100 bg-zinc-50/40 py-20 sm:py-24">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6">
+          <motion.article
+            className="rounded-2xl border border-zinc-200 bg-white px-6 py-8 shadow-sm sm:px-10"
+            {...fadeUp(reduce, 0)}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Founder note</p>
+            <p className="mt-5 text-[18px] leading-relaxed text-[var(--sx-navy)] sm:text-[20px]">
+              Built with ownership, not outsourcing.
+            </p>
+            <p className="mt-4 text-[16px] leading-relaxed text-zinc-700">
+              Most businesses do not need more tools.
+              <br />
+              They need better systems and stronger execution.
+            </p>
+            <p className="mt-6 text-sm text-zinc-500">
+              — Shriyansh Chandrakar
+              <br />
+              Founder, Stratxcel OPC Private Limited
+            </p>
+          </motion.article>
+        </div>
+      </section>
+
+      {/* Careers */}
+      <section id="careers" className="scroll-mt-[72px] border-b border-zinc-100 bg-white py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <motion.div {...fadeUp(reduce, 0)}>
+            <h2 className="text-2xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-3xl">
+              Build real-world skills, not just certificates.
+            </h2>
+            <p className="mt-4 max-w-3xl text-[15px] leading-relaxed text-zinc-600">
+              At Stratxcel, students and freshers gain practical business experience, real project exposure,
+              mentorship, field learning, and industry discipline.
+            </p>
+          </motion.div>
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              ["Business Development Intern", "Learn sales, communication, lead generation, and growth systems."],
+              ["Marketing Intern", "Work on brand campaigns, content systems, and performance basics."],
+              ["Operations Intern", "Build workflow discipline, execution quality, and coordination habits."],
+              ["IT / Tech Intern", "Contribute to web systems, dashboards, automation tools, and AI workflows."],
+              ["Finance Intern", "Understand GST basics, invoicing, reporting, and business finance operations."],
+              ["HR / Talent Intern", "Learn hiring fundamentals, people systems, and team coordination."],
+            ].map(([title, body], i) => (
+              <motion.article
+                key={title}
+                className="rounded-2xl border border-zinc-200 bg-zinc-50/50 p-5"
+                initial={reduce ? false : { opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={reduce ? { duration: 0 } : { duration: 0.35, delay: i * 0.05, ease: sectionEase }}
+                whileHover={reduce ? {} : { y: -2, transition: { duration: 0.2 } }}
+              >
+                <h3 className="text-[16px] font-semibold text-[var(--sx-navy)]">{title}</h3>
+                <p className="mt-2 text-[14px] leading-relaxed text-zinc-600">{body}</p>
+              </motion.article>
+            ))}
+          </div>
+          <motion.div className="mt-10 rounded-2xl border border-zinc-200 bg-white p-6" {...fadeUp(reduce, 0.1)}>
+            <p className="text-sm font-medium text-zinc-700">
+              Eligible: BBA, MBA, BCA, MCA, B.Com, M.Com, CS, IT, Sales, Commerce — serious learners only.
+            </p>
+            <p className="mt-3 text-sm text-zinc-600">
+              Benefits: Real work, mentorship, live projects, certificates, professional growth, and industry readiness.
+            </p>
+            <Link
+              href="/careers"
+              className="mt-6 inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-6 text-[14px] font-semibold text-white transition hover:bg-[var(--sx-navy-soft)]"
+            >
+              Apply for Internship
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Future vision */}
+      <section id="vision" className="scroll-mt-[72px] border-b border-zinc-100 bg-zinc-50/40 py-20 sm:py-24">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6">
+          <motion.h2 className="text-2xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-3xl" {...fadeUp(reduce, 0)}>
+            The future belongs to businesses that operate like software.
+          </motion.h2>
+          <motion.p className="mt-5 text-[16px] leading-relaxed text-zinc-600" {...fadeUp(reduce, 0.05)}>
+            Stratxcel is building the systems layer for modern Indian companies — where growth is clearer,
+            teams move faster, and execution becomes dependable.
+          </motion.p>
         </div>
       </section>
 
@@ -273,16 +386,22 @@ export function HomePageContent() {
             className="text-2xl font-semibold leading-snug tracking-tight text-white sm:text-3xl"
             {...fadeUp(reduce, 0)}
           >
-            If growth feels messy, systems are the bottleneck.
+            If growth feels harder than it should, your systems need attention.
           </motion.h2>
+          <motion.p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-zinc-300" {...fadeUp(reduce, 0.04)}>
+            Founder-led, implementation-first, and committed to outcomes that hold under real business pressure.
+          </motion.p>
           <motion.div className="mt-10" {...fadeUp(reduce, 0.08)}>
             <Link
               href="/contact"
               className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full bg-white px-8 text-[15px] font-semibold text-[var(--sx-navy)] shadow-sm transition hover:bg-zinc-100"
             >
-              Book a Call
+              Book a Consultation
             </Link>
           </motion.div>
+          <p className="mt-5 text-xs text-zinc-400">
+            — Shriyansh Chandrakar, Founder
+          </p>
         </div>
       </section>
     </>

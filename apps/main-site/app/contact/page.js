@@ -8,17 +8,17 @@ export const metadata = {
 
 export default function ContactPage() {
   return (
-    <PageLayout title="Contact" eyebrow="Next step">
+    <PageLayout title="Book Consultation" eyebrow="Next step">
       <p>
         Email{" "}
         <a
           className="font-semibold text-[var(--sx-accent)] hover:underline"
-          href={`mailto:${CONTACT_EMAIL}?subject=Strategy%20call%20%E2%80%94%20Stratxcel`}
+          href={`mailto:${CONTACT_EMAIL}?subject=Consultation%20Request%20%E2%80%94%20Stratxcel`}
         >
           {CONTACT_EMAIL}
         </a>{" "}
-        with your business context, stack, and the outcome you need in the next 90 days. We reply with
-        clarity — not a generic pitch deck.
+        with your business context, current bottlenecks, and the outcome you need in the next 90 days.
+        We respond with a practical path forward.
       </p>
       <p className="mt-8">
         <Link

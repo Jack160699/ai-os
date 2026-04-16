@@ -6,10 +6,10 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 const links = [
-  { label: "Services", href: "/#services" },
-  { label: "Results", href: "/#results" },
-  { label: "Pricing", href: "/pricing" },
   { label: "About", href: "/about" },
+  { label: "How We Work", href: "/how-we-work" },
+  { label: "Results", href: "/results" },
+  { label: "Careers", href: "/careers" },
   { label: "Contact", href: "/contact" },
 ];
 
@@ -67,7 +67,7 @@ export function Navbar() {
             href="/contact"
             className="inline-flex h-10 min-h-[44px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-5 text-[14px] font-semibold text-white shadow-sm transition hover:bg-[var(--sx-navy-soft)] active:scale-[0.98]"
           >
-            Book Call
+            Book Consultation
           </Link>
         </nav>
 
@@ -76,7 +76,7 @@ export function Navbar() {
             href="/contact"
             className="inline-flex h-10 min-h-[44px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-4 text-[13px] font-semibold text-white"
           >
-            Book Call
+            Book Consultation
           </Link>
           <button
             type="button"
