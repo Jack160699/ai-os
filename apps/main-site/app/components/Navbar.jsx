@@ -1,23 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 const links = [
-  { label: "About", href: "/about" },
-  { label: "How We Work", href: "/how-we-work" },
-  { label: "Results", href: "/results" },
-  { label: "Careers", href: "/careers" },
-  { label: "Contact", href: "/contact" },
+  { label: "About", href: "/#about" },
+  { label: "How We Work", href: "/#how-we-work" },
+  { label: "Results", href: "/#results" },
+  { label: "Careers", href: "/#careers" },
+  { label: "Contact", href: "/#contact" },
 ];
 
 export function Navbar() {
-  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const reduce = useReducedMotion();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -33,10 +29,6 @@ export function Navbar() {
     };
   }, [open]);
 
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
-
   const navLinkClass =
     "text-[14px] font-medium tracking-tight text-zinc-600 transition-colors hover:text-[var(--sx-navy)]";
 
@@ -49,7 +41,12 @@ export function Navbar() {
           : "border-transparent bg-white/80 backdrop-blur-sm",
       ].join(" ")}
     >
-      <div className="mx-auto flex h-[56px] max-w-6xl items-center justify-between gap-4 px-4 sm:h-[60px] sm:px-6">
+      <div
+        className={[
+          "mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 transition-[height,padding] duration-200 sm:px-6",
+          scrolled ? "h-[52px] sm:h-[56px]" : "h-[56px] sm:h-[60px]",
+        ].join(" ")}
+      >
         <Link
           href="/"
           className="text-[17px] font-semibold tracking-[-0.02em] text-[var(--sx-navy)]"
@@ -73,7 +70,7 @@ export function Navbar() {
 
         <div className="flex items-center gap-3 md:hidden">
           <Link
-            href="/contact"
+            href="/#contact"
             className="inline-flex h-10 min-h-[44px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-4 text-[13px] font-semibold text-white"
           >
             Book Consultation
@@ -87,81 +84,58 @@ export function Navbar() {
             className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-800 shadow-sm"
           >
             <span className="sr-only">Menu</span>
-            <span className="flex flex-col gap-[5px]" aria-hidden>
-              <motion.span
-                animate={
-                  open
-                    ? { rotate: 45, y: 7, width: 20 }
-                    : { rotate: 0, y: 0, width: 18 }
-                }
-                transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="block h-[2px] rounded-full bg-current"
+            <span className="relative block h-5 w-5" aria-hidden>
+              <span
+                className={[
+                  "absolute left-1/2 top-[6px] block h-[2px] w-4 -translate-x-1/2 rounded-full bg-current transition-transform duration-200",
+                  open ? "translate-y-[5px] rotate-45" : "",
+                ].join(" ")}
               />
-              <motion.span
-                animate={open ? { opacity: 0, x: -6 } : { opacity: 1, x: 0 }}
-                transition={{ duration: reduce ? 0 : 0.18 }}
-                className="block h-[2px] w-[18px] rounded-full bg-current"
+              <span
+                className={[
+                  "absolute left-1/2 top-[11px] block h-[2px] w-4 -translate-x-1/2 rounded-full bg-current transition-opacity duration-150",
+                  open ? "opacity-0" : "opacity-100",
+                ].join(" ")}
               />
-              <motion.span
-                animate={
-                  open
-                    ? { rotate: -45, y: -7, width: 20 }
-                    : { rotate: 0, y: 0, width: 18 }
-                }
-                transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="block h-[2px] rounded-full bg-current"
+              <span
+                className={[
+                  "absolute left-1/2 top-[16px] block h-[2px] w-4 -translate-x-1/2 rounded-full bg-current transition-transform duration-200",
+                  open ? "-translate-y-[5px] -rotate-45" : "",
+                ].join(" ")}
               />
             </span>
           </button>
         </div>
       </div>
 
-      <AnimatePresence>
-        {open ? (
-          <motion.div
-            key="mobile-menu"
-            className="fixed inset-0 z-[90] md:hidden"
-            initial={{ opacity: reduce ? 1 : 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: reduce ? 1 : 0 }}
-            transition={{ duration: reduce ? 0 : 0.18 }}
+      {open ? (
+        <div className="fixed inset-0 z-[90] md:hidden">
+          <button
+            type="button"
+            aria-label="Close menu"
+            className="absolute inset-0 bg-black/25"
+            onClick={() => setOpen(false)}
+          />
+          <nav
+            id="mobile-nav"
+            className="absolute inset-x-0 top-[56px] border-b border-zinc-200 bg-white px-4 py-5 shadow-[0_16px_40px_-24px_rgba(15,23,42,0.25)] sm:top-[60px]"
           >
-            <button
-              type="button"
-              aria-label="Close menu"
-              className="absolute inset-0 bg-black/25"
-              onClick={() => setOpen(false)}
-            />
-            <motion.nav
-              id="mobile-nav"
-              className="absolute inset-x-0 top-[56px] border-b border-zinc-200 bg-white px-4 py-5 shadow-[0_16px_40px_-24px_rgba(15,23,42,0.25)] sm:top-[60px]"
-              initial={reduce ? false : { opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduce ? undefined : { opacity: 0, y: -10 }}
-              transition={{ duration: reduce ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <ul className="flex flex-col gap-1">
-                {links.map((l, i) => (
-                  <motion.li
-                    key={l.href}
-                    initial={reduce ? false : { opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: reduce ? 0 : 0.03 + i * 0.035, duration: reduce ? 0 : 0.2 }}
+            <ul className="flex flex-col gap-1">
+              {links.map((l) => (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    className="flex min-h-[48px] items-center rounded-xl px-3 text-[15px] font-medium text-zinc-800 active:bg-zinc-50"
+                    onClick={() => setOpen(false)}
                   >
-                    <Link
-                      href={l.href}
-                      className="flex min-h-[48px] items-center rounded-xl px-3 text-[15px] font-medium text-zinc-800 active:bg-zinc-50"
-                      onClick={() => setOpen(false)}
-                    >
-                      {l.label}
-                    </Link>
-                  </motion.li>
-                ))}
-              </ul>
-            </motion.nav>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+      ) : null}
     </header>
   );
 }
