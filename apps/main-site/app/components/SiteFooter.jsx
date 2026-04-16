@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CONTACT, SOCIAL, URLS } from "@stratxcel/config";
+import { SOCIAL, URLS } from "@stratxcel/config";
 
 export function SiteFooter() {
   const socials = [
@@ -19,12 +19,8 @@ export function SiteFooter() {
           <p className="mt-1 text-sm text-zinc-500">
             © {new Date().getFullYear()} Stratxcel. All rights reserved.
           </p>
-          <p className="mt-4 text-sm text-zinc-600">
-            <a className="hover:text-[var(--sx-navy)]" href={`mailto:${CONTACT.email}`}>
-              {CONTACT.email}
-            </a>
-            <span className="mx-2 text-zinc-300">·</span>
-            <span className="text-zinc-600">{CONTACT.phone}</span>
+          <p className="mt-4 text-xs text-zinc-500">
+            Stratxcel OPC Private Limited | MSME | GST | Startup India | DPIIT
           </p>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-zinc-600">

@@ -3,13 +3,6 @@ import { BookDiagnosisCheckoutButton } from "@stratxcel/ui";
 import { CONTACT, SOCIAL } from "@stratxcel/config";
 
 export function HomePageContent() {
-  const trust = [
-    "Stratxcel OPC Private Limited",
-    "MSME Registered",
-    "GST Registered",
-    "Startup India Recognized",
-    "DPIIT Recognized",
-  ];
   const roles = [
     { title: "Business Development Intern", slug: "business-development-intern" },
     { title: "Marketing Intern", slug: "marketing-intern" },
@@ -28,60 +21,64 @@ export function HomePageContent() {
     ["YouTube", SOCIAL.youtube],
     ["GitHub", SOCIAL.github],
   ].filter(([, href]) => href);
+  const useCases = [
+    "Service business missing hot leads due to delayed first response -> automated lead intake + instant response workflow.",
+    "Founder manually chasing every follow-up -> structured follow-up system with ownership and reminders.",
+    "Sales team updating status inconsistently -> unified pipeline dashboard with stage discipline.",
+    "Team executing tasks without priority clarity -> weekly execution board linked to business outcomes.",
+    "Operations relying on WhatsApp memory -> process checklists and tracked handoffs.",
+    "Marketing leads not reaching sales on time -> lead routing workflow with SLA alerts.",
+    "Client onboarding taking too long -> standardized onboarding sequence with clear owner map.",
+    "Frequent task drops between departments -> cross-functional workflow with escalation triggers.",
+    "Revenue leak from incomplete proposals -> proposal pipeline with completion checkpoints.",
+    "Founder stuck in day-to-day approvals -> delegation framework and approval matrix.",
+    "Inconsistent client communication -> communication cadence system and tracking log.",
+    "Manual reporting consuming team hours -> lightweight reporting automation and dashboard rollups.",
+    "Hiring process slow and chaotic -> hiring pipeline with role scorecards and stages.",
+    "New hires underperforming early -> role onboarding systems and execution training loops.",
+    "Too many tools, no operating rhythm -> simplified core stack and execution cadence.",
+    "Business growth stalling despite effort -> system-level bottleneck diagnosis and redesign.",
+  ];
 
   return (
     <>
       {/* Hero */}
       <section className="border-b border-zinc-100 bg-white">
         <div className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 sm:pb-20 sm:pt-14">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-            Stratxcel OPC Private Limited
-          </p>
           <h1 className="mt-3 max-w-[26ch] text-[2rem] font-semibold leading-[1.12] tracking-[-0.03em] text-[var(--sx-navy)] sm:text-5xl">
-            We build systems serious businesses can grow on.
+            Your business does not need more effort.
+            <br />
+            It needs better systems.
           </h1>
-          <p className="mt-4 max-w-[62ch] text-[16px] leading-[1.65] text-zinc-600 sm:text-[17px]">
-            Operations, automation, talent, and execution frameworks built for ambitious Indian businesses.
+          <p className="mt-4 max-w-[64ch] text-[16px] leading-[1.65] text-zinc-600 sm:text-[17px]">
+            We identify operational leaks, fix execution gaps, and build systems that actually scale.
           </p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <Link
               href="/#contact"
               className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-7 text-[15px] font-semibold text-white shadow-sm transition hover:bg-[var(--sx-navy-soft)] active:scale-[0.99]"
             >
-              Book Consultation
+              Get Business Diagnosis (₹2200)
             </Link>
             <Link
               href="/#how-we-work"
               className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-zinc-300 bg-white px-7 text-[15px] font-semibold text-[var(--sx-navy)] transition hover:border-zinc-400 hover:bg-zinc-50"
             >
-              See How We Work
+              Understand How This Works
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Trust strip */}
-      <section className="border-b border-zinc-100 bg-zinc-50/60 py-10 sm:py-12">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] font-medium text-zinc-600">
-            {trust.map((t) => (
-              <span key={t} className="whitespace-nowrap">
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* What we solve */}
+      {/* Positioning */}
       <section id="about" className="scroll-mt-[72px] border-b border-zinc-100 bg-white py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-2xl">
-            A founder-led systems company for serious Indian businesses.
+            Stratxcel is a systems company, not an agency.
           </h2>
           <p className="mt-4 max-w-[72ch] text-[15px] leading-[1.7] text-zinc-600">
-            Stratxcel helps businesses grow through better systems, sharper execution, modern operations,
-            automation, and disciplined business thinking. We work selectively and commit fully.
+            Most businesses stay stuck because they keep fixing symptoms instead of systems. We do not optimize
+            tasks. We redesign how your business operates.
           </p>
         </div>
       </section>
@@ -91,8 +88,8 @@ export function HomePageContent() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-2xl">How We Work</h2>
           <p className="mt-4 max-w-[72ch] text-[15px] leading-[1.7] text-zinc-600">
-            We do not sell tools first. We earn trust through clarity, execution, and systems that hold under
-            real operating pressure.
+            Why trust us? Because we diagnose before we prescribe, execute before we claim, and stay involved
+            until systems hold under pressure.
           </p>
           <ol className="mt-8 grid gap-3 sm:grid-cols-2">
             {[
@@ -110,15 +107,15 @@ export function HomePageContent() {
         </div>
       </section>
 
-      {/* What we solve / build */}
+      {/* Why people come to us */}
       <section id="work" className="scroll-mt-[72px] border-b border-zinc-100 bg-white py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-2xl">
             Why people come to us
           </h2>
           <p className="mt-4 max-w-[72ch] text-[15px] leading-[1.7] text-zinc-600">
-            Operations feel messy, growth slows down, and too much depends on the owner. We solve this
-            through systems.
+            Operations feel messy. Leads are inconsistent. Teams move slowly. Too much depends on the owner.
+            Growth feels harder than it should.
           </p>
           <ul className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {[
@@ -140,12 +137,12 @@ export function HomePageContent() {
           </h3>
           <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              "Business Systems",
-              "Automation Workflows",
-              "Operational Frameworks",
-              "Revenue Infrastructure",
-              "Talent Readiness Programs",
-              "Growth Execution Models",
+              "Lead systems",
+              "Follow-up systems",
+              "Internal dashboards",
+              "Automation workflows",
+              "Execution systems",
+              "Hiring pipelines",
             ].map((item) => (
               <li key={item} className="rounded-lg border border-zinc-200 bg-white px-3 py-3 text-sm text-zinc-700">
                 {item}
@@ -160,12 +157,12 @@ export function HomePageContent() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-2xl">Results</h2>
           <p className="mt-4 max-w-[72ch] text-[15px] leading-[1.7] text-zinc-600">
-            Examples of operational outcomes that matter to leadership teams.
+            Use-case scenarios from recurring business problems we solve through systems.
           </p>
-          <ul className="mt-6 space-y-3">
-            {["+32% faster lead response", "3x follow-up consistency", "18 hrs/week saved"].map((line) => (
+          <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+            {useCases.map((line) => (
               <li key={line} className="rounded-xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-700">
-                <span className="font-semibold text-[var(--sx-navy)]">{line}</span>
+                {line}
               </li>
             ))}
           </ul>
@@ -177,7 +174,8 @@ export function HomePageContent() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-2xl">Why Stratxcel</h2>
           <p className="mt-4 max-w-[72ch] text-[15px] leading-[1.7] text-zinc-600">
-            We work selectively. We commit fully. We value outcomes over noise.
+            Most businesses stay stuck when effort increases but systems stay weak. We work selectively, stay
+            involved, and build for long-term value.
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
             {[
@@ -200,12 +198,18 @@ export function HomePageContent() {
           <article className="rounded-2xl border border-zinc-200 bg-zinc-50/40 px-6 py-8 sm:px-10">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Founder note</p>
             <p className="mt-5 text-[18px] leading-relaxed text-[var(--sx-navy)] sm:text-[20px]">
-              Built with ownership, not outsourcing.
+              Built by a founder who believes trust is earned through action, not promises.
             </p>
             <p className="mt-4 text-[16px] leading-relaxed text-zinc-700">
-              Most businesses do not need more tools.
+              Most businesses do not fail because of lack of effort.
               <br />
-              They need better systems and stronger execution.
+              They fail because everything depends on people, memory, and chaos.
+              <br />
+              Stratxcel exists to fix that.
+              <br />
+              We build systems we use ourselves, test them under pressure, and deploy what actually works.
+              <br />
+              No noise. No theory. Only execution.
             </p>
             <p className="mt-6 text-sm text-zinc-500">
               — Shriyansh Chandrakar
@@ -219,16 +223,33 @@ export function HomePageContent() {
       {/* Careers */}
       <section id="careers" className="scroll-mt-[72px] border-b border-zinc-100 bg-white py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="text-xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-2xl">Careers</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-2xl">
+            Start where real experience begins.
+          </h2>
           <p className="mt-4 max-w-[72ch] text-[15px] leading-[1.7] text-zinc-600">
-            Build real-world skills, not just certificates. We hire serious learners and operators.
+            SECTION 1 — INTERNS (18-22): Do not do internships that teach nothing. Work on real systems, real
+            businesses, and real execution.
           </p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {roles.map((r) => (
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {roles.slice(0, 6).map((r) => (
               <Link
                 key={r.slug}
                 href={`/careers/${r.slug}`}
                 className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-4 text-[14px] font-semibold text-[var(--sx-navy)] transition hover:bg-zinc-50"
+              >
+                {r.title}
+              </Link>
+            ))}
+          </div>
+          <p className="mt-10 max-w-[72ch] text-[15px] leading-[1.7] text-zinc-600">
+            SECTION 2 — FULL-TIME (22+): Work directly on building and scaling a real company.
+          </p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {roles.slice(6).map((r) => (
+              <Link
+                key={r.slug}
+                href={`/careers/${r.slug}`}
+                className="rounded-xl border border-zinc-200 bg-white px-4 py-4 text-[14px] font-semibold text-[var(--sx-navy)] transition hover:bg-zinc-50"
               >
                 {r.title}
               </Link>
@@ -258,19 +279,25 @@ export function HomePageContent() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-2xl">Pricing</h2>
           <p className="mt-4 max-w-[72ch] text-[15px] leading-[1.7] text-zinc-600">
-            Start with a diagnosis session. Clear scope, clear next steps.
+            This is not a call. This is a structured diagnosis.
           </p>
           <div className="mt-8 max-w-md rounded-2xl border border-zinc-200 bg-white p-8 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.12)] ring-1 ring-zinc-100">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Diagnosis</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Business Diagnosis</p>
             <p className="mt-3 text-3xl font-semibold tracking-tight text-[var(--sx-navy)]">
-              ₹499
+              ₹2200
               <span className="ml-2 text-base font-medium text-zinc-500">per session</span>
             </p>
-            <p className="mt-3 text-sm leading-[1.7] text-zinc-600">
-              Secure checkout. Calendar coordination after payment.
+            <ul className="mt-4 space-y-2 text-sm leading-[1.7] text-zinc-600">
+              <li>- Deep business analysis</li>
+              <li>- System gap identification</li>
+              <li>- Execution bottleneck mapping</li>
+              <li>- Action plan</li>
+            </ul>
+            <p className="mt-4 text-xs font-medium text-zinc-500">
+              Limited diagnosis slots each week to preserve execution quality.
             </p>
             <div className="mt-8">
-              <BookDiagnosisCheckoutButton />
+              <BookDiagnosisCheckoutButton amount={2200} />
             </div>
           </div>
         </div>
@@ -280,17 +307,19 @@ export function HomePageContent() {
       <section id="final-cta" className="scroll-mt-[72px] bg-[var(--sx-navy)] py-20 sm:py-24">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
           <h2 className="text-2xl font-semibold leading-snug tracking-tight text-white sm:text-3xl">
-            If growth feels harder than it should, your systems need attention.
+            If your business feels harder than it should,
+            <br />
+            it is not effort — it is your systems.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-[1.7] text-zinc-300">
-            Founder-led, implementation-first, and committed to outcomes that hold under real business pressure.
+            Get a clear diagnosis.
           </p>
           <div className="mt-10">
             <Link
               href="/#contact"
               className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full bg-white px-8 text-[15px] font-semibold text-[var(--sx-navy)] shadow-sm transition hover:bg-zinc-100"
             >
-              Book a Consultation
+              Get Business Diagnosis (₹2200)
             </Link>
           </div>
           <p className="mt-5 text-xs text-zinc-400">
@@ -309,38 +338,27 @@ export function HomePageContent() {
             Share your business context, bottlenecks, and the outcome you need in the next 90 days. We reply
             with a practical path forward.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <Link
+          <div className="mt-8 flex flex-wrap gap-3">
+            {socialRows.map(([label, href]) => (
+              <a
+                key={label}
+                href={href}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-300 bg-white text-xs font-semibold text-zinc-600 transition hover:border-zinc-400 hover:text-[var(--sx-navy)]"
+                rel="noopener noreferrer"
+                aria-label={label}
+                title={label}
+              >
+                {label.slice(0, 2)}
+              </a>
+            ))}
+            <a
               href={`mailto:${CONTACT.email}?subject=Consultation%20Request%20%E2%80%94%20Stratxcel`}
-              className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-7 text-[15px] font-semibold text-white transition hover:bg-[var(--sx-navy-soft)]"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-300 bg-white text-xs font-semibold text-zinc-600 transition hover:border-zinc-400 hover:text-[var(--sx-navy)]"
+              aria-label="Email"
+              title="Email"
             >
-              Email — {CONTACT.email}
-            </Link>
-            <span className="text-sm text-zinc-600 sm:ml-2">
-              Phone/WhatsApp: {CONTACT.phone}
-            </span>
-            <Link
-              href="/#pricing"
-              className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-zinc-300 bg-white px-7 text-[15px] font-semibold text-[var(--sx-navy)] transition hover:border-zinc-400 hover:bg-zinc-50"
-            >
-              Diagnosis session — ₹499
-            </Link>
-          </div>
-          <div className="mt-8 rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-4">
-            <p className="text-sm font-semibold text-[var(--sx-navy)]">Social & company channels</p>
-            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-zinc-600">
-              {socialRows.length ? (
-                socialRows.map(([label, href]) => (
-                  <a key={label} href={href} className="hover:text-[var(--sx-navy)]" rel="noopener noreferrer">
-                    {label}
-                  </a>
-                ))
-              ) : (
-                <p className="text-zinc-500">
-                  LinkedIn · Instagram · Facebook · X · YouTube · GitHub (add official URLs in environment).
-                </p>
-              )}
-            </div>
+              @
+            </a>
           </div>
         </div>
       </section>
