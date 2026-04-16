@@ -4,11 +4,8 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-Write-Host "Installing root Node dependencies..."
+Write-Host "Installing monorepo Node dependencies (root workspaces)..."
 npm install
-
-Write-Host "Installing frontend Node dependencies..."
-npm --prefix frontend install
 
 Write-Host "Setting up backend virtual environment..."
 if (!(Test-Path "backend/.venv")) {

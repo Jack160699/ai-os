@@ -1,22 +1,33 @@
-# ai-os Monorepo
+# Stratxcel monorepo (ai-os)
 
-Single source of truth for the Stratxcel ecosystem:
+Turborepo workspace for Stratxcel surfaces and shared packages:
 
-- `frontend/` - Next.js website + `/admin` dashboard UI
-- `backend/` - Flask WhatsApp bot + `/dashboard.json` analytics API
-- `shared/` - shared branding/config artifacts
-- `scripts/` - setup and operational scripts
+- `apps/ai-os` — Next.js AI OS (marketing + `/admin`, APIs including Razorpay)
+- `apps/main-site` — Corporate site (stratxcel.in target)
+- `apps/ai-marketing` — Public AI product marketing (stratxcel.ai target)
+- `apps/demo-site` — Portfolio / demos (demo.stratxcel.in target)
+- `packages/*` — `@stratxcel/payments`, `@stratxcel/ui`, `@stratxcel/config`, `@stratxcel/auth`
+- `backend/` — Flask bot + APIs (EC2 / systemd)
+- `scripts/` — setup and deploy helpers
 
 ## Structure
 
 ```text
 ai-os/
-  frontend/
+  apps/
+    ai-os/
+    main-site/
+    ai-marketing/
+    demo-site/
+  packages/
+    payments/
+    ui/
+    config/
+    auth/
   backend/
-  shared/
+  docs/
   scripts/
-  .env
-  .env.example
+  turbo.json
   package.json
 ```
 
@@ -32,8 +43,8 @@ Copy `.env.example` to `.env` and fill values:
 - `GOOGLE_SHEETS_WEBHOOK_URL`
 - `ADMIN_ALERT_NUMBER`
 - `DASHBOARD_PASSWORD` (backend admin/dashboard auth)
-- `ADMIN_DASHBOARD_PASSWORD` (frontend `/admin` auth)
-- `NEXT_PUBLIC_API_URL` (frontend -> backend base URL, e.g. `http://127.0.0.1:5000`)
+- `ADMIN_DASHBOARD_PASSWORD` (`apps/ai-os` `/admin` auth)
+- `NEXT_PUBLIC_API_URL` (Next app → backend base URL, e.g. `http://127.0.0.1:5000`)
 
 ## Local development
 
@@ -44,22 +55,26 @@ Copy `.env.example` to `.env` and fill values:
 
 Expected ports:
 
-- Frontend: `http://localhost:3000`
+- AI OS (default `turbo run dev`): `http://localhost:3000`
+- Main site: `http://localhost:3001` (`npm run dev` in `apps/main-site` or filter turbo)
 - Backend: `http://127.0.0.1:5000`
 
 ## Verification checklist
 
-- Website: `http://localhost:3000`
+- AI OS site: `http://localhost:3000`
 - Admin UI: `http://localhost:3000/admin`
+- Main corporate site: `http://localhost:3001`
 - Backend health: `http://127.0.0.1:5000/`
 - Backend metrics API: `http://127.0.0.1:5000/dashboard.json`
 - Frontend build: `npm run build`
 
 ## Deployment
 
-### Frontend (Vercel)
+### Frontends (Vercel)
 
-1. Set project root to `frontend/`.
+Create one Vercel project per app under `apps/` (e.g. root directory `apps/main-site` for stratxcel.in, `apps/ai-os` for ai.stratxcel.in).
+
+1. Set project root to the app folder (e.g. `apps/ai-os`).
 2. Add env vars:
    - `NEXT_PUBLIC_API_URL=https://<your-backend-domain>`
    - `ADMIN_DASHBOARD_PASSWORD=<password>`

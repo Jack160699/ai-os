@@ -7,7 +7,10 @@ __pycache__/
 desktop.ini
 *.log
 node_modules/
-frontend/node_modules/
-frontend/.next/
+.turbo/
+apps/*/.next/
+apps/*/node_modules/
+honest-asset-management/
+premium-consulting-demo/
 backend/__pycache__/
 memory.json

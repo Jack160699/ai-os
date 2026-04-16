@@ -1,15 +1,15 @@
 /**
  * Razorpay client + payment link creation (StratXcel AI OS).
  * Env:
- * - Public key id: NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID (or RAZORPAY_LIVE_KEY_ID server-side)
+ * - Key id: RAZORPAY_LIVE_KEY_ID (server-side only for create-link route)
  * - Secret: RAZORPAY_LIVE_KEY_SECRET (server-side only)
  * Non-production fallback: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
- * Next.js uses the same logic from apps/ai-os/lib/payments/razorpay.js — keep in sync.
+ * (Kept in sync with backend/payments/razorpay.js for the monorepo layout.)
+ *
+ * Dynamic import avoids Next.js bundler/runtime crashes from top-level `require` in `razorpay`.
  */
 
-import Razorpay from "razorpay";
-
-/** @type {Razorpay | null} */
+/** @type {import("razorpay") | null} */
 let _instance = null;
 let _configLogged = false;
 
@@ -23,47 +23,63 @@ function maskSecret(value) {
 function resolveKeys() {
   const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production" ||
     String(process.env.VERCEL_ENV || "").toLowerCase() === "production";
-  const liveId = String(process.env.RAZORPAY_LIVE_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID || "").trim();
-  const fallbackId = String(process.env.RAZORPAY_KEY_ID || "").trim();
-  const liveSecret = String(process.env.RAZORPAY_LIVE_KEY_SECRET || "").trim();
-  const fallbackSecret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
+  const liveId = String(process.env["RAZORPAY_LIVE_KEY_ID"] ?? "").trim();
+  const fallbackId = String(process.env["RAZORPAY_KEY_ID"] ?? "").trim();
+  const liveSecret = String(process.env["RAZORPAY_LIVE_KEY_SECRET"] ?? "").trim();
+  const fallbackSecret = String(process.env["RAZORPAY_KEY_SECRET"] ?? "").trim();
   const keyId = isProd ? liveId : (liveId || fallbackId);
   const keySecret = isProd ? liveSecret : (liveSecret || fallbackSecret);
-  const idSource = process.env.RAZORPAY_LIVE_KEY_ID
-    ? "RAZORPAY_LIVE_KEY_ID"
-    : process.env.NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID
-      ? "NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID"
-      : fallbackId
-        ? "RAZORPAY_KEY_ID"
-        : "(missing)";
-  const secretSource = liveSecret
-    ? "RAZORPAY_LIVE_KEY_SECRET"
-    : fallbackSecret
-      ? "RAZORPAY_KEY_SECRET"
-      : "(missing)";
+  const idSource = liveId ? "RAZORPAY_LIVE_KEY_ID" : fallbackId ? "RAZORPAY_KEY_ID" : "(missing)";
+  const secretSource = liveSecret ? "RAZORPAY_LIVE_KEY_SECRET" : fallbackSecret ? "RAZORPAY_KEY_SECRET" : "(missing)";
   return { keyId, keySecret, idSource, secretSource, isProd };
 }
 
-/**
- * @returns {Razorpay}
- */
-export function getRazorpay() {
+export function getResolvedRazorpayKeySource() {
   const { keyId, keySecret, idSource, secretSource, isProd } = resolveKeys();
+  return {
+    idSource,
+    secretSource,
+    isProd,
+    keyPrefix: keyId ? keyId.slice(0, 8) : "missing",
+    hasSecret: Boolean(keySecret),
+  };
+}
+
+/**
+ * @returns {Promise<import("razorpay")>}
+ */
+export async function getRazorpay() {
+  const liveKeyId = String(process.env["RAZORPAY_LIVE_KEY_ID"] ?? "").trim();
+  const liveKeySecret = String(process.env["RAZORPAY_LIVE_KEY_SECRET"] ?? "").trim();
+  const { keyId, keySecret, idSource, secretSource, isProd } = resolveKeys();
+
   if (!_configLogged) {
     _configLogged = true;
     const mode = keyId.startsWith("rzp_live_") ? "live" : keyId.startsWith("rzp_test_") ? "test" : "unknown";
     console.info(
-      `[razorpay-config] id_source=${idSource} secret_source=${secretSource} mode=${mode} key_id=${maskSecret(keyId)} key_secret=${maskSecret(keySecret)}`
+      `[razorpay-config] id_source=${idSource} secret_source=${secretSource} mode=${mode} ` +
+        `live_read_key_len=${liveKeyId.length} live_read_secret_len=${liveKeySecret.length} ` +
+        `resolved_key_id=${maskSecret(keyId)} key_secret=${maskSecret(keySecret)}`
     );
   }
+
   if (!keyId || !keySecret) {
-    if (isProd) throw new Error("LIVE KEY MISSING");
+    if (isProd) {
+      if (!liveKeyId && !liveKeySecret) {
+        throw new Error(
+          "LIVE KEY MISSING: RAZORPAY_LIVE_KEY_ID, RAZORPAY_LIVE_KEY_SECRET (read fresh from process.env in getRazorpay)"
+        );
+      }
+      if (!liveKeyId) throw new Error("LIVE KEY MISSING: RAZORPAY_LIVE_KEY_ID (read fresh from process.env in getRazorpay)");
+      throw new Error("LIVE KEY MISSING: RAZORPAY_LIVE_KEY_SECRET (read fresh from process.env in getRazorpay)");
+    }
     throw new Error("Razorpay is not configured: set RAZORPAY_LIVE_KEY_ID and RAZORPAY_LIVE_KEY_SECRET");
   }
   if (isProd && !keyId.startsWith("rzp_live_")) {
     throw new Error("Unsafe Razorpay config in production: key id is not live.");
   }
   if (!_instance) {
+    const { default: Razorpay } = await import("razorpay");
     _instance = new Razorpay({ key_id: keyId, key_secret: keySecret });
   }
   return _instance;
@@ -74,7 +90,7 @@ export function getRazorpay() {
  * @returns {Promise<{ short_url: string, id: string, amount_paise: number }>}
  */
 export async function createPaymentLink({ amount, name, phone, description, email }) {
-  const rp = getRazorpay();
+  const rp = await getRazorpay();
   const rupees = Number(String(amount).replace(/,/g, "").trim());
   if (!Number.isFinite(rupees) || rupees <= 0) {
     throw new Error("Invalid amount");
