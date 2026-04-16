@@ -6,20 +6,27 @@ export const metadata = {
 
 export default function PricingPage() {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-      <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Pricing</h1>
-      <p className="mt-4 max-w-2xl text-slate-600">
-        Start with a diagnosis session. We map your systems, constraints, and fastest path to ROI — then
-        propose a scoped build.
-      </p>
-      <div className="mt-12 max-w-md rounded-2xl border border-blue-100 bg-white p-8 shadow-[0_24px_80px_-32px_rgba(30,58,138,0.35)]">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">Diagnosis</p>
-        <p className="mt-2 text-2xl font-semibold text-slate-900">Book a session</p>
-        <p className="mt-2 text-sm text-slate-600">
-          Secure checkout powered by Razorpay (live). You will receive a calendar link after payment.
+    <div className="border-b border-zinc-100 bg-white">
+      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Pricing</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-4xl">
+          Diagnosis session
+        </h1>
+        <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-zinc-600">
+          We map systems, constraints, and the fastest credible path to ROI — then propose a scoped build. Same
+          secure checkout as on the homepage.
         </p>
-        <div className="mt-8">
-          <BookDiagnosisCheckoutButton />
+        <div className="mt-12 max-w-md rounded-2xl border border-zinc-200 bg-white p-8 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.12)] ring-1 ring-zinc-100">
+          <p className="text-3xl font-semibold tracking-tight text-[var(--sx-navy)]">
+            ₹499
+            <span className="ml-2 text-base font-medium text-zinc-500">per session</span>
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-zinc-600">
+            Secure checkout. Calendar coordination after payment.
+          </p>
+          <div className="mt-8">
+            <BookDiagnosisCheckoutButton />
+          </div>
         </div>
       </div>
     </div>

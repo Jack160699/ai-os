@@ -1,5 +1,5 @@
 import { Geist } from "next/font/google";
-import { SiteChrome } from "@/app/components/SiteChrome";
+import { SiteShell } from "@/app/components/SiteShell";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -10,16 +10,16 @@ const geistSans = Geist({
 });
 
 export const metadata = {
-  title: "Stratxcel — Strategy, systems, and AI for growth",
+  title: "Stratxcel — Revenue systems for serious businesses",
   description:
-    "Stratxcel helps teams ship revenue systems: consulting, implementation, and AI operating infrastructure.",
+    "Stratxcel designs and ships revenue systems: AI, automation, and operating infrastructure for operators who need execution, not noise.",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="min-h-full bg-[#F8FAFC] text-[#0B1220]">
-        <SiteChrome>{children}</SiteChrome>
+      <body className="min-h-full bg-white text-[var(--sx-ink)]">
+        <SiteShell>{children}</SiteShell>
       </body>
     </html>
   );

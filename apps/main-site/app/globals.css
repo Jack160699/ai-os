@@ -1,11 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --sx-ink: #0b1220;
-  --sx-brand: #1e3a8a;
-  --sx-accent: #3b82f6;
-  --sx-surface: #f8fafc;
-  --background: var(--sx-surface);
+  --sx-navy: #0c1222;
+  --sx-navy-soft: #141c2e;
+  --sx-gray: #f4f4f5;
+  --sx-gray-border: #e4e4e7;
+  --sx-accent: #2563eb;
+  --sx-accent-hover: #1d4ed8;
+  --sx-muted: #64748b;
+  --sx-ink: #0f172a;
+  --background: #ffffff;
   --foreground: var(--sx-ink);
 }
 
@@ -13,6 +17,16 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 body {
@@ -24,6 +38,6 @@ body {
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--sx-accent) 28%, transparent);
-  color: var(--sx-ink);
+  background: color-mix(in srgb, var(--sx-accent) 22%, transparent);
+  color: var(--sx-navy);
 }

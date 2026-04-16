@@ -1,39 +1,29 @@
+import Link from "next/link";
+import { PageLayout } from "@/app/components/PageLayout";
+
 export const metadata = {
   title: "Services — Stratxcel",
 };
 
 export default function ServicesPage() {
-  const items = [
-    {
-      title: "Revenue architecture",
-      body: "Pipeline design, CRM discipline, and instrumentation so leadership sees signal — not noise.",
-    },
-    {
-      title: "AI operating systems",
-      body: "Agents, workflows, and governance that sit on your real data — shipped with acceptance tests.",
-    },
-    {
-      title: "Delivery pods",
-      body: "Senior-led squads for web, integrations, and lifecycle automation with weekly operating reviews.",
-    },
-  ];
   return (
-    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-      <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Services</h1>
-      <p className="mt-4 max-w-2xl text-slate-600">
-        Engagements are scoped as systems — bounded workflows, clear owners, measurable outcomes.
+    <PageLayout title="Services" eyebrow="What we do">
+      <p>
+        We scope engagements as systems: bounded workflows, accountable owners, and measurable outcomes.
+        For the full service map, start on the{" "}
+        <Link href="/#services" className="font-medium text-[var(--sx-accent)] hover:underline">
+          homepage
+        </Link>{" "}
+        or book a strategy call.
       </p>
-      <ul className="mt-12 grid gap-8 sm:grid-cols-3">
-        {items.map((s) => (
-          <li
-            key={s.title}
-            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <h2 className="text-lg font-semibold text-slate-900">{s.title}</h2>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600">{s.body}</p>
-          </li>
-        ))}
-      </ul>
-    </div>
+      <p className="mt-6">
+        <Link
+          href="/contact"
+          className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-7 text-[15px] font-semibold text-white transition hover:bg-[var(--sx-navy-soft)]"
+        >
+          Book Call
+        </Link>
+      </p>
+    </PageLayout>
   );
 }
