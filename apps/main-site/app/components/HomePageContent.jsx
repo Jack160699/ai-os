@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { BookDiagnosisCheckoutButton } from "@stratxcel/ui";
 import { CONTACT, SOCIAL } from "@stratxcel/config";
+import { HeroDashboardVisual } from "./HeroDashboardVisual";
 
 export function HomePageContent() {
   const roles = [
@@ -43,52 +43,54 @@ export function HomePageContent() {
 
   return (
     <>
-      {/* Hero */}
+      {/* Hero — above the fold */}
       <section className="relative overflow-hidden border-b border-zinc-100 bg-white">
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-15%,rgba(15,23,42,0.045),transparent)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_15%_-5%,rgba(12,18,34,0.055),transparent_52%),radial-gradient(ellipse_55%_50%_at_100%_15%,rgba(37,99,235,0.045),transparent_48%)]"
           aria-hidden
         />
-        <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-12 sm:px-6 sm:pb-24 sm:pt-16 lg:pb-28 lg:pt-20">
-          <div className="relative lg:min-h-[4.5rem]">
-            <Link
-              href="/"
-              className="mb-10 inline-flex w-fit shrink-0 lg:absolute lg:right-0 lg:top-0 lg:mb-0"
-              aria-label="Stratxcel home"
-            >
-              <Image
-                src="/logo-v2.png"
-                alt="Stratxcel"
-                width={220}
-                height={64}
-                className="h-8 w-auto sm:h-9 lg:h-10"
-                priority
-              />
-            </Link>
-            <div className="max-w-[40rem] lg:max-w-[46rem] lg:pr-48">
-              <h1 className="text-[2rem] font-semibold leading-[1.1] tracking-[-0.035em] text-[var(--sx-navy)] sm:text-[2.75rem] sm:leading-[1.08] lg:text-5xl lg:leading-[1.06]">
+        <div className="relative mx-auto flex min-h-[calc(100dvh-3.5rem)] max-w-6xl flex-col justify-center px-4 py-11 sm:min-h-[calc(100dvh-3.75rem)] sm:px-6 sm:py-14 lg:min-h-[calc(100dvh-3.85rem)] lg:py-16 xl:py-20">
+          <div className="grid w-full items-center gap-11 lg:grid-cols-[minmax(0,1fr)_minmax(260px,420px)] lg:gap-x-14 xl:grid-cols-[minmax(0,1.02fr)_minmax(280px,440px)] xl:gap-x-16">
+            <div className="min-w-0">
+              <h1 className="sx-hero-fade-up sx-hero-fade-up-d1 max-w-[16ch] text-[2.125rem] font-bold leading-[1.08] tracking-[-0.038em] text-[var(--sx-navy)] sm:max-w-[19ch] sm:text-[2.35rem] sm:leading-[1.06] lg:max-w-[17ch] lg:text-[2.65rem] lg:leading-[1.04] xl:text-5xl xl:leading-[1.03]">
                 Your business doesn’t need more effort.
                 <br />
                 It needs better systems.
               </h1>
-              <p className="mt-5 max-w-[38rem] text-[15px] leading-[1.7] text-zinc-600 sm:text-[17px] sm:leading-[1.65]">
-                We uncover growth bottlenecks, fix execution gaps, and build systems that help serious businesses
-                scale.
+              <p className="sx-hero-fade-up sx-hero-fade-up-d2 mt-5 max-w-[36rem] text-[15px] leading-[1.72] text-zinc-600 sm:text-[17px] sm:leading-[1.68]">
+                We uncover growth bottlenecks, fix execution gaps, and build systems that help serious businesses scale
+                with clarity.
               </p>
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
+              <div className="sx-hero-cta-rise mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
                 <Link
                   href="/#pricing"
-                  className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-7 text-[15px] font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition hover:bg-[var(--sx-navy-soft)] active:scale-[0.99] sm:min-w-[12rem]"
+                  className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-7 text-[15px] font-semibold text-white shadow-[0_2px_8px_rgba(12,18,34,0.12)] transition duration-200 hover:bg-[var(--sx-navy-soft)] active:scale-[0.99] sm:min-w-[13.5rem]"
                 >
                   Request Business Diagnosis
                 </Link>
                 <Link
                   href="/#how-we-work"
-                  className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-zinc-200 bg-white/80 px-7 text-[15px] font-semibold text-[var(--sx-navy)] backdrop-blur-sm transition hover:border-zinc-300 hover:bg-white sm:min-w-[12rem]"
+                  className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-zinc-300/90 bg-white px-7 text-[15px] font-semibold text-[var(--sx-navy)] transition duration-200 hover:border-zinc-400 hover:bg-zinc-50/80 sm:min-w-[13.5rem]"
                 >
                   See How We Work
                 </Link>
               </div>
+              <p className="sx-hero-trust-fade mt-7 text-[11px] font-medium tracking-[0.12em] text-zinc-500 sm:text-[12px] sm:tracking-[0.14em]">
+                <span className="block text-center sm:inline sm:text-left">
+                  Built for serious businesses
+                  <span className="mx-2 text-zinc-300 sm:mx-2.5" aria-hidden>
+                    •
+                  </span>
+                  Selective engagements
+                  <span className="mx-2 text-zinc-300 sm:mx-2.5" aria-hidden>
+                    •
+                  </span>
+                  India focused
+                </span>
+              </p>
+            </div>
+            <div className="sx-hero-fade-up sx-hero-fade-up-d3 min-w-0 w-full max-w-md justify-self-center lg:max-w-none lg:justify-self-end">
+              <HeroDashboardVisual />
             </div>
           </div>
         </div>

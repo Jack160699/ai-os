@@ -41,3 +41,84 @@ body {
   background: color-mix(in srgb, var(--sx-accent) 22%, transparent);
   color: var(--sx-navy);
 }
+
+/* Hero / above-fold — subtle motion (respect reduced motion) */
+@keyframes sx-hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sx-hero-cta-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sx-hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+.sx-hero-fade-up {
+  opacity: 0;
+  animation: sx-hero-fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.sx-hero-fade-up-d1 {
+  animation-delay: 0.07s;
+}
+
+.sx-hero-fade-up-d2 {
+  animation-delay: 0.14s;
+}
+
+.sx-hero-fade-up-d3 {
+  animation-delay: 0.2s;
+}
+
+.sx-hero-cta-rise {
+  opacity: 0;
+  animation: sx-hero-cta-rise 0.95s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: 0.22s;
+}
+
+.sx-hero-trust-fade {
+  opacity: 0;
+  animation: sx-hero-fade-up 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: 0.34s;
+}
+
+.sx-hero-float {
+  animation: sx-hero-float 8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sx-hero-fade-up,
+  .sx-hero-cta-rise,
+  .sx-hero-trust-fade {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .sx-hero-float {
+    animation: none;
+    transform: none;
+  }
+}
