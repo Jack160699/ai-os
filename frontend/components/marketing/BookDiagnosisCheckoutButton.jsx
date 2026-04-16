@@ -64,9 +64,10 @@ export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
         setStatus("Payment widget failed to load. Refresh the page and try again.");
         return;
       }
+      const checkoutKey = String(orderData?.key || "").trim();
 
       const options = {
-        key: orderData.key,
+        key: checkoutKey,
         amount: orderData.amount * 100,
         currency: "INR",
         name: "Your Business",
@@ -132,12 +133,16 @@ export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
         },
       };
       console.log("Razorpay key prefix:", String(options.key || "").slice(0, 8));
-      if (
-        (process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_VERCEL_ENV === "production") &&
-        !String(options.key || "").startsWith("rzp_live_")
-      ) {
+      if (!checkoutKey) {
         setPhase("error");
         setStatus("LIVE KEY MISSING");
+        return;
+      }
+      const isProd =
+        process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
+      if (isProd && checkoutKey.startsWith("rzp_test_")) {
+        setPhase("error");
+        setStatus("Test key detected in production");
         return;
       }
 
@@ -169,6 +174,7 @@ export function BookDiagnosisCheckoutButton({ amount = 499, className = "" }) {
     try {
       const orderRes = await checkoutFetch("/api/create-order", { amount });
       const { ok, data: orderData, status: orderStatus } = await parseCheckoutJson(orderRes);
+      console.log("orderData", orderData);
       console.log("Razorpay key prefix:", String(orderData?.key || "").slice(0, 8));
 
       if (!ok || !orderData?.order_id || !orderData?.key) {
