@@ -180,6 +180,45 @@ body {
   background: #fafafa;
 }
 
+.sx-card--lift {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    border-color 0.2s ease;
+}
+
+.sx-card--lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px -28px rgba(15, 23, 42, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sx-card--lift:hover {
+    transform: none;
+  }
+}
+
+.sx-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sx-reveal--in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sx-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 .sx-card-title {
   font-size: 0.875rem;
   font-weight: 600;
