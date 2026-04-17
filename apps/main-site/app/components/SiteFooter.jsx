@@ -25,7 +25,7 @@ export function SiteFooter() {
         </div>
         <div className="flex max-w-xl flex-wrap gap-x-6 gap-y-2 text-[13px] font-medium tracking-[-0.01em] text-zinc-400">
           <Link href="/#pain" className="transition-colors duration-300 hover:text-white">
-            Reality
+            Problem
           </Link>
           <Link href="/#consultation" className="transition-colors duration-300 hover:text-white">
             Diagnosis

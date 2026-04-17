@@ -3,8 +3,9 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Site-wide deep space: sparse stars, slow drift, faint cosmic haze, scroll parallax.
- * Single rAF; stays behind page content (fixed z-0).
+ * Full-viewport "system flow in space": sparse stars, slow drift, depth gradients,
+ * scroll parallax, and a sparse node graph with softly pulsing edges.
+ * Single rAF; intro envelope syncs with hero copy (slow reveal).
  */
 export function SpaceFieldBackground() {
   const canvasRef = useRef(null);
@@ -32,30 +33,85 @@ export function SpaceFieldBackground() {
     let dpr = 1;
     let stars = [];
     let motes = [];
-    let start = performance.now();
+    let nodes = [];
+    let edges = [];
+    const start = performance.now();
     let last = start;
 
-    function build() {
-      stars = [];
-      const n = Math.min(95, Math.floor((w * h) / 12000) + 38);
+    function clamp01(t) {
+      return Math.max(0, Math.min(1, t));
+    }
+
+    function smoothstep(edge0, edge1, x) {
+      const t = clamp01((x - edge0) / (edge1 - edge0));
+      return t * t * (3 - 2 * t);
+    }
+
+    function buildGraph() {
+      nodes = [];
+      edges = [];
+      const n = Math.min(26, Math.max(14, Math.floor((w * h) / 95000) + 10));
       for (let i = 0; i < n; i++) {
-        stars.push({
+        nodes.push({
           x: Math.random() * w,
           y: Math.random() * h,
-          r: Math.random() * 0.85 + 0.35,
+          vx: (Math.random() - 0.5) * 0.018,
+          vy: (Math.random() - 0.5) * 0.018,
+          r: 1.1 + Math.random() * 1.2,
           z: 0.35 + Math.random() * 0.65,
           tw: Math.random() * Math.PI * 2,
         });
       }
+      const linkDist = Math.min(w, h) * (0.11 + Math.random() * 0.02);
+      const edgeKeys = new Set();
+      for (let i = 0; i < n; i++) {
+        const near = [];
+        for (let j = 0; j < n; j++) {
+          if (i === j) continue;
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const d = Math.hypot(dx, dy);
+          if (d < linkDist) near.push({ j, d });
+        }
+        near.sort((a, b) => a.d - b.d);
+        const cap = 2;
+        for (let k = 0; k < Math.min(cap, near.length); k++) {
+          const j = near[k].j;
+          const a = Math.min(i, j);
+          const b = Math.max(i, j);
+          const key = `${a}:${b}`;
+          if (edgeKeys.has(key)) continue;
+          edgeKeys.add(key);
+          edges.push({
+            a,
+            b,
+            phase: Math.random() * Math.PI * 2,
+          });
+        }
+      }
+    }
+
+    function buildStars() {
+      stars = [];
+      const n = Math.min(72, Math.floor((w * h) / 22000) + 28);
+      for (let i = 0; i < n; i++) {
+        stars.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          r: Math.random() * 0.65 + 0.28,
+          z: 0.3 + Math.random() * 0.7,
+          tw: Math.random() * Math.PI * 2,
+        });
+      }
       motes = [];
-      const m = Math.min(14, Math.floor((w * h) / 180000) + 6);
+      const m = Math.min(10, Math.floor((w * h) / 220000) + 4);
       for (let i = 0; i < m; i++) {
         motes.push({
           x: Math.random() * w,
           y: Math.random() * h,
-          vx: (Math.random() - 0.5) * 0.06,
-          vy: (Math.random() - 0.5) * 0.06,
-          r: 0.5 + Math.random() * 0.8,
+          vx: (Math.random() - 0.5) * 0.04,
+          vy: (Math.random() - 0.5) * 0.04,
+          r: 0.45 + Math.random() * 0.55,
           ph: Math.random() * Math.PI * 2,
         });
       }
@@ -70,70 +126,121 @@ export function SpaceFieldBackground() {
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      build();
+      buildStars();
+      buildGraph();
     }
 
     function paint(now) {
-      const elapsed = reduced ? 0 : (now - start) / 1000;
+      const elapsed = reduced ? 8 : (now - start) / 1000;
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       const sy = scrollRef.current;
 
-      ctx.fillStyle = "#030306";
+      const introStars = reduced ? 1 : smoothstep(0.35, 3.2, elapsed);
+      const introEdges = reduced ? 1 : smoothstep(1.8, 5.4, elapsed);
+      const introStabilize = reduced ? 1 : smoothstep(4.5, 7.5, elapsed);
+
+      ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, w, h);
 
-      const parallax = sy * 0.04;
-      const parallax2 = sy * 0.07;
+      const parallax = sy * 0.035;
+      const parallax2 = sy * 0.055;
 
       const g1 = ctx.createRadialGradient(
-        w * 0.2 - parallax2 * 0.3,
-        h * 0.15,
+        w * 0.18 - parallax2 * 0.25,
+        h * 0.12,
         0,
-        w * 0.35,
-        h * 0.35,
-        Math.max(w, h) * 0.55
+        w * 0.32,
+        h * 0.38,
+        Math.max(w, h) * 0.58
       );
-      g1.addColorStop(0, "rgba(30, 58, 95, 0.14)");
-      g1.addColorStop(0.45, "rgba(3, 3, 6, 0)");
-      g1.addColorStop(1, "rgba(3, 3, 6, 0)");
+      g1.addColorStop(0, "rgba(11, 15, 25, 0.55)");
+      g1.addColorStop(0.42, "rgba(0, 0, 0, 0)");
+      g1.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = g1;
       ctx.fillRect(0, 0, w, h);
 
       const g2 = ctx.createRadialGradient(
-        w * 0.88 + parallax * 0.2,
-        h * 0.72 + parallax * 0.15,
+        w * 0.88 + parallax * 0.18,
+        h * 0.78 + parallax * 0.12,
         0,
-        w * 0.75,
+        w * 0.72,
         h * 0.55,
-        Math.max(w, h) * 0.5
+        Math.max(w, h) * 0.52
       );
-      g2.addColorStop(0, "rgba(59, 91, 140, 0.1)");
-      g2.addColorStop(0.5, "rgba(3, 3, 6, 0)");
-      g2.addColorStop(1, "rgba(3, 3, 6, 0)");
+      g2.addColorStop(0, "rgba(15, 23, 42, 0.35)");
+      g2.addColorStop(0.5, "rgba(0, 0, 0, 0)");
+      g2.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = g2;
       ctx.fillRect(0, 0, w, h);
 
-      const driftSlow = elapsed * 0.08;
+      const drift = elapsed * 0.05;
       const g3 = ctx.createRadialGradient(
-        w * 0.5 + Math.sin(driftSlow) * w * 0.08,
-        h * 0.45 + Math.cos(driftSlow * 0.87) * h * 0.06,
+        w * 0.52 + Math.sin(drift) * w * 0.06,
+        h * 0.48 + Math.cos(drift * 0.88) * h * 0.05,
         0,
         w * 0.5,
         h * 0.5,
-        Math.max(w, h) * 0.65
+        Math.max(w, h) * 0.72
       );
-      g3.addColorStop(0, "rgba(15, 23, 42, 0)");
-      g3.addColorStop(0.55, "rgba(3, 3, 6, 0)");
-      g3.addColorStop(1, "rgba(0, 0, 0, 0.38)");
+      g3.addColorStop(0, "rgba(0, 0, 0, 0)");
+      g3.addColorStop(0.62, "rgba(0, 0, 0, 0)");
+      g3.addColorStop(1, "rgba(0, 0, 0, 0.45)");
       ctx.fillStyle = g3;
       ctx.fillRect(0, 0, w, h);
 
+      if (!reduced) {
+        for (const n of nodes) {
+          n.x += n.vx * dt * 12;
+          n.y += n.vy * dt * 12;
+          if (n.x < -8) n.x = w + 8;
+          if (n.x > w + 8) n.x = -8;
+          if (n.y < -8) n.y = h + 8;
+          if (n.y > h + 8) n.y = -8;
+        }
+      }
+
+      const edgeBreath = 0.34 + 0.66 * (0.5 + 0.5 * Math.sin(elapsed * 0.38));
+      const edgeBase =
+        0.04 * introEdges * introStabilize * edgeBreath + (reduced ? 0.06 : 0);
+
+      for (const e of edges) {
+        const A = nodes[e.a];
+        const B = nodes[e.b];
+        if (!A || !B) continue;
+        const ax = A.x + parallax * A.z;
+        const ay = A.y + parallax2 * A.z * 0.55;
+        const bx = B.x + parallax * B.z;
+        const by = B.y + parallax2 * B.z * 0.55;
+        const flicker = 0.55 + 0.45 * Math.sin(elapsed * 0.22 + e.phase);
+        const a = edgeBase * flicker;
+        if (a < 0.008) continue;
+        ctx.strokeStyle = `rgba(59, 130, 246, ${a})`;
+        ctx.lineWidth = 0.85;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+      }
+
+      for (const n of nodes) {
+        const px = n.x + parallax * n.z;
+        const py = n.y + parallax2 * n.z * 0.55;
+        const tw = reduced ? 0.5 : 0.32 + 0.28 * Math.sin(elapsed * 0.55 + n.tw);
+        ctx.globalAlpha = tw * n.z * 0.55 * introStars * introStabilize;
+        ctx.fillStyle = "rgb(200, 214, 235)";
+        ctx.beginPath();
+        ctx.arc(px, py, n.r * 0.55, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
       for (const s of stars) {
         const px = s.x + parallax * s.z;
-        const py = s.y + parallax2 * s.z * 0.6;
-        const tw = reduced ? 0.55 : 0.38 + 0.32 * Math.sin(elapsed * 0.7 + s.tw);
-        ctx.globalAlpha = tw * s.z * 0.85;
-        ctx.fillStyle = "rgb(210, 225, 248)";
+        const py = s.y + parallax2 * s.z * 0.55;
+        const tw = reduced ? 0.45 : 0.28 + 0.3 * Math.sin(elapsed * 0.52 + s.tw);
+        ctx.globalAlpha = tw * s.z * 0.72 * introStars * (0.88 + 0.12 * introStabilize);
+        ctx.fillStyle = "rgb(210, 220, 240)";
         ctx.beginPath();
         ctx.arc(px, py, s.r, 0, Math.PI * 2);
         ctx.fill();
@@ -142,18 +249,18 @@ export function SpaceFieldBackground() {
 
       for (const m of motes) {
         if (!reduced) {
-          m.x += m.vx * dt * 18;
-          m.y += m.vy * dt * 18;
+          m.x += m.vx * dt * 14;
+          m.y += m.vy * dt * 14;
           if (m.x < -4) m.x = w + 4;
           if (m.x > w + 4) m.x = -4;
           if (m.y < -4) m.y = h + 4;
           if (m.y > h + 4) m.y = -4;
         }
-        const al = 0.06 + 0.05 * Math.sin(elapsed * 0.5 + m.ph);
+        const al = (0.045 + 0.04 * Math.sin(elapsed * 0.42 + m.ph)) * introStars;
         ctx.globalAlpha = al;
-        ctx.fillStyle = "rgb(180, 200, 235)";
+        ctx.fillStyle = "rgb(170, 190, 220)";
         ctx.beginPath();
-        ctx.arc(m.x + parallax * 0.5, m.y, m.r, 0, Math.PI * 2);
+        ctx.arc(m.x + parallax * 0.45, m.y, m.r, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.globalAlpha = 1;

@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { StratxcelBrand } from "./StratxcelBrand";
 
 const links = [
-  { label: "Reality", href: "/#pain" },
+  { label: "Problem", href: "/#pain" },
+  { label: "Transform", href: "/#transform" },
   { label: "Systems", href: "/#systems" },
   { label: "Why", href: "/#why" },
   { label: "Scenarios", href: "/#cases" },
@@ -44,11 +45,11 @@ export function Navbar() {
     "py-1 text-[13px] font-medium tracking-[-0.015em] text-zinc-400 antialiased transition-colors duration-300 ease-out hover:text-white";
 
   const headerSurface = scrolled
-    ? "border-b border-white/[0.09] bg-[#030306]/88 shadow-[0_20px_56px_-28px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.06)_inset] backdrop-blur-2xl backdrop-saturate-150"
-    : "border-b border-transparent bg-[#030306]/45 backdrop-blur-xl";
+    ? "border-b border-white/[0.07] bg-black/82 shadow-[0_20px_56px_-28px_rgba(0,0,0,0.82),0_1px_0_rgba(255,255,255,0.05)_inset] backdrop-blur-2xl backdrop-saturate-150"
+    : "border-b border-transparent bg-black/40 backdrop-blur-xl";
 
   const ctaDesktopClass =
-    "inline-flex h-[38px] min-h-[44px] items-center justify-center rounded-full border border-white/18 bg-white/[0.94] px-[1.2rem] text-[13px] font-semibold tracking-[-0.01em] text-[var(--sx-navy)] shadow-[0_0_0_1px_rgba(255,255,255,0.12)_inset,0_8px_28px_-14px_rgba(96,165,250,0.18)] transition-[background-color,box-shadow,transform] duration-300 ease-out hover:bg-white hover:shadow-[0_0_0_1px_rgba(255,255,255,0.18)_inset,0_12px_36px_-12px_rgba(96,165,250,0.22)] active:scale-[0.98]";
+    "inline-flex h-[38px] min-h-[44px] items-center justify-center rounded-full border border-sky-500/25 bg-[#0B0F19]/95 px-[1.2rem] text-[13px] font-semibold tracking-[-0.01em] text-[#E5E7EB] shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset,0_8px_32px_-14px_rgba(59,130,246,0.2)] transition-[background-color,box-shadow,transform,border-color] duration-[480ms] ease-out hover:border-sky-400/35 hover:bg-[#0f1524] hover:shadow-[0_0_44px_-12px_rgba(59,130,246,0.28)] active:scale-[0.98]";
 
   const menuBtnClass =
     "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/16 bg-white/[0.07] text-zinc-100 shadow-none backdrop-blur-md transition-[background-color,box-shadow,border-color] duration-300 ease-out hover:border-white/26 hover:bg-white/[0.12] active:scale-[0.97] lg:hidden";
@@ -69,7 +70,7 @@ export function Navbar() {
           <StratxcelBrand tone="hero" />
 
           <nav
-            className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-6 min-[1440px]:gap-7 lg:flex"
+            className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-4 min-[1440px]:gap-6 lg:flex"
             aria-label="Primary"
           >
             {links.map((l) => (
@@ -139,7 +140,7 @@ export function Navbar() {
         <div
           id="mobile-nav-panel"
           className={[
-            "absolute inset-0 flex flex-col bg-[#05050c] transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            "absolute inset-0 flex flex-col bg-[#0B0F19] transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
             open ? "translate-x-0" : "translate-x-full",
           ].join(" ")}
         >
@@ -179,7 +180,7 @@ export function Navbar() {
               <Link
                 href="/#pricing"
                 onClick={() => setOpen(false)}
-                className="flex h-12 w-full items-center justify-center rounded-full border border-white/15 bg-white text-[15px] font-semibold text-[var(--sx-navy)] shadow-[0_0_32px_-12px_rgba(96,165,250,0.35)] transition-[background-color,box-shadow,transform] duration-300 ease-out hover:bg-zinc-100 active:scale-[0.99]"
+                className="flex h-12 w-full items-center justify-center rounded-full border border-sky-500/25 bg-[#0B0F19] text-[15px] font-semibold text-[#E5E7EB] shadow-[0_0_40px_-14px_rgba(59,130,246,0.25)] transition-[background-color,box-shadow,transform,border-color] duration-[480ms] ease-out hover:border-sky-400/35 hover:bg-[#0f1524] active:scale-[0.99]"
               >
                 Request Diagnosis
               </Link>

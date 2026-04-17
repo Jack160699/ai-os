@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --sx-navy: #0c1222;
-  --sx-navy-soft: #141c2e;
+  --sx-navy: #0b0f19;
+  --sx-navy-soft: #111827;
   --sx-gray: #f4f4f5;
   --sx-gray-border: #e4e4e7;
-  --sx-accent: #2563eb;
-  --sx-accent-hover: #1d4ed8;
+  --sx-accent: #3b82f6;
+  --sx-accent-hover: #2563eb;
   --sx-muted: #64748b;
   --sx-ink: #0f172a;
-  --background: #ffffff;
-  --foreground: var(--sx-ink);
+  --background: #000000;
+  --foreground: #e5e7eb;
 
   /* One layout + type system (hero + page + nav) */
   --sx-max: 1120px;
@@ -50,8 +50,8 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: #000000;
+  color: #e5e7eb;
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
@@ -200,10 +200,10 @@ body {
 
 .sx-reveal {
   opacity: 0;
-  transform: translateY(12px);
+  transform: translateY(8px);
   transition:
-    opacity 1.05s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 1.05s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 1.35s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 1.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .sx-reveal--in {
@@ -278,7 +278,7 @@ body {
 @keyframes sx-hero-fade-up {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -289,7 +289,7 @@ body {
 @keyframes sx-hero-cta-rise {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -299,27 +299,27 @@ body {
 
 .sx-hero-fade-up {
   opacity: 0;
-  animation: sx-hero-fade-up 1.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: sx-hero-fade-up 2.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .sx-hero-fade-up-d1 {
-  animation-delay: 0.12s;
+  animation-delay: 3.95s;
 }
 
 .sx-hero-fade-up-d2 {
-  animation-delay: 0.28s;
+  animation-delay: 4.28s;
 }
 
 .sx-hero-cta-rise {
   opacity: 0;
-  animation: sx-hero-cta-rise 1.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  animation-delay: 0.42s;
+  animation: sx-hero-cta-rise 2.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: 4.75s;
 }
 
 .sx-hero-trust-fade {
   opacity: 0;
-  animation: sx-hero-fade-up 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  animation-delay: 0.55s;
+  animation: sx-hero-fade-up 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: 5.15s;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -335,29 +335,29 @@ body {
 .sx-glass-hero {
   position: relative;
   background:
-    radial-gradient(100% 80% at 12% 0%, rgba(147, 197, 253, 0.08), transparent 50%),
+    radial-gradient(90% 70% at 18% 0%, rgba(59, 130, 246, 0.06), transparent 52%),
     linear-gradient(
-      165deg,
-      rgba(255, 255, 255, 0.1) 0%,
-      rgba(255, 255, 255, 0.04) 35%,
-      rgba(4, 6, 14, 0.65) 100%
+      168deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.03) 38%,
+      rgba(11, 15, 25, 0.72) 100%
     );
-  backdrop-filter: blur(28px) saturate(1.08);
-  -webkit-backdrop-filter: blur(28px) saturate(1.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(32px) saturate(1.06);
+  -webkit-backdrop-filter: blur(32px) saturate(1.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.5) inset,
-    0 1px 0 rgba(255, 255, 255, 0.12) inset,
-    0 48px 100px -48px rgba(0, 0, 0, 0.65),
-    0 0 72px -32px rgba(59, 130, 246, 0.12);
+    0 0 0 1px rgba(0, 0, 0, 0.55) inset,
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 52px 120px -52px rgba(0, 0, 0, 0.75),
+    0 0 80px -36px rgba(59, 130, 246, 0.1);
 }
 
 .sx-hero-lift {
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(3, 3, 6, 0.35) 45%,
-    rgba(3, 3, 6, 0.88) 100%
+    rgba(0, 0, 0, 0.4) 48%,
+    rgba(0, 0, 0, 0.92) 100%
   );
 }
 
@@ -377,6 +377,32 @@ body {
   background: radial-gradient(90% 100% at 50% 0%, rgba(30, 58, 95, 0.22), transparent 58%);
 }
 
+/* Final CTA: calm vignette so the action becomes the focal point */
+.sx-cta-focus-zone {
+  position: relative;
+}
+
+.sx-cta-focus-zone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(75% 60% at 50% 38%, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.62));
+}
+
+.sx-cta-focus-zone .sx-container {
+  position: relative;
+  z-index: 1;
+}
+
+.sx-cta-glow {
+  box-shadow:
+    0 0 0 1px rgba(59, 130, 246, 0.22) inset,
+    0 0 64px -12px rgba(59, 130, 246, 0.35),
+    0 24px 64px -32px rgba(0, 0, 0, 0.75);
+}
+
 @media (min-width: 1024px) {
   .sx-section-space {
     padding-top: var(--sx-section-y-lg);
@@ -388,7 +414,7 @@ body {
   font-size: 1.375rem;
   font-weight: 600;
   letter-spacing: -0.03em;
-  color: #fafafa;
+  color: #e5e7eb;
   line-height: 1.2;
 }
 
@@ -491,7 +517,7 @@ body {
   position: relative;
   z-index: 1;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(3, 3, 6, 0.65);
+  background: rgba(11, 15, 25, 0.72);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   padding-top: 3rem;
