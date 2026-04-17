@@ -12,10 +12,10 @@ export function SiteFooter() {
   ].filter(([, href]) => href);
 
   return (
-    <footer className="sx-footer">
+    <footer className="sx-footer-space">
       <div className="sx-container flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-[15px] font-semibold tracking-[-0.02em] text-[var(--sx-navy)]">Stratxcel</p>
+          <p className="text-[15px] font-semibold tracking-[-0.02em] text-zinc-100">Stratxcel</p>
           <p className="mt-2 text-sm leading-relaxed text-zinc-500">
             © {new Date().getFullYear()} Stratxcel. All rights reserved.
           </p>
@@ -23,34 +23,34 @@ export function SiteFooter() {
             Stratxcel OPC Private Limited | MSME | GST | Startup India | DPIIT
           </p>
         </div>
-        <div className="flex max-w-xl flex-wrap gap-x-6 gap-y-2 text-[13px] font-medium tracking-[-0.01em] text-zinc-600">
-          <Link href="/#about" className="transition-colors hover:text-[var(--sx-navy)]">
-            About
+        <div className="flex max-w-xl flex-wrap gap-x-6 gap-y-2 text-[13px] font-medium tracking-[-0.01em] text-zinc-400">
+          <Link href="/#pain" className="transition-colors duration-300 hover:text-white">
+            Reality
           </Link>
-          <Link href="/#how-we-work" className="transition-colors hover:text-[var(--sx-navy)]">
-            How We Work
+          <Link href="/#consultation" className="transition-colors duration-300 hover:text-white">
+            Diagnosis
           </Link>
-          <Link href="/#results" className="transition-colors hover:text-[var(--sx-navy)]">
-            Results
+          <Link href="/#cases" className="transition-colors duration-300 hover:text-white">
+            Scenarios
           </Link>
-          <Link href="/#careers" className="transition-colors hover:text-[var(--sx-navy)]">
+          <Link href="/#careers" className="transition-colors duration-300 hover:text-white">
             Careers
           </Link>
-          <Link href="/#pricing" className="transition-colors hover:text-[var(--sx-navy)]">
+          <Link href="/#pricing" className="transition-colors duration-300 hover:text-white">
             Pricing
           </Link>
-          <Link href="/#contact" className="transition-colors hover:text-[var(--sx-navy)]">
+          <Link href="/#contact" className="transition-colors duration-300 hover:text-white">
             Contact
           </Link>
-          <a href={URLS.aiOs} className="transition-colors hover:text-[var(--sx-navy)]" rel="noopener noreferrer">
+          <a href={URLS.aiOs} className="transition-colors duration-300 hover:text-white" rel="noopener noreferrer">
             AI OS
           </a>
-          <a href={URLS.demo} className="transition-colors hover:text-[var(--sx-navy)]" rel="noopener noreferrer">
+          <a href={URLS.demo} className="transition-colors duration-300 hover:text-white" rel="noopener noreferrer">
             Demos
           </a>
           {socials.length ? <span className="w-full" aria-hidden /> : null}
           {socials.map(([label, href]) => (
-            <a key={label} href={href} className="transition-colors hover:text-[var(--sx-navy)]" rel="noopener noreferrer">
+            <a key={label} href={href} className="transition-colors duration-300 hover:text-white" rel="noopener noreferrer">
               {label}
             </a>
           ))}

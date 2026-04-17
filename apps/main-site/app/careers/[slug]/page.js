@@ -89,9 +89,9 @@ export default function RolePage({ params }) {
   if (!role) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-        <h1 className="text-2xl font-semibold text-[var(--sx-navy)]">Role not found</h1>
-        <p className="mt-4 text-zinc-600">Return to careers to view open roles.</p>
-        <Link className="mt-8 inline-flex text-[var(--sx-accent)] hover:underline" href="/careers">
+        <h1 className="text-2xl font-semibold text-zinc-50">Role not found</h1>
+        <p className="mt-4 text-zinc-400">Return to careers to view open roles.</p>
+        <Link className="mt-8 inline-flex text-sky-300/90 hover:text-sky-200 hover:underline" href="/careers">
           Back to Careers
         </Link>
       </div>
@@ -99,13 +99,11 @@ export default function RolePage({ params }) {
   }
 
   return (
-    <div className="border-b border-zinc-100 bg-white">
+    <div className="relative border-b border-white/[0.06] bg-transparent">
       <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Careers</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--sx-navy)] sm:text-4xl">
-          {role.title}
-        </h1>
-        <p className="mt-5 text-[15px] leading-[1.7] text-zinc-600">{role.overview}</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-50 sm:text-4xl">{role.title}</h1>
+        <p className="mt-5 text-[15px] leading-[1.7] text-zinc-400">{role.overview}</p>
         <p className="mt-4 text-sm text-zinc-500">
           This role is built for serious learners who want real responsibility, real standards, and real growth.
         </p>
@@ -114,21 +112,21 @@ export default function RolePage({ params }) {
         <Section title="What you will learn" items={role.learn} />
         <Section title="Who should apply" items={role.who} />
 
-        <div className="mt-10 rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-4">
-          <p className="text-sm font-semibold text-[var(--sx-navy)]">Growth path</p>
-          <p className="mt-1 text-sm text-zinc-600">{role.growth}</p>
+        <div className="sx-card-space mt-10 rounded-xl px-4 py-4">
+          <p className="text-sm font-semibold text-zinc-100">Growth path</p>
+          <p className="mt-1 text-sm text-zinc-400">{role.growth}</p>
         </div>
 
         <div className="mt-10 flex flex-wrap gap-3">
           <a
             href={`mailto:${CONTACT_EMAIL}?subject=Application%20%E2%80%94%20${encodeURIComponent(role.title)}`}
-            className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-7 text-[15px] font-semibold text-white transition hover:bg-[var(--sx-navy-soft)]"
+            className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-white/12 bg-white px-7 text-[15px] font-semibold text-[var(--sx-navy)] shadow-[0_0_32px_-12px_rgba(96,165,250,0.3)] transition hover:bg-zinc-100"
           >
             Apply now
           </a>
           <Link
             href="/careers"
-            className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-zinc-300 bg-white px-7 text-[15px] font-semibold text-[var(--sx-navy)] transition hover:border-zinc-400 hover:bg-zinc-50"
+            className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-white/14 bg-white/[0.06] px-7 text-[15px] font-semibold text-zinc-100 transition hover:border-white/22 hover:bg-white/[0.1]"
           >
             Back to Careers
           </Link>
@@ -141,10 +139,10 @@ export default function RolePage({ params }) {
 function Section({ title, items }) {
   return (
     <div className="mt-10">
-      <p className="text-sm font-semibold text-[var(--sx-navy)]">{title}</p>
+      <p className="text-sm font-semibold text-zinc-100">{title}</p>
       <ul className="mt-3 space-y-2">
         {items.map((it) => (
-          <li key={it} className="rounded-lg border border-zinc-200 bg-white px-3 py-3 text-sm text-zinc-700">
+          <li key={it} className="sx-card-space sx-card--interactive rounded-lg px-3 py-3 text-sm text-zinc-400">
             {it}
           </li>
         ))}

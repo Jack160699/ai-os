@@ -29,29 +29,29 @@ export default function CareersPage() {
           <Link
             key={r.slug}
             href={`/careers/${r.slug}`}
-            className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-4 transition hover:bg-zinc-50"
+            className="sx-card-space sx-card--interactive sx-card--lift block rounded-xl px-4 py-4"
           >
-            <h2 className="text-[15px] font-semibold text-[var(--sx-navy)]">{r.title}</h2>
-            <p className="mt-2 text-sm text-zinc-600">{r.body}</p>
+            <h2 className="text-[15px] font-semibold text-zinc-100">{r.title}</h2>
+            <p className="mt-2 text-sm text-zinc-400">{r.body}</p>
           </Link>
         ))}
       </div>
-      <p className="mt-8 text-sm text-zinc-600">
+      <p className="mt-8 text-sm text-zinc-500">
         Eligible: BBA, MBA, BCA, MCA, B.Com, M.Com, CS, IT, Sales, Commerce, and serious learners.
       </p>
-      <p className="mt-2 text-sm text-zinc-600">
+      <p className="mt-2 text-sm text-zinc-500">
         Benefits: Real work, mentorship, live projects, certificates, professional growth, and industry readiness.
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
         <a
           href={`mailto:${CONTACT_EMAIL}?subject=Internship%20Application%20%E2%80%94%20Stratxcel`}
-          className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-7 text-[15px] font-semibold text-white transition hover:bg-[var(--sx-navy-soft)]"
+          className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-white/12 bg-white px-7 text-[15px] font-semibold text-[var(--sx-navy)] shadow-[0_0_32px_-12px_rgba(96,165,250,0.3)] transition hover:bg-zinc-100"
         >
           Apply for Internship
         </a>
         <Link
           href="/#contact"
-          className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-zinc-300 bg-white px-7 text-[15px] font-semibold text-[var(--sx-navy)] transition hover:border-zinc-400 hover:bg-zinc-50"
+          className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-white/14 bg-white/[0.06] px-7 text-[15px] font-semibold text-zinc-100 transition hover:border-white/22 hover:bg-white/[0.1]"
         >
           Book Consultation
         </Link>

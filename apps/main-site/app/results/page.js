@@ -5,5 +5,5 @@ export const metadata = {
 };
 
 export default function ResultsPage() {
-  redirect("/#results");
+  redirect("/#cases");
 }

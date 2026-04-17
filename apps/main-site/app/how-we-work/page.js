@@ -5,5 +5,5 @@ export const metadata = {
 };
 
 export default function HowWeWorkPage() {
-  redirect("/#how-we-work");
+  redirect("/#consultation");
 }

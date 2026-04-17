@@ -40,21 +40,21 @@ export function HeroMotionCanvas() {
       const R = Math.min(rw, rh) * 0.34;
 
       const ambient = [];
-      const ac = Math.min(56, Math.floor((w * h) / 28000) + 28);
+      const ac = Math.min(14, Math.floor((w * h) / 90000) + 6);
       for (let i = 0; i < ac; i++) {
         ambient.push({
           x: Math.random() * w,
           y: Math.random() * h,
-          r: 0.45 + Math.random() * 1.35,
-          vx: (Math.random() - 0.5) * 0.14,
-          vy: (Math.random() - 0.5) * 0.14,
+          r: 0.4 + Math.random() * 1.1,
+          vx: (Math.random() - 0.5) * 0.09,
+          vy: (Math.random() - 0.5) * 0.09,
           phase: Math.random() * Math.PI * 2,
-          hot: Math.random() < 0.18,
+          hot: Math.random() < 0.1,
         });
       }
 
       const nodes = [{ bx: cx, by: cy, hub: true, ang: 0 }];
-      const leaves = 10;
+      const leaves = 8;
       for (let i = 0; i < leaves; i++) {
         const ang = (i / leaves) * Math.PI * 2 + 0.35;
         const rr = R * (0.52 + (i % 4) * 0.1);
@@ -72,7 +72,7 @@ export function HeroMotionCanvas() {
           a: 0,
           b: i,
           phase: Math.random(),
-          speed: 0.11 + Math.random() * 0.1,
+          speed: 0.06 + Math.random() * 0.06,
         });
       }
       for (let i = 1; i < nodes.length; i++) {
@@ -82,18 +82,18 @@ export function HeroMotionCanvas() {
             a: i,
             b: j,
             phase: Math.random(),
-            speed: 0.06 + Math.random() * 0.07,
+            speed: 0.04 + Math.random() * 0.05,
           });
         }
       }
 
       const streams = [];
-      const cols = 8;
+      const cols = 4;
       for (let i = 0; i < cols; i++) {
         streams.push({
           x: rx0 + ((i + 0.5) / cols) * (rx1 - rx0),
           off: Math.random() * 200,
-          v: 72 + Math.random() * 88,
+          v: 18 + Math.random() * 22,
         });
       }
 
@@ -127,28 +127,28 @@ export function HeroMotionCanvas() {
 
     function nodePos(n, elapsed) {
       if (n.hub) {
-        const s = 4;
+        const s = 2.5;
         return {
-          x: n.bx + Math.sin(elapsed * 0.55) * s,
-          y: n.by + Math.cos(elapsed * 0.48) * s,
+          x: n.bx + Math.sin(elapsed * 0.32) * s,
+          y: n.by + Math.cos(elapsed * 0.28) * s,
         };
       }
-      const s = 3.2;
+      const s = 2.4;
       return {
-        x: n.bx + Math.sin(elapsed * 0.9 + n.ang) * s,
-        y: n.by + Math.cos(elapsed * 0.75 + n.ang * 1.3) * s,
+        x: n.bx + Math.sin(elapsed * 0.55 + n.ang) * s,
+        y: n.by + Math.cos(elapsed * 0.48 + n.ang * 1.2) * s,
       };
     }
 
     function drawHighways(elapsed) {
       const { rx0, rx1, ry0, ry1 } = stateRef.current;
       const rh = ry1 - ry0;
-      const dashOff = -(elapsed * 42) % 40;
+      const dashOff = -(elapsed * 12) % 40;
       ctx.save();
       ctx.setLineDash([6, 14]);
       ctx.lineDashOffset = dashOff;
       ctx.lineWidth = 1.1;
-      ctx.strokeStyle = "rgba(130,190,255,0.22)";
+      ctx.strokeStyle = "rgba(130,190,255,0.07)";
       ctx.beginPath();
       ctx.moveTo(rx0, ry0 + rh * 0.35);
       ctx.bezierCurveTo(
@@ -161,7 +161,7 @@ export function HeroMotionCanvas() {
       );
       ctx.stroke();
 
-      ctx.strokeStyle = "rgba(190,220,255,0.16)";
+      ctx.strokeStyle = "rgba(190,220,255,0.05)";
       ctx.lineDashOffset = dashOff * 0.85 + 8;
       ctx.beginPath();
       ctx.moveTo(rx0 + (rx1 - rx0) * 0.08, ry1);
@@ -186,31 +186,7 @@ export function HeroMotionCanvas() {
 
       const { ambient, nodes, edges, streams, rx0, rx1, ry0, ry1 } = st;
 
-      const g = ctx.createLinearGradient(0, 0, w, h);
-      const shift = Math.sin(elapsed * 0.08) * 0.02;
-      g.addColorStop(Math.max(0, shift), "#010208");
-      g.addColorStop(Math.min(1, 0.38 + shift * 0.5), "#050a16");
-      g.addColorStop(1, "#02040d");
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, w, h);
-
-      // Right-side depth grid
-      ctx.strokeStyle = "rgba(120,160,220,0.075)";
-      ctx.lineWidth = 1;
-      const gx = (elapsed * 8) % 32;
-      for (let x = rx0 + gx; x < rx1; x += 32) {
-        ctx.beginPath();
-        ctx.moveTo(x, ry0);
-        ctx.lineTo(x, ry1);
-        ctx.stroke();
-      }
-      const gy = (elapsed * 10) % 28;
-      for (let y = ry0 + gy; y < ry1; y += 28) {
-        ctx.beginPath();
-        ctx.moveTo(rx0, y);
-        ctx.lineTo(rx1, y);
-        ctx.stroke();
-      }
+      ctx.clearRect(0, 0, w, h);
 
       drawHighways(elapsed);
 
@@ -225,10 +201,10 @@ export function HeroMotionCanvas() {
         while (y < ry1 + 40) {
           const lg = ctx.createLinearGradient(s.x, y, s.x, y + seg);
           lg.addColorStop(0, "rgba(147,197,253,0)");
-          lg.addColorStop(0.45, "rgba(220,240,255,0.52)");
+          lg.addColorStop(0.45, "rgba(220,240,255,0.12)");
           lg.addColorStop(1, "rgba(147,197,253,0)");
           ctx.strokeStyle = lg;
-          ctx.lineWidth = 1.4;
+          ctx.lineWidth = 1.15;
           ctx.beginPath();
           ctx.moveTo(s.x, y);
           ctx.lineTo(s.x, y + seg);
@@ -247,9 +223,9 @@ export function HeroMotionCanvas() {
           if (p.y < -20) p.y = h + 20;
           if (p.y > h + 20) p.y = -20;
         }
-        const tw = 0.55 + 0.45 * Math.sin(elapsed * 2.4 + p.phase);
-        const rightBoost = p.x > splitX ? 1.35 : 0.85;
-        ctx.globalAlpha = (0.12 + tw * 0.38) * rightBoost;
+        const tw = 0.55 + 0.45 * Math.sin(elapsed * 1.6 + p.phase);
+        const rightBoost = p.x > splitX ? 1.15 : 0.72;
+        ctx.globalAlpha = (0.08 + tw * 0.22) * rightBoost;
         ctx.fillStyle = p.hot ? "rgb(200,230,255)" : "rgb(150,175,215)";
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r * (0.75 + tw * 0.45), 0, Math.PI * 2);
@@ -262,8 +238,9 @@ export function HeroMotionCanvas() {
       for (const e of edges) {
         const A = positions[e.a];
         const B = positions[e.b];
-        ctx.strokeStyle = "rgba(150,200,255,0.32)";
-        ctx.lineWidth = 1.25;
+        const pulse = 0.1 + 0.08 * Math.sin(elapsed * 0.35 + e.phase * 6.28);
+        ctx.strokeStyle = `rgba(150,200,255,${pulse})`;
+        ctx.lineWidth = 1.02;
         ctx.beginPath();
         ctx.moveTo(A.x, A.y);
         ctx.lineTo(B.x, B.y);
@@ -272,13 +249,13 @@ export function HeroMotionCanvas() {
         const drawPacket = (ph) => {
           const px = A.x + (B.x - A.x) * ph;
           const py = A.y + (B.y - A.y) * ph;
-          const rg = ctx.createRadialGradient(px, py, 0, px, py, 8);
-          rg.addColorStop(0, "rgba(255,255,255,1)");
-          rg.addColorStop(0.35, "rgba(200,230,255,0.85)");
+          const rg = ctx.createRadialGradient(px, py, 0, px, py, 6);
+          rg.addColorStop(0, "rgba(255,255,255,0.85)");
+          rg.addColorStop(0.4, "rgba(200,230,255,0.45)");
           rg.addColorStop(1, "rgba(80,150,255,0)");
           ctx.fillStyle = rg;
           ctx.beginPath();
-          ctx.arc(px, py, 5.2, 0, Math.PI * 2);
+          ctx.arc(px, py, 3.6, 0, Math.PI * 2);
           ctx.fill();
         };
         const ph = reduced ? 0.35 : (e.phase + elapsed * e.speed) % 1;
@@ -290,10 +267,10 @@ export function HeroMotionCanvas() {
 
       // Hub pulse rings
       const H = positions[0];
-      for (let ring = 0; ring < 3; ring++) {
-        const ph = (elapsed * 1.1 + ring * 0.7) % 1;
-        const rad = 18 + ph * 52;
-        const al = (1 - ph) * 0.36;
+      for (let ring = 0; ring < 1; ring++) {
+        const ph = (elapsed * 0.42 + ring * 0.85) % 1;
+        const rad = 22 + ph * 44;
+        const al = (1 - ph) * 0.14;
         ctx.strokeStyle = `rgba(140,200,255,${al})`;
         ctx.lineWidth = 1.2 - ph * 0.5;
         ctx.beginPath();
@@ -317,32 +294,12 @@ export function HeroMotionCanvas() {
         }
       }
 
-      // Radar arc from hub (right zone)
-      const arcStart = (elapsed * 0.55) % (Math.PI * 2);
-      ctx.strokeStyle = "rgba(130,200,255,0.2)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(H.x, H.y, st.R * 1.15, arcStart, arcStart + 1.1);
-      ctx.stroke();
-
-      // Horizontal light sweep (full width, slow)
-      if (!reduced) {
-        const sw = w * 0.35;
-        const sx = ((elapsed * 22) % (w + sw * 2)) - sw;
-        const gr = ctx.createLinearGradient(sx, 0, sx + sw, 0);
-        gr.addColorStop(0, "rgba(255,255,255,0)");
-        gr.addColorStop(0.5, "rgba(210,230,255,0.075)");
-        gr.addColorStop(1, "rgba(255,255,255,0)");
-        ctx.fillStyle = gr;
-        ctx.fillRect(0, 0, w, h);
-      }
-
-      // Vignette + left read legibility
-      const vg = ctx.createRadialGradient(w * 0.28, h * 0.45, 0, w * 0.28, h * 0.45, w * 0.75);
-      vg.addColorStop(0, "rgba(2,4,12,0.55)");
-      vg.addColorStop(0.45, "rgba(2,4,12,0.12)");
-      vg.addColorStop(1, "rgba(0,0,0,0.35)");
-      ctx.fillStyle = vg;
+      // Soft left read legibility (glass card sits here on mobile / small viewports)
+      const leg = ctx.createLinearGradient(0, 0, w * 0.42, 0);
+      leg.addColorStop(0, "rgba(3, 3, 8, 0.42)");
+      leg.addColorStop(0.55, "rgba(3, 3, 8, 0.08)");
+      leg.addColorStop(1, "rgba(3, 3, 8, 0)");
+      ctx.fillStyle = leg;
       ctx.fillRect(0, 0, w, h);
 
       if (!reduced) {

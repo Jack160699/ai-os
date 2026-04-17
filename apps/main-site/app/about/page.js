@@ -5,5 +5,5 @@ export const metadata = {
 };
 
 export default function AboutPage() {
-  redirect("/#about");
+  redirect("/#why");
 }
