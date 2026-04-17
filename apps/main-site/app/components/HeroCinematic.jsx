@@ -28,29 +28,32 @@ export function HeroCinematic() {
           <div className="sx-glass-hero rounded-[22px] p-8 sm:rounded-[26px] sm:p-10">
             <h1
               id="hero-heading"
-              className="sx-hero-fade-up sx-hero-fade-up-d1 text-balance text-center text-[2.05rem] font-semibold leading-[1.08] tracking-[-0.038em] text-[#E5E7EB] sm:text-[2.35rem] lg:text-left lg:text-[clamp(2.05rem,2.5vw,2.85rem)] lg:leading-[1.04]"
+              className="sx-hero-lead sx-hero-fade-up sx-hero-fade-up-d1 text-balance text-center text-[2.1rem] font-semibold leading-[1.07] tracking-[-0.042em] text-[#E5E7EB] sm:text-[2.42rem] lg:text-left lg:text-[clamp(2.12rem,2.65vw,3rem)] lg:leading-[1.03]"
             >
               Your business doesn&apos;t need more effort.
               <br />
               It needs better systems.
             </h1>
-            <p className="sx-hero-fade-up sx-hero-fade-up-d2 mt-5 text-center text-[15px] font-normal leading-[1.78] text-zinc-400 sm:text-[16px] lg:text-left">
+            <p className="sx-hero-fade-up sx-hero-fade-up-d2 mt-5 text-center text-[15px] font-normal leading-[1.82] text-zinc-300 sm:text-[16px] lg:text-left">
               We design systems that bring clarity, control, and growth.
             </p>
             <div className="sx-hero-cta-rise mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start">
               <Link
                 href="/#pricing"
-                className="inline-flex h-[50px] min-h-[48px] flex-1 items-center justify-center rounded-full border border-sky-500/25 bg-[#0B0F19]/90 px-8 text-[14px] font-semibold tracking-[-0.018em] text-[#E5E7EB] shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset,0_0_48px_-20px_rgba(59,130,246,0.22)] transition-[background-color,box-shadow,transform,border-color] duration-[520ms] ease-out hover:-translate-y-0.5 hover:border-sky-400/35 hover:bg-[#0f1524] hover:shadow-[0_0_56px_-18px_rgba(59,130,246,0.28)] active:translate-y-0 sm:min-w-[15.5rem] sm:flex-initial"
+                className="sx-cta-primary sx-cta-breathe inline-flex h-[52px] min-h-[48px] flex-1 items-center justify-center rounded-full border border-sky-500/32 bg-[#0B0F19]/95 px-8 text-[14px] font-semibold tracking-[-0.016em] text-[#E5E7EB] active:translate-y-0 sm:min-w-[15.5rem] sm:flex-initial"
               >
                 Request Business Diagnosis
               </Link>
               <Link
                 href="/#consultation"
-                className="inline-flex h-[50px] min-h-[48px] flex-1 items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.04] px-8 text-[14px] font-semibold tracking-[-0.018em] text-[#E5E7EB] shadow-[0_1px_0_rgba(255,255,255,0.06)_inset] backdrop-blur-md transition-[border-color,background-color,box-shadow,transform] duration-[520ms] ease-out hover:-translate-y-0.5 hover:border-white/22 hover:bg-white/[0.08] hover:shadow-[0_0_40px_-24px_rgba(59,130,246,0.15)] active:translate-y-0 sm:min-w-[15.5rem] sm:flex-initial"
+                className="sx-cta-secondary inline-flex h-[52px] min-h-[48px] flex-1 items-center justify-center rounded-full border border-white/[0.16] bg-white/[0.05] px-8 text-[14px] font-semibold tracking-[-0.016em] text-[#E5E7EB] shadow-[0_1px_0_rgba(255,255,255,0.06)_inset] backdrop-blur-md hover:border-white/24 hover:bg-white/[0.085] hover:shadow-[0_0_40px_-24px_rgba(59,130,246,0.15)] active:translate-y-0 sm:min-w-[15.5rem] sm:flex-initial"
               >
                 See How We Work
               </Link>
             </div>
+            <p className="sx-hero-trust-fade mt-3 text-center text-[11px] tracking-[-0.01em] text-zinc-400 lg:text-left">
+              Limited monthly diagnosis slots.
+            </p>
             <p className="sx-hero-trust-fade mt-8 text-center text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-500 lg:text-left">
               Built for serious businesses
               <span className="mx-2 text-zinc-600" aria-hidden>

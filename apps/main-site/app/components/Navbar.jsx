@@ -42,14 +42,14 @@ export function Navbar() {
   }, [open]);
 
   const navLinkClass =
-    "py-1 text-[13px] font-medium tracking-[-0.015em] text-zinc-400 antialiased transition-colors duration-300 ease-out hover:text-white";
+    "py-1 text-[13px] font-medium tracking-[-0.015em] text-zinc-400 antialiased transition-[color,text-shadow] duration-500 ease-out hover:text-white hover:[text-shadow:0_0_18px_rgba(147,197,253,0.2)]";
 
   const headerSurface = scrolled
     ? "border-b border-white/[0.07] bg-black/82 shadow-[0_20px_56px_-28px_rgba(0,0,0,0.82),0_1px_0_rgba(255,255,255,0.05)_inset] backdrop-blur-2xl backdrop-saturate-150"
     : "border-b border-transparent bg-black/40 backdrop-blur-xl";
 
   const ctaDesktopClass =
-    "inline-flex h-[38px] min-h-[44px] items-center justify-center rounded-full border border-sky-500/25 bg-[#0B0F19]/95 px-[1.2rem] text-[13px] font-semibold tracking-[-0.01em] text-[#E5E7EB] shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset,0_8px_32px_-14px_rgba(59,130,246,0.2)] transition-[background-color,box-shadow,transform,border-color] duration-[480ms] ease-out hover:border-sky-400/35 hover:bg-[#0f1524] hover:shadow-[0_0_44px_-12px_rgba(59,130,246,0.28)] active:scale-[0.98]";
+    "sx-cta-primary inline-flex h-[40px] min-h-[44px] items-center justify-center rounded-full border border-sky-500/30 bg-[#0B0F19]/95 px-[1.25rem] text-[13px] font-semibold tracking-[-0.01em] text-[#E5E7EB] active:scale-[0.98]";
 
   const menuBtnClass =
     "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/16 bg-white/[0.07] text-zinc-100 shadow-none backdrop-blur-md transition-[background-color,box-shadow,border-color] duration-300 ease-out hover:border-white/26 hover:bg-white/[0.12] active:scale-[0.97] lg:hidden";
@@ -168,7 +168,7 @@ export function Navbar() {
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="flex min-h-[52px] items-center border-b border-white/[0.06] text-[18px] font-medium tracking-[-0.02em] text-zinc-200 transition hover:text-white"
+                    className="flex min-h-[54px] items-center border-b border-white/[0.06] text-[18px] font-medium tracking-[-0.02em] text-zinc-200 transition-[color,letter-spacing] duration-500 ease-out hover:tracking-[-0.015em] hover:text-white"
                     onClick={() => setOpen(false)}
                   >
                     {l.label}
@@ -180,9 +180,9 @@ export function Navbar() {
               <Link
                 href="/#pricing"
                 onClick={() => setOpen(false)}
-                className="flex h-12 w-full items-center justify-center rounded-full border border-sky-500/25 bg-[#0B0F19] text-[15px] font-semibold text-[#E5E7EB] shadow-[0_0_40px_-14px_rgba(59,130,246,0.25)] transition-[background-color,box-shadow,transform,border-color] duration-[480ms] ease-out hover:border-sky-400/35 hover:bg-[#0f1524] active:scale-[0.99]"
+                className="sx-cta-primary flex h-[52px] w-full items-center justify-center rounded-full border border-sky-500/30 bg-[#0B0F19] text-[15px] font-semibold text-[#E5E7EB] active:scale-[0.99]"
               >
-                Request Diagnosis
+                Request Diagnosis Now
               </Link>
               <p className="mt-4 text-center text-[12px] leading-relaxed text-zinc-500">
                 Built for serious businesses · Selective engagements · India focused
