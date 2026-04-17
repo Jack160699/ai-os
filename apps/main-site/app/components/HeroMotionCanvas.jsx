@@ -93,7 +93,7 @@ export function HeroMotionCanvas() {
         streams.push({
           x: rx0 + ((i + 0.5) / cols) * (rx1 - rx0),
           off: Math.random() * 200,
-          v: 55 + Math.random() * 75,
+          v: 72 + Math.random() * 88,
         });
       }
 
@@ -148,7 +148,7 @@ export function HeroMotionCanvas() {
       ctx.setLineDash([6, 14]);
       ctx.lineDashOffset = dashOff;
       ctx.lineWidth = 1.1;
-      ctx.strokeStyle = "rgba(130,180,255,0.14)";
+      ctx.strokeStyle = "rgba(130,190,255,0.22)";
       ctx.beginPath();
       ctx.moveTo(rx0, ry0 + rh * 0.35);
       ctx.bezierCurveTo(
@@ -161,7 +161,7 @@ export function HeroMotionCanvas() {
       );
       ctx.stroke();
 
-      ctx.strokeStyle = "rgba(180,210,255,0.1)";
+      ctx.strokeStyle = "rgba(190,220,255,0.16)";
       ctx.lineDashOffset = dashOff * 0.85 + 8;
       ctx.beginPath();
       ctx.moveTo(rx0 + (rx1 - rx0) * 0.08, ry1);
@@ -195,7 +195,7 @@ export function HeroMotionCanvas() {
       ctx.fillRect(0, 0, w, h);
 
       // Right-side depth grid
-      ctx.strokeStyle = "rgba(100,140,200,0.045)";
+      ctx.strokeStyle = "rgba(120,160,220,0.075)";
       ctx.lineWidth = 1;
       const gx = (elapsed * 8) % 32;
       for (let x = rx0 + gx; x < rx1; x += 32) {
@@ -225,7 +225,7 @@ export function HeroMotionCanvas() {
         while (y < ry1 + 40) {
           const lg = ctx.createLinearGradient(s.x, y, s.x, y + seg);
           lg.addColorStop(0, "rgba(147,197,253,0)");
-          lg.addColorStop(0.45, "rgba(210,230,255,0.35)");
+          lg.addColorStop(0.45, "rgba(220,240,255,0.52)");
           lg.addColorStop(1, "rgba(147,197,253,0)");
           ctx.strokeStyle = lg;
           ctx.lineWidth = 1.4;
@@ -262,8 +262,8 @@ export function HeroMotionCanvas() {
       for (const e of edges) {
         const A = positions[e.a];
         const B = positions[e.b];
-        ctx.strokeStyle = "rgba(140,185,240,0.22)";
-        ctx.lineWidth = 1.15;
+        ctx.strokeStyle = "rgba(150,200,255,0.32)";
+        ctx.lineWidth = 1.25;
         ctx.beginPath();
         ctx.moveTo(A.x, A.y);
         ctx.lineTo(B.x, B.y);
@@ -272,13 +272,13 @@ export function HeroMotionCanvas() {
         const drawPacket = (ph) => {
           const px = A.x + (B.x - A.x) * ph;
           const py = A.y + (B.y - A.y) * ph;
-          const rg = ctx.createRadialGradient(px, py, 0, px, py, 6);
-          rg.addColorStop(0, "rgba(255,255,255,0.95)");
-          rg.addColorStop(0.35, "rgba(180,215,255,0.65)");
-          rg.addColorStop(1, "rgba(100,160,255,0)");
+          const rg = ctx.createRadialGradient(px, py, 0, px, py, 8);
+          rg.addColorStop(0, "rgba(255,255,255,1)");
+          rg.addColorStop(0.35, "rgba(200,230,255,0.85)");
+          rg.addColorStop(1, "rgba(80,150,255,0)");
           ctx.fillStyle = rg;
           ctx.beginPath();
-          ctx.arc(px, py, 4.2, 0, Math.PI * 2);
+          ctx.arc(px, py, 5.2, 0, Math.PI * 2);
           ctx.fill();
         };
         const ph = reduced ? 0.35 : (e.phase + elapsed * e.speed) % 1;
@@ -293,7 +293,7 @@ export function HeroMotionCanvas() {
       for (let ring = 0; ring < 3; ring++) {
         const ph = (elapsed * 1.1 + ring * 0.7) % 1;
         const rad = 18 + ph * 52;
-        const al = (1 - ph) * 0.28;
+        const al = (1 - ph) * 0.36;
         ctx.strokeStyle = `rgba(140,200,255,${al})`;
         ctx.lineWidth = 1.2 - ph * 0.5;
         ctx.beginPath();
@@ -319,7 +319,7 @@ export function HeroMotionCanvas() {
 
       // Radar arc from hub (right zone)
       const arcStart = (elapsed * 0.55) % (Math.PI * 2);
-      ctx.strokeStyle = "rgba(120,180,255,0.12)";
+      ctx.strokeStyle = "rgba(130,200,255,0.2)";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(H.x, H.y, st.R * 1.15, arcStart, arcStart + 1.1);
@@ -331,7 +331,7 @@ export function HeroMotionCanvas() {
         const sx = ((elapsed * 22) % (w + sw * 2)) - sw;
         const gr = ctx.createLinearGradient(sx, 0, sx + sw, 0);
         gr.addColorStop(0, "rgba(255,255,255,0)");
-        gr.addColorStop(0.5, "rgba(200,220,255,0.04)");
+        gr.addColorStop(0.5, "rgba(210,230,255,0.075)");
         gr.addColorStop(1, "rgba(255,255,255,0)");
         ctx.fillStyle = gr;
         ctx.fillRect(0, 0, w, h);

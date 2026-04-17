@@ -58,8 +58,8 @@ export function Navbar() {
   const headerToneHero = onHero && !open;
 
   const navLinkClass = headerToneHero
-    ? "py-1 text-[13px] font-medium tracking-[-0.01em] text-zinc-400 antialiased transition-colors duration-200 ease-out hover:text-white"
-    : "py-1 text-[13px] font-medium tracking-[-0.01em] text-zinc-500 antialiased transition-colors duration-200 ease-out hover:text-[var(--sx-navy)]";
+    ? "py-1 text-[13px] font-medium tracking-[-0.015em] text-zinc-400 antialiased transition-colors duration-200 ease-out hover:text-white"
+    : "py-1 text-[13px] font-medium tracking-[-0.015em] text-zinc-600 antialiased transition-colors duration-200 ease-out hover:text-[var(--sx-navy)]";
 
   const headerSurface = pastHero
     ? scrolled
@@ -87,8 +87,7 @@ export function Navbar() {
       >
         <div
           className={[
-            "relative mx-auto flex h-[56px] max-w-6xl items-center justify-between px-4 transition-[height] duration-300 sm:h-[60px] sm:px-6 xl:px-8 min-[1440px]:px-10",
-            scrolled ? "sm:h-[56px]" : "",
+            "relative mx-auto flex h-[var(--sx-nav-h)] max-w-[var(--sx-max)] items-center justify-between px-[var(--sx-gutter)] transition-[height] duration-300",
           ].join(" ")}
         >
           <StratxcelBrand tone={headerToneHero ? "hero" : "default"} />
@@ -168,7 +167,7 @@ export function Navbar() {
             open ? "translate-x-0" : "translate-x-full",
           ].join(" ")}
         >
-          <div className="flex h-[56px] items-center justify-between border-b border-zinc-100 px-4 sm:px-6">
+          <div className="flex h-[var(--sx-nav-h)] items-center justify-between border-b border-zinc-100 px-[var(--sx-gutter)]">
             <StratxcelBrand tone="default" />
             <button
               type="button"
@@ -186,7 +185,7 @@ export function Navbar() {
               </svg>
             </button>
           </div>
-          <nav className="flex flex-1 flex-col px-4 pt-6 sm:px-6" aria-label="Mobile primary">
+          <nav className="flex flex-1 flex-col px-[var(--sx-gutter)] pt-6" aria-label="Mobile primary">
             <ul className="flex flex-col gap-0.5">
               {links.map((l) => (
                 <li key={l.href}>
