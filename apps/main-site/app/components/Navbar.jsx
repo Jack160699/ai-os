@@ -15,12 +15,27 @@ const links = [
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [onHero, setOnHero] = useState(true);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const el = document.getElementById("hero-cinematic");
+    if (!el) {
+      setOnHero(false);
+      return;
+    }
+    const io = new IntersectionObserver(([e]) => setOnHero(e.isIntersecting), {
+      threshold: 0,
+      rootMargin: "-52px 0px -32% 0px",
+    });
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
 
   useEffect(() => {
@@ -39,12 +54,28 @@ export function Navbar() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const navLinkClass =
-    "py-1 text-[13px] font-medium tracking-[-0.01em] text-zinc-500 antialiased transition-colors duration-200 ease-out hover:text-[var(--sx-navy)]";
+  const pastHero = !onHero;
+  const headerToneHero = onHero && !open;
 
-  const headerSurface = scrolled
-    ? "border-b border-zinc-200/90 bg-white/95 shadow-[0_1px_0_rgba(0,0,0,0.04)] backdrop-blur-md"
-    : "border-b border-transparent bg-transparent";
+  const navLinkClass = headerToneHero
+    ? "py-1 text-[13px] font-medium tracking-[-0.01em] text-zinc-400 antialiased transition-colors duration-200 ease-out hover:text-white"
+    : "py-1 text-[13px] font-medium tracking-[-0.01em] text-zinc-500 antialiased transition-colors duration-200 ease-out hover:text-[var(--sx-navy)]";
+
+  const headerSurface = pastHero
+    ? scrolled
+      ? "border-b border-zinc-200/90 bg-white/93 shadow-[0_8px_32px_-16px_rgba(15,23,42,0.1)] backdrop-blur-xl"
+      : "border-b border-transparent bg-white/75 backdrop-blur-md"
+    : scrolled
+      ? "border-b border-white/[0.12] bg-[#06080f]/50 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+      : "border-b border-transparent bg-transparent";
+
+  const ctaDesktopClass = headerToneHero
+    ? "inline-flex h-[38px] min-h-[44px] items-center justify-center rounded-full bg-white/[0.96] px-[1.2rem] text-[13px] font-semibold tracking-[-0.01em] text-[var(--sx-navy)] shadow-[0_1px_0_rgba(255,255,255,0.5)_inset,0_8px_24px_-12px_rgba(0,0,0,0.35)] ring-1 ring-white/30 transition-[background-color,box-shadow,transform] duration-200 ease-out hover:bg-white hover:shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_12px_32px_-10px_rgba(37,99,235,0.25)] active:scale-[0.98]"
+    : "inline-flex h-[38px] min-h-[44px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-[1.125rem] text-[13px] font-semibold tracking-[-0.01em] text-white shadow-[0_1px_2px_rgba(12,18,34,0.12)] ring-1 ring-black/[0.08] transition-[background-color,box-shadow,transform] duration-200 ease-out hover:bg-[var(--sx-navy-soft)] hover:shadow-[0_4px_14px_-4px_rgba(12,18,34,0.35)] active:scale-[0.98]";
+
+  const menuBtnClass = headerToneHero
+    ? "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/20 bg-white/[0.08] text-zinc-100 shadow-none backdrop-blur-md transition-[background-color,box-shadow,border-color] duration-200 ease-out hover:border-white/30 hover:bg-white/[0.14] active:scale-[0.97] lg:hidden"
+    : "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-zinc-200/80 bg-white/70 text-zinc-800 shadow-sm backdrop-blur-sm transition-[background-color,box-shadow,border-color] duration-200 ease-out hover:border-zinc-300 hover:bg-white hover:shadow-md active:scale-[0.97] lg:hidden";
 
   return (
     <>
@@ -60,7 +91,7 @@ export function Navbar() {
             scrolled ? "sm:h-[56px]" : "",
           ].join(" ")}
         >
-          <StratxcelBrand />
+          <StratxcelBrand tone={headerToneHero ? "hero" : "default"} />
 
           <nav
             className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-6 min-[1440px]:gap-7 lg:flex"
@@ -74,10 +105,7 @@ export function Navbar() {
           </nav>
 
           <div className="hidden shrink-0 items-center lg:flex">
-            <Link
-              href="/#pricing"
-              className="inline-flex h-[38px] min-h-[44px] items-center justify-center rounded-full bg-[var(--sx-navy)] px-[1.125rem] text-[13px] font-semibold tracking-[-0.01em] text-white shadow-[0_1px_2px_rgba(12,18,34,0.12)] ring-1 ring-black/[0.08] transition-[background-color,box-shadow,transform,color] duration-200 ease-out hover:bg-[var(--sx-navy-soft)] hover:shadow-[0_4px_14px_-4px_rgba(12,18,34,0.35)] active:scale-[0.98]"
-            >
+            <Link href="/#pricing" className={ctaDesktopClass}>
               Request Diagnosis
             </Link>
           </div>
@@ -88,7 +116,7 @@ export function Navbar() {
             aria-controls="mobile-nav-panel"
             aria-label={open ? "Close menu" : "Open menu"}
             onClick={() => setOpen((v) => !v)}
-            className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-zinc-200/80 bg-white/70 text-zinc-800 shadow-sm backdrop-blur-sm transition-[background-color,box-shadow,border-color] duration-200 ease-out hover:border-zinc-300 hover:bg-white hover:shadow-md active:scale-[0.97] lg:hidden"
+            className={menuBtnClass}
           >
             <span className="sr-only">Menu</span>
             <span className="relative block h-5 w-5" aria-hidden>
@@ -141,7 +169,7 @@ export function Navbar() {
           ].join(" ")}
         >
           <div className="flex h-[56px] items-center justify-between border-b border-zinc-100 px-4 sm:px-6">
-            <StratxcelBrand />
+            <StratxcelBrand tone="default" />
             <button
               type="button"
               aria-label="Close menu"

@@ -121,4 +121,78 @@ body {
     animation: none;
     transform: none;
   }
+
+  .sx-hero-fog {
+    animation: none;
+  }
+
+  .sx-hero-glass-float {
+    animation: none;
+  }
+}
+
+/* Cinematic hero — glass panel + ambient fog */
+@keyframes sx-hero-fog-drift {
+  0%,
+  100% {
+    transform: scale(1) translate(0, 0);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.03) translate(1.2%, -0.8%);
+    opacity: 0.88;
+  }
+}
+
+@keyframes sx-hero-glass-float {
+  0%,
+  100% {
+    transform: translateY(0) translateX(0);
+  }
+  50% {
+    transform: translateY(-12px) translateX(5px);
+  }
+}
+
+.sx-hero-fog {
+  background:
+    radial-gradient(ellipse 90% 55% at 18% 28%, rgba(37, 99, 235, 0.14), transparent 52%),
+    radial-gradient(ellipse 70% 50% at 88% 72%, rgba(148, 163, 184, 0.09), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(12, 18, 34, 0.25), transparent 45%);
+  animation: sx-hero-fog-drift 32s ease-in-out infinite;
+}
+
+.sx-glass-hero {
+  background: linear-gradient(
+    152deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.05) 38%,
+    rgba(255, 255, 255, 0.025) 100%
+  );
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 1px 0 rgba(255, 255, 255, 0.14) inset,
+    0 40px 80px -40px rgba(0, 0, 0, 0.65),
+    0 0 60px -20px rgba(37, 99, 235, 0.12);
+}
+
+.sx-hero-glass-float {
+  animation: sx-hero-glass-float 20s ease-in-out infinite;
+}
+
+.sx-hero-glass-float-a {
+  animation-duration: 22s;
+}
+
+.sx-hero-glass-float-b {
+  animation-duration: 17s;
+  animation-delay: -6s;
+}
+
+.sx-hero-glass-float-c {
+  animation-duration: 24s;
+  animation-delay: -11s;
 }
