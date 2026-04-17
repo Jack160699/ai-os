@@ -3,8 +3,7 @@ import { Fragment } from "react";
 /**
  * Operational modules as one connected system — not a card grid.
  */
-export function ConnectedBuildRail({ className = "" }) {
-  const modules = ["Leads", "Automation", "Execution", "Tracking"];
+export function ConnectedBuildRail({ className = "", modules = ["Leads", "Automation", "Execution", "Tracking"] }) {
   return (
     <div
       className={[

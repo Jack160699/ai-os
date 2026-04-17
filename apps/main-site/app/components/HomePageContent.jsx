@@ -30,21 +30,18 @@ export function HomePageContent() {
   ].filter(([, href]) => href);
 
   const useCases = [
-    {
-      tag: "Signal",
-      title: "Service business — lead integrity",
-      body: "When intake, routing, SLA, and follow-through have clear owners, leakage tightens without adding headcount noise.",
-    },
-    {
-      tag: "Load",
-      title: "Founder — dependency curve",
-      body: "Cadence, priorities, and handoffs replace everything living in one head — fewer bottlenecks, faster decisions.",
-    },
-    {
-      tag: "Throughput",
-      title: "Team — execution rails",
-      body: "Checklists, standards, and escalation paths replace chat-thread operations so work ships on rhythm, not memory.",
-    },
+    { tag: "01", title: "Coaching business losing leads", body: "Lead follow-up system installed with clear response ownership and sequence discipline." },
+    { tag: "02", title: "Local service company relying on referrals", body: "Predictable inbound pipeline built to reduce dependency on word-of-mouth volatility." },
+    { tag: "03", title: "Founder overwhelmed daily", body: "Delegation workflow created with ownership mapping and escalation checkpoints." },
+    { tag: "04", title: "Sales team inconsistent", body: "CRM accountability system built with mandatory stage hygiene and follow-up visibility." },
+    { tag: "05", title: "Growing company blind on numbers", body: "Reporting dashboard installed for weekly operational decisions and issue detection." },
+    { tag: "06", title: "Agency stuck at same revenue", body: "Delivery and sales operating systems rebuilt to restore growth throughput." },
+    { tag: "07", title: "Clinic missing repeat customers", body: "Retention flow introduced across reminders, follow-ups, and repeat-value touchpoints." },
+    { tag: "08", title: "E-commerce messy operations", body: "SOP system created for fulfillment rhythm, handoffs, and exception handling." },
+    { tag: "09", title: "Real estate slow follow-up", body: "Lead response engine built to reduce delay and improve conversion consistency." },
+    { tag: "10", title: "Small team scaling chaos", body: "Process structure introduced to stabilize execution quality under higher load." },
+    { tag: "11", title: "Consultant dependent on founder brand", body: "Authority funnel built so demand generation is not personality-dependent." },
+    { tag: "12", title: "Business growing but leaking profit", body: "Inefficiency diagnosis run and corrected through operational system fixes." },
   ];
   const trustSignals = [
     "Registered Indian Company",
@@ -138,18 +135,28 @@ export function HomePageContent() {
         <SectionReveal>
           <div className="sx-container">
             <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">What We Build</p>
-            <h2 className="sx-heading-space mt-3">Connected modules, one intelligence layer.</h2>
+            <h2 className="sx-heading-space mt-3">
+              We don&apos;t sell services.
+              <br />
+              We build growth systems.
+            </h2>
             <p className="sx-prose-space sx-prose-space--wide">
-              We do not ship random artifacts. We engineer system modules that connect into one flow architecture:
-              lead intake, automation logic, execution discipline, and tracking intelligence.
+              Every business bottleneck is usually a systems issue in disguise.
             </p>
-            <ConnectedBuildRail />
+            <ConnectedBuildRail
+              modules={[
+                "Lead Generation Systems",
+                "Sales Conversion Systems",
+                "Operations Systems",
+                "Growth Intelligence Systems",
+              ]}
+            />
             <div className="mt-8 grid gap-3 md:grid-cols-4">
               {[
-                ["Leads", "Routing logic, qualification signals, and response sequencing."],
-                ["Automation", "Low-noise automations that support operators, not replace thinking."],
-                ["Execution", "Operating rhythm, ownership rails, escalation paths, and SOP flow."],
-                ["Tracking", "Decision dashboards focused on bottlenecks, velocity, and throughput."],
+                ["Lead Generation Systems", "Build predictable inbound and outbound lead flow with clear signal quality."],
+                ["Sales Conversion Systems", "Improve follow-up speed, tracking discipline, and closing consistency."],
+                ["Operations Systems", "Reduce founder dependency and eliminate execution chaos in day-to-day delivery."],
+                ["Growth Intelligence Systems", "Install dashboards, tracking, and decision visibility that teams can act on."],
               ].map(([title, body]) => (
                 <div key={title} className="rounded-xl border border-white/[0.08] bg-[#0B0F19]/35 p-4 backdrop-blur-md">
                   <p className="text-[11px] uppercase tracking-[0.2em] text-sky-300/65">{title}</p>
@@ -224,19 +231,18 @@ export function HomePageContent() {
         <SectionReveal>
           <div className="sx-container">
             <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Use Cases</p>
-            <h2 className="sx-heading-space mt-3">Command-center style operational scenarios.</h2>
+            <h2 className="sx-heading-space mt-3">Real operational scenarios we solve.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
-              Typical patterns where a systems intervention produces visible control. Scope and outcomes are always
-              finalized after diagnosis.
+              Every business has different symptoms. Most share the same root problem: weak systems.
             </p>
-            <ul className="mt-10 grid list-none gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-10 grid list-none gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {useCases.map((c) => (
                 <li
                   key={c.title}
                   className="flex flex-col rounded-xl border border-white/[0.08] bg-[#0B0F19]/40 p-5 backdrop-blur-md transition-[border-color,box-shadow,transform] duration-[600ms] ease-out hover:-translate-y-0.5 hover:border-sky-500/18 hover:shadow-[0_0_44px_-20px_rgba(59,130,246,0.14)]"
                 >
                   <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">{c.tag}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">Case {c.tag}</span>
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/30 shadow-[0_0_12px_rgba(52,211,153,0.25)]" aria-hidden />
                   </div>
                   <p className="mt-3 text-[14px] font-semibold tracking-[-0.02em] text-zinc-200">{c.title}</p>
@@ -244,6 +250,54 @@ export function HomePageContent() {
                 </li>
               ))}
             </ul>
+          </div>
+        </SectionReveal>
+      </section>
+
+      <section id="results" className="sx-section-space">
+        <SectionReveal>
+          <div className="sx-container">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Results</p>
+            <h2 className="sx-heading-space mt-3">What better systems usually create.</h2>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                "Faster response times",
+                "Better lead consistency",
+                "Less founder overload",
+                "Clearer operations",
+                "Higher team accountability",
+                "Better decision visibility",
+                "Smoother growth capacity",
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="rounded-xl border border-white/[0.08] bg-[#0B0F19]/38 px-4 py-4 text-[13px] font-medium tracking-[-0.01em] text-zinc-200 backdrop-blur-md"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+            <p className="mt-6 text-[12px] tracking-[0.02em] text-zinc-400">
+              Results vary by business stage, team quality, and execution speed.
+            </p>
+          </div>
+        </SectionReveal>
+      </section>
+
+      <section id="why-now" className="sx-section-space">
+        <SectionReveal>
+          <div className="sx-container sx-container--narrow">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Why This Matters Now</p>
+            <h2 className="sx-heading-space mt-3">Growth gets expensive when inefficiency compounds.</h2>
+            <p className="sx-prose-space sx-prose-space--wide">
+              Most businesses try to grow on top of broken systems.
+            </p>
+            <p className="sx-prose-space sx-prose-space--wide mt-3">
+              That creates stress, waste, delays, and invisible leakage.
+            </p>
+            <p className="sx-prose-space sx-prose-space--wide mt-3">
+              Fixing systems early compounds future growth.
+            </p>
           </div>
         </SectionReveal>
       </section>
@@ -303,19 +357,16 @@ export function HomePageContent() {
         <SectionReveal>
           <div className="sx-container sx-container--narrow text-center">
             <h2 className="sx-heading-space text-[1.45rem] leading-snug sm:text-[1.7rem]">
-              Your next level of growth is a systems decision.
+              You may not need more marketing.
+              <br />
+              You may need better operations.
             </h2>
-            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <div className="mt-10 flex flex-col items-center gap-4">
               <Link href="/#pricing" className={ctaPrimaryClass}>
                 Request Business Diagnosis
               </Link>
-              <Link
-                href="/#consultation"
-                className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.04] px-8 text-[14px] font-semibold tracking-[-0.015em] text-[#E5E7EB] backdrop-blur-md transition-[border-color,background-color,transform] duration-[520ms] ease-out hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.07] active:translate-y-0"
-              >
-                See How We Work
-              </Link>
             </div>
+            <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">For serious operators only.</p>
           </div>
         </SectionReveal>
       </section>
