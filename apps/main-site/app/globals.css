@@ -468,7 +468,7 @@ body {
   font-weight: 600;
   letter-spacing: -0.03em;
   color: #e5e7eb;
-  line-height: 1.2;
+  line-height: 1.18;
 }
 
 @media (min-width: 640px) {
@@ -481,7 +481,7 @@ body {
   margin-top: 1.25rem;
   max-width: 60ch;
   font-size: 0.9375rem;
-  line-height: 1.78;
+  line-height: 1.82;
   color: rgb(161 161 170);
 }
 
@@ -544,8 +544,8 @@ body {
 
 .sx-social-space {
   display: inline-flex;
-  height: 2.75rem;
-  width: 2.75rem;
+  height: 2.9rem;
+  width: 2.9rem;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
@@ -573,8 +573,8 @@ body {
   background: rgba(11, 15, 25, 0.72);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  padding-top: 3rem;
-  padding-bottom: 3rem;
+  padding-top: 3.2rem;
+  padding-bottom: 2.8rem;
 }
 
 /* Section constellation SVGs */

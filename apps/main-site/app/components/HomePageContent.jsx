@@ -38,7 +38,6 @@ export function HomePageContent() {
   const socialRows = [
     ["LinkedIn", SOCIAL.linkedin],
     ["Instagram", SOCIAL.instagram],
-    ["Facebook", SOCIAL.facebook],
     ["X", SOCIAL.x],
     ["YouTube", SOCIAL.youtube],
     ["GitHub", SOCIAL.github],
@@ -372,16 +371,19 @@ export function HomePageContent() {
         <SectionReveal>
           <div className="sx-container sx-container--narrow text-center">
             <h2 className="sx-heading-space text-[1.45rem] leading-snug sm:text-[1.7rem]">
-              You may not need more marketing.
-              <br />
-              You may need better operations.
+              Growth becomes easier when systems become stronger.
             </h2>
+            <p className="mx-auto mt-4 max-w-[56ch] text-[15px] leading-relaxed text-zinc-400">
+              Most businesses don&apos;t need more pressure.
+              <br />
+              They need better structure.
+            </p>
             <div className="mt-10 flex flex-col items-center gap-4">
               <Link href="/#pricing" className={ctaPrimaryClass}>
                 Request Business Diagnosis
               </Link>
             </div>
-            <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">For serious operators only.</p>
+            <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">Limited monthly availability.</p>
           </div>
         </SectionReveal>
       </section>
@@ -549,15 +551,27 @@ export function HomePageContent() {
 
       <section id="contact" className="sx-section-space">
         <SectionReveal>
-          <div className="sx-container">
+          <div className="sx-container sx-container--narrow text-center">
             <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Contact</p>
-            <h2 className="sx-heading-space mt-3">Request a serious business diagnosis.</h2>
-            <p className="sx-prose-space sx-prose-space--wide">
-              Share context, constraints, and the outcome you need in the next 90 days. We reply with a direct, practical
-              read — not a generic brochure.
+            <h2 className="sx-heading-space mt-3">Start the right conversation.</h2>
+            <p className="mx-auto mt-4 max-w-[58ch] text-[15px] leading-relaxed text-zinc-400">
+              If growth feels harder than it should, there may be a systems reason.
             </p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link href="/#pricing" className={ctaPrimaryClass}>
+                Request Diagnosis
+              </Link>
+              <a
+                href={`https://wa.me/${String(CONTACT.whatsapp || "").replace(/[^\d]/g, "")}`}
+                className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.04] px-8 text-[14px] font-semibold tracking-[-0.015em] text-[#E5E7EB] backdrop-blur-md transition-[border-color,background-color,transform] duration-[520ms] ease-out hover:-translate-y-0.5 hover:border-white/22 hover:bg-white/[0.08] active:translate-y-0"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Message on WhatsApp
+              </a>
+            </div>
             <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">Quiet execution. Visible outcomes.</p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
               {socialRows.map(([label, href]) => (
                 <a
                   key={label}
@@ -567,7 +581,7 @@ export function HomePageContent() {
                   aria-label={label}
                   title={label}
                 >
-                  {label.slice(0, 2)}
+                  {label.slice(0, 1)}
                 </a>
               ))}
               <a
