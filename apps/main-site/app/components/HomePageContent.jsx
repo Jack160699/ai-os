@@ -46,10 +46,36 @@ export function HomePageContent() {
       body: "Checklists, standards, and escalation paths replace chat-thread operations so work ships on rhythm, not memory.",
     },
   ];
+  const trustSignals = [
+    "Registered Indian Company",
+    "Founder-led execution",
+    "Selective partnerships",
+    "Long-term systems focus",
+    "India focused operations",
+  ];
 
   return (
     <>
       <HeroCinematic />
+
+      <section id="trust-signals" className="sx-section-space pt-10 pb-8 sm:pt-12 sm:pb-10">
+        <SectionReveal>
+          <div className="sx-container">
+            <div className="rounded-2xl border border-white/[0.08] bg-[#0B0F19]/34 p-2 backdrop-blur-xl">
+              <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                {trustSignals.map((item) => (
+                  <li
+                    key={item}
+                    className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-center text-[11px] font-medium tracking-[0.08em] text-zinc-300"
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </SectionReveal>
+      </section>
 
       <section id="pain" className="sx-section-space">
         <SectionReveal>
@@ -61,6 +87,7 @@ export function HomePageContent() {
               Most breakdowns are not effort issues. They are system-flow failures: handoffs break, ownership blurs,
               and decision signals arrive too late.
             </p>
+            <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">Built for serious operators.</p>
             <ul className="mt-10 divide-y divide-white/[0.07] rounded-2xl border border-white/[0.08] bg-[#0B0F19]/38 backdrop-blur-xl">
               {[
                 ["Leads leak", "Response velocity is slow, follow-up chains break, and qualified demand goes dark."],
@@ -88,6 +115,7 @@ export function HomePageContent() {
               We redesign operational flow end-to-end, so information, ownership, and execution move as a coordinated
               system instead of reactive firefighting.
             </p>
+            <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">Long-term thinking over quick hacks.</p>
             <div className="mt-10 rounded-2xl border border-white/[0.08] bg-[#0B0F19]/35 p-1 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,0,0,0.45)_inset] sm:p-2">
               <ul className="divide-y divide-white/[0.06] sm:grid sm:grid-cols-3 sm:divide-x sm:divide-y-0">
                 {[
@@ -138,15 +166,22 @@ export function HomePageContent() {
           <div className="sx-container">
             <SectionSystemGraphic variant="control" className="mb-4" />
             <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Why Stratxcel</p>
-            <h2 className="sx-heading-space mt-3">Systems thinking with execution gravity.</h2>
+            <h2 className="sx-heading-space mt-3">
+              Most businesses don&apos;t need more hustle.
+              <br />
+              They need better systems.
+            </h2>
             <p className="sx-prose-space sx-prose-space--wide">
-              The market does not reward activity. It rewards coherent systems that execute reliably under constraint.
+              Growth slows when operations depend on memory, chaos, and constant founder involvement.
+            </p>
+            <p className="sx-prose-space sx-prose-space--wide mt-4">
+              We help businesses replace friction with structure, speed, and clarity.
             </p>
             <div className="mt-10 grid gap-4 md:grid-cols-3">
               {[
-                ["Systems thinking", "We map bottlenecks, sequence, and feedback loops before touching execution detail."],
-                ["Execution", "Led by operators who ship under constraint — standards, cadence, and accountability first."],
-                ["Clarity", 'One honest picture of what "fixed" looks like — then rails your team can run without noise.'],
+                ["Systems Thinking", "We diagnose bottlenecks, decision loops, and ownership architecture before interventions."],
+                ["Execution Discipline", "We install operating rhythm, standards, and accountability so teams ship without chaos."],
+                ["Compounding Growth", "We build system leverage that improves output quality, speed, and consistency over time."],
               ].map(([title, body]) => (
                 <div
                   key={title}
@@ -157,6 +192,30 @@ export function HomePageContent() {
                 </div>
               ))}
             </div>
+            <p className="mt-6 text-[12px] tracking-[0.02em] text-zinc-400">Selective engagements only.</p>
+          </div>
+        </SectionReveal>
+      </section>
+
+      <section id="founder-mindset" className="sx-section-space">
+        <SectionReveal>
+          <div className="sx-container sx-container--narrow">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Founder Psychology</p>
+            <h2 className="sx-heading-space mt-3">Built by someone who solves problems through systems.</h2>
+            <div className="mt-7 rounded-2xl border border-white/[0.08] bg-[#0B0F19]/40 p-6 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,0,0,0.45)_inset] sm:p-7">
+              <p className="text-[14px] leading-relaxed text-zinc-300">I build systems first for my own work.</p>
+              <p className="mt-3 text-[14px] leading-relaxed text-zinc-300">Then test them under pressure.</p>
+              <p className="mt-3 text-[14px] leading-relaxed text-zinc-300">
+                Then refine them until they create real leverage.
+              </p>
+              <p className="mt-5 text-[14px] leading-relaxed text-zinc-400">
+                That same mindset powers Stratxcel.
+              </p>
+              <p className="mt-3 text-[14px] leading-relaxed text-zinc-400">
+                We don&apos;t sell random services. We build solutions that remove friction and create momentum.
+              </p>
+            </div>
+            <p className="mt-6 text-[12px] tracking-[0.02em] text-zinc-400">Quiet execution. Visible outcomes.</p>
           </div>
         </SectionReveal>
       </section>
@@ -197,6 +256,7 @@ export function HomePageContent() {
             <p className="sx-prose-space sx-prose-space--wide">
               Every engagement starts with a structured diagnosis to map flow, reveal constraints, and determine fit.
             </p>
+            <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">Selective engagements only.</p>
             <ol className="mt-8 grid list-none gap-4 pl-0 md:grid-cols-3">
               {[
                 ["1 - Request", 'You submit business context, bottlenecks, and what "fixed" means in the next 90 days.'],
@@ -269,6 +329,7 @@ export function HomePageContent() {
             <p className="sx-prose-space sx-prose-space--wide mt-4">
               For operators who want execution depth, system discipline, and real responsibility.
             </p>
+            <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">Long-term thinking over quick hacks.</p>
             <div className="sx-card-grid sm:grid-cols-2 lg:grid-cols-4">
               {roles.slice(0, 6).map((r) => (
                 <Link
@@ -308,6 +369,7 @@ export function HomePageContent() {
               Share context, constraints, and the outcome you need in the next 90 days. We reply with a direct, practical
               read — not a generic brochure.
             </p>
+            <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">Quiet execution. Visible outcomes.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               {socialRows.map(([label, href]) => (
                 <a
