@@ -55,17 +55,18 @@ export function HomePageContent() {
         <SectionReveal>
           <div className="sx-container">
             <SectionSystemGraphic variant="fragmented" className="mb-2" />
-            <h2 className="sx-heading-space">When nodes drift, the system goes quiet.</h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Problem State</p>
+            <h2 className="sx-heading-space mt-3">When business nodes disconnect, growth gets noisy.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
-              That is the feel of business chaos: effort rises, but signal does not. The failure is rarely motivation — it
-              is disconnected flow between the parts that should move revenue.
+              Most breakdowns are not effort issues. They are system-flow failures: handoffs break, ownership blurs,
+              and decision signals arrive too late.
             </p>
-            <ul className="mt-10 divide-y divide-white/[0.07] border-y border-white/[0.08]">
+            <ul className="mt-10 divide-y divide-white/[0.07] rounded-2xl border border-white/[0.08] bg-[#0B0F19]/38 backdrop-blur-xl">
               {[
-                ["Leads lost", "Slow response, dropped follow-ups, and no clear owner for revenue-critical steps."],
-                ["Slow execution", "Decisions wait on the founder; teams lack cadence, standards, and handoffs."],
-                ["Founder overload", "Tactical work crowds out strategy because systems do not carry the load."],
-                ["Inconsistent growth", "Revenue wobbles because operations are not stable under pressure."],
+                ["Leads leak", "Response velocity is slow, follow-up chains break, and qualified demand goes dark."],
+                ["Execution stalls", "Teams rely on chat memory instead of operational rails, standards, and cadence."],
+                ["Founder saturation", "Decision load centralizes around one person, creating constant throughput drag."],
+                ["Unstable growth", "Revenue swings because systems cannot hold pressure under scale."],
               ].map(([t, d]) => (
                 <li key={t} className="flex flex-col gap-1 py-4 sm:flex-row sm:items-baseline sm:gap-10 sm:py-5">
                   <span className="shrink-0 text-[13px] font-semibold tracking-[-0.01em] text-zinc-200">{t}</span>
@@ -81,17 +82,18 @@ export function HomePageContent() {
         <SectionReveal>
           <div className="sx-container">
             <SectionSystemGraphic variant="forming" className="mb-2" />
-            <h2 className="sx-heading-space">From noise to a single operating graph.</h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Transformation</p>
+            <h2 className="sx-heading-space mt-3">From scattered effort to one operating graph.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
-              We do not patch symptoms. We redesign how information, ownership, and rhythm flow — so the business runs
-              with clarity instead of heroics.
+              We redesign operational flow end-to-end, so information, ownership, and execution move as a coordinated
+              system instead of reactive firefighting.
             </p>
             <div className="mt-10 rounded-2xl border border-white/[0.08] bg-[#0B0F19]/35 p-1 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,0,0,0.45)_inset] sm:p-2">
               <ul className="divide-y divide-white/[0.06] sm:grid sm:grid-cols-3 sm:divide-x sm:divide-y-0">
                 {[
-                  ["Chaos → clarity", "One map of what matters, who owns it, and how progress is measured."],
-                  ["Manual → systems", "Repeatable rails replace memory, chat threads, and one-off fixes."],
-                  ["Effort → leverage", "The same team produces more, with less thrash and fewer drop-offs."],
+                  ["Chaos -> clarity", "Every critical workflow, owner, and signal becomes explicit and measurable."],
+                  ["Manual -> systems", "Repeatable rails replace dependence on memory and ad-hoc coordination."],
+                  ["Effort -> leverage", "The same team ships more output with fewer bottlenecks and escalations."],
                 ].map(([t, d]) => (
                   <li key={t} className="px-4 py-5 sm:px-5 sm:py-6">
                     <p className="text-[13px] font-semibold tracking-[-0.01em] text-zinc-200">{t}</p>
@@ -107,16 +109,26 @@ export function HomePageContent() {
       <section id="systems" className="sx-section-space">
         <SectionReveal>
           <div className="sx-container">
-            <h2 className="sx-heading-space">What we build — connected modules, not decks.</h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">What We Build</p>
+            <h2 className="sx-heading-space mt-3">Connected modules, one intelligence layer.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
-              Deliverables are operational: workflows, ownership maps, dashboards, and automation where they earn their
-              place. Nothing ornamental. Everything built to run as one system.
+              We do not ship random artifacts. We engineer system modules that connect into one flow architecture:
+              lead intake, automation logic, execution discipline, and tracking intelligence.
             </p>
             <ConnectedBuildRail />
-            <p className="sx-prose-space sx-prose-space--wide mt-10">
-              Under the hood: handoff design between people and tools, documentation teams actually use, and tracking
-              that shows signal — not vanity metrics.
-            </p>
+            <div className="mt-8 grid gap-3 md:grid-cols-4">
+              {[
+                ["Leads", "Routing logic, qualification signals, and response sequencing."],
+                ["Automation", "Low-noise automations that support operators, not replace thinking."],
+                ["Execution", "Operating rhythm, ownership rails, escalation paths, and SOP flow."],
+                ["Tracking", "Decision dashboards focused on bottlenecks, velocity, and throughput."],
+              ].map(([title, body]) => (
+                <div key={title} className="rounded-xl border border-white/[0.08] bg-[#0B0F19]/35 p-4 backdrop-blur-md">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-sky-300/65">{title}</p>
+                  <p className="mt-3 text-[13px] leading-relaxed text-zinc-400">{body}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </SectionReveal>
       </section>
@@ -125,10 +137,10 @@ export function HomePageContent() {
         <SectionReveal>
           <div className="sx-container">
             <SectionSystemGraphic variant="control" className="mb-4" />
-            <h2 className="sx-heading-space">Why Stratxcel</h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Why Stratxcel</p>
+            <h2 className="sx-heading-space mt-3">Systems thinking with execution gravity.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
-              Most businesses stay stuck because they fix tasks, not systems. New tools rarely change outcomes when the
-              operating architecture is unchanged.
+              The market does not reward activity. It rewards coherent systems that execute reliably under constraint.
             </p>
             <div className="mt-10 grid gap-4 md:grid-cols-3">
               {[
@@ -152,10 +164,11 @@ export function HomePageContent() {
       <section id="cases" className="sx-section-space">
         <SectionReveal>
           <div className="sx-container">
-            <h2 className="sx-heading-space">Use cases — command readouts.</h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Use Cases</p>
+            <h2 className="sx-heading-space mt-3">Command-center style operational scenarios.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
-              Illustrative patterns we see repeatedly. Every engagement is scoped after diagnosis; outcomes depend on your
-              context and commitment to run what we design.
+              Typical patterns where a systems intervention produces visible control. Scope and outcomes are always
+              finalized after diagnosis.
             </p>
             <ul className="mt-10 grid list-none gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {useCases.map((c) => (
@@ -176,19 +189,19 @@ export function HomePageContent() {
         </SectionReveal>
       </section>
 
-      <section id="consultation" className="sx-section-space">
+      <section id="consultation" className="sx-section-space sx-section-space--ridge">
         <SectionReveal>
           <div className="sx-container">
-            <h2 className="sx-heading-space">How we work — diagnosis first.</h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">How We Work</p>
+            <h2 className="sx-heading-space mt-3">Diagnosis first. Build second.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
-              A paid diagnosis is the entry point. It is structured, documented, and designed to surface whether we
-              should work together further.
+              Every engagement starts with a structured diagnosis to map flow, reveal constraints, and determine fit.
             </p>
             <ol className="mt-8 grid list-none gap-4 pl-0 md:grid-cols-3">
               {[
-                ["1 — Request", 'You submit context: business model, bottlenecks, and what "fixed" looks like in 90 days.'],
-                ["2 — Diagnose", "We run a working session: map systems, gaps, and sequence. You leave with clarity, not jargon."],
-                ["3 — Together (optional)", "If there is mutual fit, we propose an execution arc. If not, you still keep the diagnosis output."],
+                ["1 - Request", 'You submit business context, bottlenecks, and what "fixed" means in the next 90 days.'],
+                ["2 - Diagnose", "We map current-state systems, identify breakpoints, and define sequence priorities."],
+                ["3 - Execute (optional)", "If fit is strong, we design and implement your execution architecture together."],
               ].map(([t, d]) => (
                 <li
                   key={t}
@@ -216,7 +229,8 @@ export function HomePageContent() {
       <section id="pricing" className="sx-section-space">
         <SectionReveal>
           <div className="sx-container">
-            <h2 className="sx-heading-space">Diagnosis — intent before fee.</h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Entry Gate</p>
+            <h2 className="sx-heading-space mt-3">Intent before fee. Clarity before commitment.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
               We lead with fit and seriousness of intent. Fee and scope are disclosed only when you choose to proceed.
             </p>
@@ -229,9 +243,7 @@ export function HomePageContent() {
         <SectionReveal>
           <div className="sx-container sx-container--narrow text-center">
             <h2 className="sx-heading-space text-[1.45rem] leading-snug sm:text-[1.7rem]">
-              If growth feels harder than it should,
-              <br />
-              your systems are likely the problem.
+              Your next level of growth is a systems decision.
             </h2>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Link href="/#pricing" className={ctaPrimaryClass}>
@@ -251,10 +263,11 @@ export function HomePageContent() {
       <section id="careers" className="sx-section-space">
         <SectionReveal>
           <div className="sx-container">
-            <h2 className="sx-heading-space">Careers</h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Careers</p>
+            <h2 className="sx-heading-space mt-3">Join a system, not a company.</h2>
             <p className="mt-3 text-[15px] font-medium tracking-[-0.02em] text-zinc-300">Join a system, not a company.</p>
             <p className="sx-prose-space sx-prose-space--wide mt-4">
-              For serious learners who want execution depth, not certificate theatre. Intern and full-time paths below.
+              For operators who want execution depth, system discipline, and real responsibility.
             </p>
             <div className="sx-card-grid sm:grid-cols-2 lg:grid-cols-4">
               {roles.slice(0, 6).map((r) => (
@@ -289,7 +302,8 @@ export function HomePageContent() {
       <section id="contact" className="sx-section-space">
         <SectionReveal>
           <div className="sx-container">
-            <h2 className="sx-heading-space">Contact</h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Contact</p>
+            <h2 className="sx-heading-space mt-3">Request a serious business diagnosis.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
               Share context, constraints, and the outcome you need in the next 90 days. We reply with a direct, practical
               read — not a generic brochure.

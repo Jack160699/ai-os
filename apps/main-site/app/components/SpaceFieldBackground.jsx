@@ -86,6 +86,9 @@ export function SpaceFieldBackground() {
             a,
             b,
             phase: Math.random() * Math.PI * 2,
+            life: Math.random(),
+            speed: 0.08 + Math.random() * 0.18,
+            on: Math.random() > 0.3,
           });
         }
       }
@@ -205,6 +208,14 @@ export function SpaceFieldBackground() {
         0.04 * introEdges * introStabilize * edgeBreath + (reduced ? 0.06 : 0);
 
       for (const e of edges) {
+        if (!reduced) {
+          e.life += dt * e.speed * (e.on ? 1 : -1);
+          if (e.life >= 1) e.on = false;
+          if (e.life <= 0) e.on = true;
+          e.life = Math.max(0, Math.min(1, e.life));
+        } else {
+          e.life = 0.75;
+        }
         const A = nodes[e.a];
         const B = nodes[e.b];
         if (!A || !B) continue;
@@ -213,7 +224,8 @@ export function SpaceFieldBackground() {
         const bx = B.x + parallax * B.z;
         const by = B.y + parallax2 * B.z * 0.55;
         const flicker = 0.55 + 0.45 * Math.sin(elapsed * 0.22 + e.phase);
-        const a = edgeBase * flicker;
+        const fade = e.life < 0.5 ? e.life / 0.5 : (1 - e.life) / 0.5;
+        const a = edgeBase * flicker * (0.45 + fade * 0.55);
         if (a < 0.008) continue;
         ctx.strokeStyle = `rgba(59, 130, 246, ${a})`;
         ctx.lineWidth = 0.85;
