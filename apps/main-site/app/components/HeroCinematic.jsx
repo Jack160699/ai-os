@@ -54,7 +54,7 @@ export function HeroCinematic() {
             <p className="sx-hero-trust-fade mt-3 text-center text-[11px] tracking-[-0.01em] text-zinc-400 lg:text-left">
               Limited monthly diagnosis slots.
             </p>
-            <p className="sx-hero-trust-fade mt-8 text-center text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-500 lg:text-left">
+            <p className="sx-hero-trust-fade mt-8 text-center text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400 lg:text-left">
               Built for serious businesses
               <span className="mx-2 text-zinc-600" aria-hidden>
                 •

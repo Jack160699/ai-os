@@ -55,7 +55,7 @@ export function HomePageContent() {
         <SectionReveal>
           <div className="sx-container">
             <SectionSystemGraphic variant="fragmented" className="mb-2" />
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Problem State</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Problem State</p>
             <h2 className="sx-heading-space mt-3">When business nodes disconnect, growth gets noisy.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
               Most breakdowns are not effort issues. They are system-flow failures: handoffs break, ownership blurs,
@@ -82,7 +82,7 @@ export function HomePageContent() {
         <SectionReveal>
           <div className="sx-container">
             <SectionSystemGraphic variant="forming" className="mb-2" />
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Transformation</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Transformation</p>
             <h2 className="sx-heading-space mt-3">From scattered effort to one operating graph.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
               We redesign operational flow end-to-end, so information, ownership, and execution move as a coordinated
@@ -109,7 +109,7 @@ export function HomePageContent() {
       <section id="systems" className="sx-section-space">
         <SectionReveal>
           <div className="sx-container">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">What We Build</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">What We Build</p>
             <h2 className="sx-heading-space mt-3">Connected modules, one intelligence layer.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
               We do not ship random artifacts. We engineer system modules that connect into one flow architecture:
@@ -137,7 +137,7 @@ export function HomePageContent() {
         <SectionReveal>
           <div className="sx-container">
             <SectionSystemGraphic variant="control" className="mb-4" />
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Why Stratxcel</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Why Stratxcel</p>
             <h2 className="sx-heading-space mt-3">Systems thinking with execution gravity.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
               The market does not reward activity. It rewards coherent systems that execute reliably under constraint.
@@ -164,7 +164,7 @@ export function HomePageContent() {
       <section id="cases" className="sx-section-space">
         <SectionReveal>
           <div className="sx-container">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Use Cases</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Use Cases</p>
             <h2 className="sx-heading-space mt-3">Command-center style operational scenarios.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
               Typical patterns where a systems intervention produces visible control. Scope and outcomes are always
@@ -192,7 +192,7 @@ export function HomePageContent() {
       <section id="consultation" className="sx-section-space sx-section-space--ridge">
         <SectionReveal>
           <div className="sx-container">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">How We Work</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">How We Work</p>
             <h2 className="sx-heading-space mt-3">Diagnosis first. Build second.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
               Every engagement starts with a structured diagnosis to map flow, reveal constraints, and determine fit.
@@ -229,7 +229,7 @@ export function HomePageContent() {
       <section id="pricing" className="sx-section-space">
         <SectionReveal>
           <div className="sx-container">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Entry Gate</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Entry Gate</p>
             <h2 className="sx-heading-space mt-3">Intent before fee. Clarity before commitment.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
               We lead with fit and seriousness of intent. Fee and scope are disclosed only when you choose to proceed.
@@ -263,7 +263,7 @@ export function HomePageContent() {
       <section id="careers" className="sx-section-space">
         <SectionReveal>
           <div className="sx-container">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Careers</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Careers</p>
             <h2 className="sx-heading-space mt-3">Join a system, not a company.</h2>
             <p className="mt-3 text-[15px] font-medium tracking-[-0.02em] text-zinc-300">Join a system, not a company.</p>
             <p className="sx-prose-space sx-prose-space--wide mt-4">
@@ -302,7 +302,7 @@ export function HomePageContent() {
       <section id="contact" className="sx-section-space">
         <SectionReveal>
           <div className="sx-container">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Contact</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Contact</p>
             <h2 className="sx-heading-space mt-3">Request a serious business diagnosis.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
               Share context, constraints, and the outcome you need in the next 90 days. We reply with a direct, practical

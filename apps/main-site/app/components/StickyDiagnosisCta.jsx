@@ -5,15 +5,16 @@ import { useEffect, useState } from "react";
 
 /** Appears after hero — persistent, calm, non-intrusive. */
 export function StickyDiagnosisCta() {
-  const [show, setShow] = useState(false);
+  const [pastHero, setPastHero] = useState(false);
+  const [inFinalCta, setInFinalCta] = useState(false);
 
   useEffect(() => {
     const hero = document.getElementById("hero-cinematic");
     if (!hero) {
-      const id = requestAnimationFrame(() => setShow(true));
+      const id = requestAnimationFrame(() => setPastHero(true));
       return () => cancelAnimationFrame(id);
     }
-    const io = new IntersectionObserver(([e]) => setShow(!e.isIntersecting), {
+    const io = new IntersectionObserver(([e]) => setPastHero(!e.isIntersecting), {
       threshold: 0,
       rootMargin: "-20% 0px 0px 0px",
     });
@@ -21,7 +22,17 @@ export function StickyDiagnosisCta() {
     return () => io.disconnect();
   }, []);
 
-  if (!show) return null;
+  useEffect(() => {
+    const finalCta = document.getElementById("final-cta");
+    if (!finalCta) return;
+    const io = new IntersectionObserver(([e]) => setInFinalCta(e.isIntersecting), {
+      threshold: 0.35,
+    });
+    io.observe(finalCta);
+    return () => io.disconnect();
+  }, []);
+
+  if (!pastHero || inFinalCta) return null;
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[95] flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 lg:justify-end lg:px-6 lg:pb-6">

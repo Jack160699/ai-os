@@ -28,6 +28,9 @@ export function SpaceFieldBackground() {
     if (!ctx) return;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const isSmallViewport = window.matchMedia("(max-width: 420px)").matches;
+    const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+    const lowPower = isSmallViewport || isCoarsePointer;
     let w = 0;
     let h = 0;
     let dpr = 1;
@@ -37,6 +40,7 @@ export function SpaceFieldBackground() {
     let edges = [];
     const start = performance.now();
     let last = start;
+    let isVisible = true;
 
     function clamp01(t) {
       return Math.max(0, Math.min(1, t));
@@ -50,7 +54,9 @@ export function SpaceFieldBackground() {
     function buildGraph() {
       nodes = [];
       edges = [];
-      const n = Math.min(26, Math.max(14, Math.floor((w * h) / 95000) + 10));
+      const n = lowPower
+        ? Math.min(18, Math.max(10, Math.floor((w * h) / 130000) + 7))
+        : Math.min(26, Math.max(14, Math.floor((w * h) / 95000) + 10));
       for (let i = 0; i < n; i++) {
         nodes.push({
           x: Math.random() * w,
@@ -74,7 +80,7 @@ export function SpaceFieldBackground() {
           if (d < linkDist) near.push({ j, d });
         }
         near.sort((a, b) => a.d - b.d);
-        const cap = 2;
+        const cap = lowPower ? 1 : 2;
         for (let k = 0; k < Math.min(cap, near.length); k++) {
           const j = near[k].j;
           const a = Math.min(i, j);
@@ -96,7 +102,7 @@ export function SpaceFieldBackground() {
 
     function buildStars() {
       stars = [];
-      const n = Math.min(72, Math.floor((w * h) / 22000) + 28);
+      const n = lowPower ? Math.min(44, Math.floor((w * h) / 32000) + 16) : Math.min(72, Math.floor((w * h) / 22000) + 28);
       for (let i = 0; i < n; i++) {
         stars.push({
           x: Math.random() * w,
@@ -107,7 +113,7 @@ export function SpaceFieldBackground() {
         });
       }
       motes = [];
-      const m = Math.min(10, Math.floor((w * h) / 220000) + 4);
+      const m = lowPower ? Math.min(5, Math.floor((w * h) / 300000) + 2) : Math.min(10, Math.floor((w * h) / 220000) + 4);
       for (let i = 0; i < m; i++) {
         motes.push({
           x: Math.random() * w,
@@ -121,7 +127,7 @@ export function SpaceFieldBackground() {
     }
 
     function resize() {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      dpr = Math.min(window.devicePixelRatio || 1, lowPower ? 1.4 : 2);
       w = window.innerWidth;
       h = Math.max(window.innerHeight, document.documentElement?.clientHeight || 0);
       canvas.width = Math.floor(w * dpr);
@@ -134,6 +140,7 @@ export function SpaceFieldBackground() {
     }
 
     function paint(now) {
+      if (!isVisible) return;
       const elapsed = reduced ? 8 : (now - start) / 1000;
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
@@ -277,13 +284,26 @@ export function SpaceFieldBackground() {
       }
       ctx.globalAlpha = 1;
 
-      if (!reduced) {
+      if (!reduced && isVisible) {
         rafRef.current = requestAnimationFrame(paint);
+      }
+    }
+
+    function onVisibilityChange() {
+      isVisible = document.visibilityState !== "hidden";
+      if (isVisible && !reduced && !rafRef.current) {
+        last = performance.now();
+        rafRef.current = requestAnimationFrame(paint);
+      }
+      if (!isVisible && rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = 0;
       }
     }
 
     resize();
     window.addEventListener("resize", resize);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     if (reduced) {
       paint(start);
     } else {
@@ -292,6 +312,7 @@ export function SpaceFieldBackground() {
 
     return () => {
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       cancelAnimationFrame(rafRef.current);
     };
   }, []);
