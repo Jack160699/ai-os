@@ -10,15 +10,30 @@ const ctaPrimaryClass =
   "inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-sky-500/28 bg-[#0B0F19]/95 px-8 text-[14px] font-semibold tracking-[-0.015em] text-[#E5E7EB] sx-cta-glow transition-[transform,box-shadow,border-color,background-color] duration-[520ms] ease-out hover:-translate-y-0.5 hover:border-sky-400/38 hover:bg-[#0f1524] active:translate-y-0";
 
 export function HomePageContent() {
-  const roles = [
-    { title: "Business Development Intern", slug: "business-development-intern" },
+  const fullTimeRoles = [
+    {
+      title: "Founder’s Associate",
+      slug: "founders-associate",
+      body: "For people who solve fast, think clearly, and enjoy high ownership across priorities.",
+      bestFor: "22+ yrs · high-agency individuals",
+      growthPath: "Strategy / Operations / Leadership",
+    },
+    {
+      title: "Business Development Associate",
+      slug: "business-development-associate",
+      body: "For strong communicators who enjoy sales, relationships, persuasion, and growth.",
+      bestFor: "22+ yrs",
+      growthPath: "Sales Leadership / Growth / Partnerships",
+    },
+  ];
+  const internshipTracks = [
     { title: "Marketing Intern", slug: "marketing-intern" },
+    { title: "Sales Intern", slug: "business-development-intern" },
     { title: "Operations Intern", slug: "operations-intern" },
-    { title: "IT / Tech Intern", slug: "it-tech-intern" },
     { title: "Finance Intern", slug: "finance-intern" },
     { title: "HR / Talent Intern", slug: "hr-talent-intern" },
-    { title: "Founder's Associate", slug: "founders-associate" },
-    { title: "Business Development Associate (Full-time)", slug: "business-development-associate" },
+    { title: "Tech / IT Intern", slug: "it-tech-intern" },
+    { title: "Founder Office Intern", slug: "founders-associate" },
   ];
   const socialRows = [
     ["LinkedIn", SOCIAL.linkedin],
@@ -375,37 +390,158 @@ export function HomePageContent() {
         <SectionReveal>
           <div className="sx-container">
             <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Careers</p>
-            <h2 className="sx-heading-space mt-3">Join a system, not a company.</h2>
-            <p className="mt-3 text-[15px] font-medium tracking-[-0.02em] text-zinc-300">Join a system, not a company.</p>
+            <h2 className="sx-heading-space mt-3">Join the people building better systems.</h2>
             <p className="sx-prose-space sx-prose-space--wide mt-4">
-              For operators who want execution depth, system discipline, and real responsibility.
+              We don&apos;t hire for headcount.
+              <br />
+              We bring in people who want responsibility, growth, and real-world leverage.
             </p>
-            <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">Long-term thinking over quick hacks.</p>
-            <div className="sx-card-grid sm:grid-cols-2 lg:grid-cols-4">
-              {roles.slice(0, 6).map((r) => (
-                <Link
-                  key={r.slug}
-                  href={`/careers/${r.slug}`}
-                  className="sx-card-space sx-card--interactive sx-card--lift sx-card-title-space block rounded-xl"
-                >
-                  {r.title}
+
+            <div className="mt-10">
+              <h3 className="text-[13px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Full-Time Roles</h3>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                {fullTimeRoles.map((role) => (
+                  <div
+                    key={role.slug}
+                    className="rounded-2xl border border-white/[0.08] bg-[#0B0F19]/42 p-6 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,0,0,0.45)_inset] transition-[border-color,box-shadow,transform] duration-[600ms] ease-out hover:-translate-y-0.5 hover:border-sky-500/20 hover:shadow-[0_0_44px_-22px_rgba(59,130,246,0.16)]"
+                  >
+                    <p className="text-[16px] font-semibold tracking-[-0.02em] text-zinc-100">{role.title}</p>
+                    <p className="mt-3 text-[14px] leading-relaxed text-zinc-400">{role.body}</p>
+                    <p className="mt-4 text-[12px] text-zinc-400">
+                      <span className="font-semibold text-zinc-200">Best for:</span> {role.bestFor}
+                    </p>
+                    <p className="mt-2 text-[12px] text-zinc-400">
+                      <span className="font-semibold text-zinc-200">Growth path:</span> {role.growthPath}
+                    </p>
+                    <div className="mt-5">
+                      <Link href={`/careers/${role.slug}`} className={ctaPrimaryClass}>
+                        Apply Now
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-12">
+              <h3 className="text-[13px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Internship Tracks</h3>
+              <p className="sx-prose-space sx-prose-space--wide mt-4">Learn faster than classrooms allow.</p>
+              <p className="mt-3 text-[14px] leading-relaxed text-zinc-400">
+                Work on real systems, real business problems, and real execution.
+              </p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {internshipTracks.map((track) => (
+                  <Link
+                    key={track.title}
+                    href={`/careers/${track.slug}`}
+                    className="sx-card-space sx-card--interactive sx-card--lift block rounded-xl"
+                  >
+                    <p className="text-[14px] font-semibold tracking-[-0.02em] text-zinc-100">{track.title}</p>
+                    <p className="mt-2 text-[12px] leading-relaxed text-zinc-400">
+                      Real exposure · Mentorship · Hands-on projects · Systems thinking · Certificate on performance ·
+                      Industry readiness
+                    </p>
+                  </Link>
+                ))}
+              </div>
+              <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">Best for: 18–22 yrs students / freshers</p>
+              <div className="mt-5">
+                <Link href="/careers" className={ctaPrimaryClass}>
+                  Apply for Internship
                 </Link>
+              </div>
+            </div>
+
+            <div className="mt-12">
+              <h3 className="text-[13px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Why Join Stratxcel</h3>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  "Work directly on real business challenges",
+                  "Learn execution, not theory",
+                  "Build communication and ownership",
+                  "Grow with a serious team",
+                  "Fast learning curve",
+                  "Visible contribution",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-xl border border-white/[0.08] bg-[#0B0F19]/35 px-4 py-4 text-[13px] font-medium tracking-[-0.01em] text-zinc-200 backdrop-blur-md"
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.12em] text-zinc-400">
+              {[
+                "High ownership",
+                "Fast learners win",
+                "Ideas matter",
+                "Execution matters more",
+                "Respectful intensity",
+              ].map((signal) => (
+                <span key={signal} className="rounded-full border border-white/[0.1] bg-white/[0.02] px-3 py-1.5">
+                  {signal}
+                </span>
               ))}
             </div>
-            <p className="sx-prose-space sx-prose-space--wide mt-10">Full-time roles</p>
-            <div className="sx-card-grid sm:grid-cols-2">
-              {roles.slice(6).map((r) => (
-                <Link
-                  key={r.slug}
-                  href={`/careers/${r.slug}`}
-                  className="sx-card-space sx-card--interactive sx-card--lift sx-card-title-space block rounded-xl"
-                >
-                  {r.title}
-                </Link>
-              ))}
+
+            <div className="mt-12 rounded-2xl border border-white/[0.08] bg-[#0B0F19]/40 p-6 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,0,0,0.45)_inset] sm:p-7">
+              <h3 className="text-[16px] font-semibold tracking-[-0.02em] text-zinc-100">Application</h3>
+              <form
+                className="mt-5 grid gap-3 sm:grid-cols-2"
+                action={`mailto:${CONTACT.email}?subject=Career%20Application%20-%20Stratxcel`}
+                method="post"
+                encType="text/plain"
+              >
+                <input
+                  name="Name"
+                  required
+                  placeholder="Name"
+                  className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-[14px] text-zinc-100 outline-none transition focus:border-sky-400/35"
+                />
+                <input
+                  name="Role interested in"
+                  required
+                  placeholder="Role interested in"
+                  className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-[14px] text-zinc-100 outline-none transition focus:border-sky-400/35"
+                />
+                <input
+                  name="College / Experience"
+                  required
+                  placeholder="College / Experience"
+                  className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-[14px] text-zinc-100 outline-none transition focus:border-sky-400/35"
+                />
+                <input
+                  name="LinkedIn"
+                  placeholder="LinkedIn (optional)"
+                  className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-[14px] text-zinc-100 outline-none transition focus:border-sky-400/35"
+                />
+                <input
+                  name="Email"
+                  type="email"
+                  required
+                  placeholder="Email"
+                  className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-[14px] text-zinc-100 outline-none transition focus:border-sky-400/35 sm:col-span-2"
+                />
+                <textarea
+                  name="Why do you want to join?"
+                  required
+                  placeholder="Why do you want to join?"
+                  rows={5}
+                  className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-[14px] text-zinc-100 outline-none transition focus:border-sky-400/35 sm:col-span-2"
+                />
+                <div className="sm:col-span-2">
+                  <button type="submit" className={ctaPrimaryClass}>
+                    Submit Application
+                  </button>
+                </div>
+              </form>
             </div>
+
             <p className="mt-8 text-sm leading-relaxed text-zinc-500">
-              Eligible: BBA, MBA, BCA, MCA, B.Com, M.Com, CS, IT, Sales, Commerce — serious learners only.
+              This is a selective environment. Apply early if you are serious about fast growth and real responsibility.
             </p>
           </div>
         </SectionReveal>
