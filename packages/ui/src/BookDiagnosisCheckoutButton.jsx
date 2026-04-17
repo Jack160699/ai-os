@@ -43,6 +43,11 @@ export function BookDiagnosisCheckoutButton({
   className = "",
   brand = DEFAULT_BRAND,
   accent = DEFAULT_ACCENT,
+  buttonLabel = "Book Diagnosis Session",
+  successMessage = "Payment successful. We'll contact you shortly.",
+  source = "website_checkout",
+  showUpiHint = true,
+  onSuccess,
 }) {
   const [phase, setPhase] = useState("idle");
   const [status, setStatus] = useState("");
@@ -112,7 +117,7 @@ export function BookDiagnosisCheckoutButton({
             const successRes = await checkoutFetch("/api/payment-success", {
               ...response,
               amount: orderData.amount,
-              source: "website_checkout",
+              source,
             });
             const { ok: sOk, data: successData, status: sStatus } = await parseCheckoutJson(successRes);
             if (!sOk || successData?.status !== "ok") {
@@ -121,8 +126,9 @@ export function BookDiagnosisCheckoutButton({
               return;
             }
             setPhase("idle");
-            setStatus("Payment successful. We'll contact you shortly.");
+            setStatus(successMessage);
             setLastOrder(null);
+            if (typeof onSuccess === "function") onSuccess(successData);
           } catch {
             setPhase("error");
             setStatus("We could not verify the payment. If you were charged, contact us with your receipt.");
@@ -205,9 +211,9 @@ export function BookDiagnosisCheckoutButton({
           style={style}
           aria-busy={busy}
         >
-          {busy ? "Opening checkout…" : "Book Diagnosis Session"}
+          {busy ? "Opening checkout…" : buttonLabel}
         </button>
-        <p className="mt-2 text-xs text-blue-700">Use UPI for fastest checkout.</p>
+        {showUpiHint ? <p className="mt-2 text-xs text-blue-700">Use UPI for fastest checkout.</p> : null}
         {busy && !status ? (
           <p className="mt-3 text-sm text-slate-500" role="status">
             Connecting to secure payment…

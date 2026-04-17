@@ -343,10 +343,10 @@ export function HomePageContent() {
       <section id="pricing" className="sx-section-space">
         <SectionReveal>
           <div className="sx-container">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Entry Gate</p>
-            <h2 className="sx-heading-space mt-3">Intent before fee. Clarity before commitment.</h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Business Diagnosis Access</p>
+            <h2 className="sx-heading-space mt-3">Clarity is cheaper than confusion.</h2>
             <p className="sx-prose-space sx-prose-space--wide">
-              We lead with fit and seriousness of intent. Fee and scope are disclosed only when you choose to proceed.
+              One focused session can reveal what months of guessing cannot.
             </p>
             <PricingGate />
           </div>
