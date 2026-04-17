@@ -202,8 +202,8 @@ body {
   opacity: 0;
   transform: translateY(10px);
   transition:
-    opacity 1.55s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 1.55s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 1.42s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 1.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .sx-reveal--in {
@@ -299,27 +299,27 @@ body {
 
 .sx-hero-fade-up {
   opacity: 0;
-  animation: sx-hero-fade-up 1.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: sx-hero-fade-up 1.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .sx-hero-fade-up-d1 {
-  animation-delay: 3.35s;
+  animation-delay: 3.1s;
 }
 
 .sx-hero-fade-up-d2 {
-  animation-delay: 3.65s;
+  animation-delay: 3.35s;
 }
 
 .sx-hero-cta-rise {
   opacity: 0;
-  animation: sx-hero-cta-rise 1.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  animation-delay: 4.05s;
+  animation: sx-hero-cta-rise 1.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: 3.72s;
 }
 
 .sx-hero-trust-fade {
   opacity: 0;
-  animation: sx-hero-fade-up 1.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  animation-delay: 4.3s;
+  animation: sx-hero-fade-up 1.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: 3.92s;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -359,10 +359,10 @@ body {
 .sx-cta-primary,
 .sx-cta-secondary {
   transition:
-    background-color 620ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 620ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 620ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 620ms cubic-bezier(0.22, 1, 0.36, 1);
+    background-color 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .sx-cta-primary {
@@ -402,7 +402,7 @@ body {
 }
 
 .sx-cta-breathe {
-  animation: sx-cta-breathe 6.5s ease-in-out infinite;
+  animation: sx-cta-breathe 8.5s ease-in-out infinite;
 }
 
 .sx-hero-lift {
@@ -468,7 +468,7 @@ body {
   font-weight: 600;
   letter-spacing: -0.03em;
   color: #e5e7eb;
-  line-height: 1.18;
+  line-height: 1.2;
 }
 
 @media (min-width: 640px) {
@@ -479,9 +479,9 @@ body {
 
 .sx-prose-space {
   margin-top: 1.25rem;
-  max-width: 60ch;
+  max-width: 64ch;
   font-size: 0.9375rem;
-  line-height: 1.82;
+  line-height: 1.8;
   color: rgb(161 161 170);
 }
 
@@ -555,15 +555,17 @@ body {
   font-weight: 600;
   color: rgb(212 212 216);
   transition:
-    border-color 0.25s ease,
-    color 0.25s ease,
-    box-shadow 0.25s ease;
+    border-color 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .sx-social-space:hover {
   border-color: rgba(147, 197, 253, 0.35);
   color: #fafafa;
   box-shadow: 0 0 28px -8px rgba(96, 165, 250, 0.28);
+  transform: translateY(-1px);
 }
 
 .sx-footer-space {
@@ -735,7 +737,14 @@ body {
 
 @media (max-width: 640px) {
   :root {
-    --sx-section-y: 4.5rem;
+    --sx-section-y: 4.15rem;
+  }
+  .sx-heading-space {
+    line-height: 1.16;
+  }
+  .sx-prose-space {
+    font-size: 0.98rem;
+    line-height: 1.74;
   }
   .sx-glass-hero {
     border-color: rgba(255, 255, 255, 0.12);

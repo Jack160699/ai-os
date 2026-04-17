@@ -23,12 +23,12 @@ export function HeroCinematic() {
         aria-hidden
       />
 
-      <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-[var(--sx-max)] flex-col justify-center px-[var(--sx-gutter)] pb-[min(10vh,5.5rem)] pt-[calc(var(--sx-nav-h)+2.25rem)] sm:pb-14 sm:pt-[calc(var(--sx-nav-h)+2.75rem)] lg:pt-[calc(var(--sx-nav-h)+3rem)]">
+      <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-[var(--sx-max)] flex-col justify-center px-[var(--sx-gutter)] pb-[min(8vh,4.25rem)] pt-[calc(var(--sx-nav-h)+1.5rem)] sm:pb-14 sm:pt-[calc(var(--sx-nav-h)+2.75rem)] lg:pt-[calc(var(--sx-nav-h)+3rem)]">
         <div className="w-full max-w-[28rem] lg:max-w-[min(30rem,36vw)]">
-          <div className="sx-glass-hero rounded-[22px] p-8 sm:rounded-[26px] sm:p-10">
+          <div className="sx-glass-hero rounded-[20px] p-6 sm:rounded-[26px] sm:p-10">
             <h1
               id="hero-heading"
-              className="sx-hero-lead sx-hero-fade-up sx-hero-fade-up-d1 text-balance text-center text-[2.1rem] font-semibold leading-[1.07] tracking-[-0.042em] text-[#E5E7EB] sm:text-[2.42rem] lg:text-left lg:text-[clamp(2.12rem,2.65vw,3rem)] lg:leading-[1.03]"
+              className="sx-hero-lead sx-hero-fade-up sx-hero-fade-up-d1 text-balance text-center text-[1.9rem] font-semibold leading-[1.08] tracking-[-0.038em] text-[#E5E7EB] sm:text-[2.42rem] lg:text-left lg:text-[clamp(2.12rem,2.65vw,3rem)] lg:leading-[1.03]"
             >
               Your business doesn&apos;t need more effort.
               <br />
@@ -37,16 +37,16 @@ export function HeroCinematic() {
             <p className="sx-hero-fade-up sx-hero-fade-up-d2 mt-5 text-center text-[15px] font-normal leading-[1.82] text-zinc-300 sm:text-[16px] lg:text-left">
               We design systems that bring clarity, control, and growth.
             </p>
-            <div className="sx-hero-cta-rise mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start">
+            <div className="sx-hero-cta-rise mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start">
               <Link
                 href="/#pricing"
-                className="sx-cta-primary sx-cta-breathe inline-flex h-[52px] min-h-[48px] flex-1 items-center justify-center rounded-full border border-sky-500/32 bg-[#0B0F19]/95 px-8 text-[14px] font-semibold tracking-[-0.016em] text-[#E5E7EB] active:translate-y-0 sm:min-w-[15.5rem] sm:flex-initial"
+                className="sx-cta-primary sx-cta-breathe inline-flex h-[54px] min-h-[50px] w-full items-center justify-center rounded-full border border-sky-500/32 bg-[#0B0F19]/95 px-6 text-[14px] font-semibold tracking-[-0.016em] text-[#E5E7EB] active:translate-y-0 sm:min-w-[15.5rem] sm:flex-initial"
               >
                 Request Business Diagnosis
               </Link>
               <Link
                 href="/#consultation"
-                className="sx-cta-secondary inline-flex h-[52px] min-h-[48px] flex-1 items-center justify-center rounded-full border border-white/[0.16] bg-white/[0.05] px-8 text-[14px] font-semibold tracking-[-0.016em] text-[#E5E7EB] shadow-[0_1px_0_rgba(255,255,255,0.06)_inset] backdrop-blur-md hover:border-white/24 hover:bg-white/[0.085] hover:shadow-[0_0_40px_-24px_rgba(59,130,246,0.15)] active:translate-y-0 sm:min-w-[15.5rem] sm:flex-initial"
+                className="sx-cta-secondary inline-flex h-[54px] min-h-[50px] w-full items-center justify-center rounded-full border border-white/[0.16] bg-white/[0.05] px-6 text-[14px] font-semibold tracking-[-0.016em] text-[#E5E7EB] shadow-[0_1px_0_rgba(255,255,255,0.06)_inset] backdrop-blur-md hover:border-white/24 hover:bg-white/[0.085] hover:shadow-[0_0_40px_-24px_rgba(59,130,246,0.15)] active:translate-y-0 sm:min-w-[15.5rem] sm:flex-initial"
               >
                 See How We Work
               </Link>

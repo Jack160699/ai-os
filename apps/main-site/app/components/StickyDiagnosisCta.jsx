@@ -35,10 +35,10 @@ export function StickyDiagnosisCta() {
   if (!pastHero || inFinalCta) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[95] flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 lg:justify-end lg:px-6 lg:pb-6">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[95] flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 lg:justify-end lg:px-6 lg:pb-6">
       <Link
         href="/#pricing"
-        className="sx-cta-primary sx-cta-breathe pointer-events-auto inline-flex h-[52px] min-h-[48px] max-w-full items-center justify-center rounded-full border border-sky-500/30 bg-[#0B0F19]/94 px-6 text-[14px] font-semibold tracking-[-0.015em] text-[#E5E7EB] backdrop-blur-xl active:translate-y-0 sm:px-8"
+        className="sx-cta-primary pointer-events-auto inline-flex h-[54px] min-h-[50px] w-full max-w-[23rem] items-center justify-center rounded-full border border-sky-500/30 bg-[#0B0F19]/94 px-6 text-[14px] font-semibold tracking-[-0.015em] text-[#E5E7EB] backdrop-blur-xl active:translate-y-0 sm:w-auto sm:px-8"
       >
         Request Business Diagnosis
       </Link>

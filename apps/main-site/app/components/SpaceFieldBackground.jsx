@@ -40,7 +40,9 @@ export function SpaceFieldBackground() {
     let edges = [];
     const start = performance.now();
     let last = start;
+    let lastDraw = start;
     let isVisible = true;
+    const targetFrameMs = lowPower ? 33 : 16;
 
     function clamp01(t) {
       return Math.max(0, Math.min(1, t));
@@ -141,6 +143,11 @@ export function SpaceFieldBackground() {
 
     function paint(now) {
       if (!isVisible) return;
+      if (!reduced && now - lastDraw < targetFrameMs) {
+        rafRef.current = requestAnimationFrame(paint);
+        return;
+      }
+      lastDraw = now;
       const elapsed = reduced ? 8 : (now - start) / 1000;
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;

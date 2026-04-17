@@ -7,7 +7,7 @@ import { SectionReveal } from "./SectionReveal";
 import { SectionSystemGraphic } from "./SectionSystemGraphic";
 
 const ctaPrimaryClass =
-  "inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-sky-500/28 bg-[#0B0F19]/95 px-8 text-[14px] font-semibold tracking-[-0.015em] text-[#E5E7EB] sx-cta-glow transition-[transform,box-shadow,border-color,background-color] duration-[520ms] ease-out hover:-translate-y-0.5 hover:border-sky-400/38 hover:bg-[#0f1524] active:translate-y-0";
+  "sx-cta-primary inline-flex h-[52px] min-h-[50px] items-center justify-center rounded-full border border-sky-500/28 bg-[#0B0F19]/95 px-8 text-[14px] font-semibold tracking-[-0.015em] text-[#E5E7EB] active:translate-y-0";
 
 export function HomePageContent() {
   const fullTimeRoles = [
