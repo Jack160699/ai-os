@@ -303,3 +303,31 @@ body {
     #ffffff 100%
   );
 }
+
+@keyframes sx-hero-metric-bar {
+  0%,
+  100% {
+    transform: scaleY(0.42);
+    opacity: 0.65;
+    filter: brightness(0.85);
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+    filter: brightness(1.15);
+  }
+}
+
+.sx-hero-metric-bar {
+  transform-origin: bottom center;
+  animation: sx-hero-metric-bar 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sx-hero-metric-bar {
+    animation: none;
+    transform: none;
+    opacity: 0.85;
+    filter: none;
+  }
+}

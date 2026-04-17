@@ -66,7 +66,7 @@ export function Navbar() {
       ? "border-b border-zinc-200/90 bg-white/93 shadow-[0_8px_32px_-16px_rgba(15,23,42,0.1)] backdrop-blur-xl"
       : "border-b border-transparent bg-white/75 backdrop-blur-md"
     : scrolled
-      ? "border-b border-white/[0.1] bg-[#04060c]/55 shadow-[0_16px_48px_-20px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.06)_inset] backdrop-blur-xl backdrop-saturate-150"
+      ? "border-b border-white/[0.08] bg-[#010208]/88 shadow-[0_20px_56px_-24px_rgba(0,0,0,0.65),0_1px_0_rgba(255,255,255,0.07)_inset] backdrop-blur-2xl backdrop-saturate-150"
       : "border-b border-transparent bg-transparent";
 
   const ctaDesktopClass = headerToneHero
