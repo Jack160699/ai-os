@@ -30,6 +30,7 @@ export function ConversationPane({
   onRetry,
   mobileTab,
   liveEmpty = false,
+  compactMode = false,
 }) {
   return (
     <aside
@@ -105,7 +106,7 @@ export function ConversationPane({
                   <button
                     type="button"
                     onClick={() => onSelect(c.phone)}
-                    className={`flex w-full cursor-pointer flex-col gap-1 rounded-xl border px-3 py-2.5 text-left transition-[border-color,background-color,box-shadow,transform] duration-150 ${
+                    className={`flex w-full cursor-pointer flex-col gap-1 rounded-xl border px-3 ${compactMode ? "py-2" : "py-2.5"} text-left transition-[border-color,background-color,box-shadow,transform] duration-150 ${
                       active
                         ? "border-sky-400/35 bg-sky-500/10 shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
                         : "border-transparent bg-transparent hover:-translate-y-0.5 hover:border-white/[0.08] hover:bg-white/[0.04]"

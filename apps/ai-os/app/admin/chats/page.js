@@ -14,8 +14,8 @@ export default async function AdminChatsPage() {
   return (
     <AdminShell
       activePath="/admin/chats"
-      title="Live inbox"
-      subtitle="Premium conversation workspace for response speed, lead quality, and owner assignment."
+      title="Inbox"
+      subtitle="Three-panel conversation workspace with lead context and fast actions."
     >
       <LiveInbox />
     </AdminShell>

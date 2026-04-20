@@ -1,33 +1,15 @@
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { Logo } from "@/app/components/Logo";
 import { AdminShell } from "@/app/admin/_components/AdminShell";
 import { EmptyState } from "@/app/admin/_components/EmptyState";
-import { AIGrowthIntelligence } from "@/app/admin/_components/AIGrowthIntelligence";
 import { HotLeadsAlertCard } from "@/app/admin/_components/HotLeadsAlertCard";
 import { SurfaceCard } from "@/app/admin/_components/SurfaceCard";
 import { TopSnapshotBar } from "@/app/admin/_components/TopSnapshotBar";
 import { getAdminAuthState, loginAction } from "@/app/admin/_lib/auth";
 import { getBackendDashboardUrl, getDashboardData } from "@/app/admin/_lib/data";
-import { AgentCenter } from "@/components/dashboard/AgentCenter";
-import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { SyncStatus } from "@/components/dashboard/SyncStatus";
-import { getAgentCenterItems } from "@/lib/agents";
 import { RecentActivityTimeline } from "@/app/admin/_components/RecentActivityTimeline";
-const LeadsCommandCenter = dynamic(() => import("@/app/admin/_components/LeadsCommandCenter").then((m) => m.LeadsCommandCenter), {
-  loading: () => <div className="admin-skeleton h-64 w-full rounded-2xl" />,
-});
-const SalesFunnelVisual = dynamic(() => import("@/app/admin/_components/SalesFunnelVisual").then((m) => m.SalesFunnelVisual), {
-  loading: () => <div className="admin-skeleton h-64 w-full rounded-2xl" />,
-});
-const RevenueCenter = dynamic(() => import("@/app/admin/_components/RevenueCenter").then((m) => m.RevenueCenter), {
-  loading: () => <div className="admin-skeleton h-72 w-full rounded-2xl" />,
-});
-const AutomationControlPanel = dynamic(
-  () => import("@/app/admin/_components/AutomationControlPanel").then((m) => m.AutomationControlPanel),
-  { loading: () => <div className="admin-skeleton h-64 w-full rounded-2xl" /> },
-);
 
 export const metadata = {
   title: "Admin Dashboard - Stratxcel",
@@ -119,21 +101,22 @@ export default async function AdminPage() {
   }
 
   const summary = data?.summary || {};
-  const painPoints = Array.isArray(data?.top_pain_points) ? data.top_pain_points : [];
   const hotLeads = Array.isArray(data?.hot_leads) ? data.hot_leads : [];
   const recentRows = data ? mergeRecentTableRows(data) : [];
   const paymentEvents = Array.isArray(data?.payment_events_recent) ? data.payment_events_recent : [];
-  const agentStatuses = getAgentCenterItems();
-  const dailyWin = Number(summary?.bookings_today ?? 0) * 499;
-  const activeLive = Number(summary?.active_leads ?? 0);
+  const newLeads = Number(summary?.new_leads ?? summary?.new_leads_today ?? summary?.leads_today ?? 0);
+  const activeLive = Number(summary?.active_leads ?? summary?.pending_replies ?? 0);
+  const revenueMtd = Number(summary?.paid_revenue_rupees ?? summary?.revenue_mtd ?? 0);
   const abandonedPayments = Math.max(0, Math.round(activeLive * 0.18));
   const paymentFailures = paymentEvents.filter((row) => String(row?.status || "").toLowerCase().includes("fail"));
+  const openTasks = Number(summary?.open_tasks ?? 0) || paymentFailures.length + Math.min(hotLeads.length, 5);
+  const inboxPreviewRows = recentRows.slice(0, 6);
 
   return (
     <AdminShell
       activePath="/admin"
-      title="Dashboard"
-      subtitle="CEO command center for growth, revenue, and conversion execution."
+      title="Home"
+      subtitle="Operational command center with high-signal actions."
       headerRight={<QuickActions />}
     >
       <SyncStatus syncedAt={data?.updated_at || data?.summary?.updated_at || new Date().toISOString()} />
@@ -147,126 +130,64 @@ export default async function AdminPage() {
 
       <TopSnapshotBar summary={summary} syncedAt={data?.updated_at || new Date().toISOString()} />
 
-      <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <SurfaceCard className="p-5 sm:p-6">
-          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Daily Owner Summary</p>
-          <h3 className="mt-1 text-xl font-semibold tracking-tight text-white">₹{dailyWin.toLocaleString("en-IN")} earned today</h3>
-          <p className="mt-2 text-[13px] text-slate-400">Momentum is healthy. Keep response speed high for hot leads.</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button className="rounded-xl border border-sky-300/35 bg-sky-400/15 px-3.5 py-2 text-xs font-semibold text-sky-100">
-              What should I focus on now?
-            </button>
-            <button className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3.5 py-2 text-xs font-semibold text-slate-200">
-              One-click WhatsApp blast
-            </button>
-            <button className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3.5 py-2 text-xs font-semibold text-slate-200">
-              Quick Add Lead
-            </button>
-            <Link href="/admin/analytics" className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3.5 py-2 text-xs font-semibold text-slate-200">
-              Open Revenue Center
-            </Link>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: "New Leads", value: newLeads },
+          { label: "Pending Replies", value: activeLive },
+          { label: "Revenue MTD", value: `₹${revenueMtd.toLocaleString("en-IN")}` },
+          { label: "Open Tasks", value: openTasks },
+        ].map((kpi) => (
+          <SurfaceCard key={kpi.label} className="p-4 sm:p-5">
+            <p className="text-[11px] uppercase tracking-[0.12em] text-slate-500">{kpi.label}</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-white">{kpi.value}</p>
+          </SurfaceCard>
+        ))}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-3">
+        <HotLeadsAlertCard hotLeads={hotLeads} />
+        <SurfaceCard className="p-5 sm:p-6" href="/admin/chats">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Live Inbox Preview</p>
+          <div className="mt-3 space-y-2">
+            {inboxPreviewRows.length ? (
+              inboxPreviewRows.map((row) => (
+                <div key={`${row.phone}-${row.sort_ts}`} className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2">
+                  <p className="truncate text-[12px] font-semibold text-white">{row.phone}</p>
+                  <p className="truncate text-[11px] text-slate-500">{row.summary || row.pain_point || "Awaiting response"}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-[12px] text-slate-500">No active threads yet.</p>
+            )}
           </div>
         </SurfaceCard>
-        <SurfaceCard className="p-5 sm:p-6" href="/admin/pipeline">
-          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Lead Heatmap</p>
-          <div className="mt-3 grid grid-cols-7 gap-1.5">
-            {Array.from({ length: 35 }).map((_, i) => (
-              <span
-                // eslint-disable-next-line react/no-array-index-key
-                key={i}
-                className={`h-5 rounded ${i % 5 === 0 ? "bg-emerald-400/35" : i % 3 === 0 ? "bg-amber-400/25" : "bg-white/[0.07]"}`}
-              />
-            ))}
-          </div>
-          <p className="mt-2 text-[12px] text-slate-500">Peak activity clusters visible across recent lead touches.</p>
+        <SurfaceCard className="p-5 sm:p-6" href="/admin/payments">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Payments Pending</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-amber-100">{abandonedPayments}</p>
+          <p className="mt-1 text-[12px] text-slate-400">{paymentFailures.length} recent payment failures need follow-up.</p>
         </SurfaceCard>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
+      <section className="grid gap-4 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <RecentActivityTimeline rows={recentRows} />
+        </div>
         <SurfaceCard className="p-5 sm:p-6">
-          <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Real-time Active Leads</p>
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/30 bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-200">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />
-              live
-            </span>
-          </div>
-          <p className="mt-2 text-3xl font-semibold tracking-tight text-white">{activeLive}</p>
-          <p className="mt-1 text-[12px] text-slate-400">Leads currently waiting for next action.</p>
-          <div className="mt-4 flex gap-2">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">System Status</p>
+          <p className="mt-2 text-[13px] leading-relaxed text-slate-300">Ingestion is live. Sync is healthy and admin APIs are responding.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
             <Link href="/admin/chats" className="rounded-xl border border-sky-300/35 bg-sky-400/15 px-3 py-1.5 text-[11px] font-semibold text-sky-100">
-              Open hot inbox
+              Open Inbox
+            </Link>
+            <Link href="/admin/leads" className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 py-1.5 text-[11px] font-semibold text-slate-200">
+              Leads
             </Link>
             <Link href="/admin/pipeline" className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 py-1.5 text-[11px] font-semibold text-slate-200">
-              Review pipeline
+              Pipeline
             </Link>
           </div>
         </SurfaceCard>
-        <SurfaceCard className="p-5 sm:p-6" href="/admin/payments">
-          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Abandoned Payment Alert</p>
-          <p className="mt-2 text-3xl font-semibold tracking-tight text-amber-100">{abandonedPayments}</p>
-          <p className="mt-1 text-[12px] text-slate-400">High-intent leads paused after payment step.</p>
-          <div className="mt-4 flex gap-2">
-            <button className="rounded-xl border border-amber-300/35 bg-amber-400/15 px-3 py-1.5 text-[11px] font-semibold text-amber-100">
-              Send payment reminder
-            </button>
-            <button className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 py-1.5 text-[11px] font-semibold text-slate-200">
-              Assign sales owner
-            </button>
-          </div>
-        </SurfaceCard>
       </section>
-
-      <section className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-        <SurfaceCard className="p-5 sm:p-6" href="/admin/payments">
-          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Payment Alerts</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-white">{paymentFailures.length}</p>
-          <p className="mt-1 text-[12px] text-slate-400">Recent payment failures needing follow-up.</p>
-        </SurfaceCard>
-        <SurfaceCard className="p-5 sm:p-6" href="/admin/payments">
-          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Daily Revenue Snapshot</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-emerald-100">
-            ₹{Number(summary?.paid_revenue_rupees ?? 0).toLocaleString("en-IN")}
-          </p>
-          <p className="mt-1 text-[12px] text-slate-400">Captured revenue reflected from payment events.</p>
-        </SurfaceCard>
-      </section>
-
-      <CollapsibleSection title="AI Intelligence" defaultOpen>
-        <AIGrowthIntelligence summary={summary} topPainPoints={painPoints} />
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Leads Command Center" defaultOpen>
-        <LeadsCommandCenter rows={recentRows} />
-      </CollapsibleSection>
-
-      <RecentActivityTimeline rows={recentRows} />
-
-      <CollapsibleSection title="Live Funnel + Revenue Center" defaultOpen>
-        <section className="grid gap-6 xl:grid-cols-2">
-          <SalesFunnelVisual summary={summary} />
-          <RevenueCenter summary={summary} leadsByDay={Array.isArray(data?.leads_by_day) ? data.leads_by_day : []} />
-        </section>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Automation + Team" defaultOpen={false}>
-        <section className="grid gap-6 xl:grid-cols-[1.05fr_1fr]">
-          <AutomationControlPanel />
-          <AgentCenter agents={agentStatuses} loading={!data && !error} />
-        </section>
-        <section className="mt-6 flex flex-wrap gap-2">
-          {[
-            { href: "/admin/chats", label: "Open Chat Command" },
-            { href: "/admin/payments", label: "Open Payments Center" },
-            { href: "/admin/analytics", label: "Open Revenue Analytics Page" },
-            { href: "/admin/leads", label: "Lead Registry" },
-          ].map((a) => (
-            <Link key={a.href} href={a.href} className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-2 text-[12px] text-slate-200">
-              {a.label}
-            </Link>
-          ))}
-        </section>
-      </CollapsibleSection>
 
       {recentRows.length === 0 ? (
         <EmptyState
@@ -274,7 +195,6 @@ export default async function AdminPage() {
           description="As soon as leads arrive, this dashboard will light up with live actions, smart alerts, and conversion momentum."
         />
       ) : null}
-      <HotLeadsAlertCard hotLeads={hotLeads} />
     </AdminShell>
   );
 }

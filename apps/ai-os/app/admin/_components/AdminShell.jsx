@@ -15,6 +15,8 @@ function navLinkClass(active) {
 export function AdminShell({ activePath = "/admin", title, subtitle, children, headerRight = null }) {
   const role = getCurrentRole();
   const navItems = getVisibleAdminNav(ADMIN_NAV, role);
+  const primaryNavItems = navItems.filter((item) => (item.group || "primary") === "primary");
+  const secondaryNavItems = navItems.filter((item) => item.group === "secondary");
 
   const logoutSlot = (
     <form action={logoutAction}>
@@ -28,14 +30,14 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children, h
   );
 
   return (
-    <main className="admin-app min-h-screen overflow-x-hidden bg-[#05070c] text-slate-100">
-      <div className="mx-auto flex min-w-0 w-full max-w-[min(100%,1440px)] gap-5 px-4 py-4 sm:gap-6 sm:px-5 sm:py-5 lg:gap-8 lg:px-6 lg:py-6">
+    <main className="admin-app min-h-screen overflow-x-hidden bg-[#05070c] pb-20 text-slate-100 sm:pb-0">
+      <div className="mx-auto flex min-w-0 w-full max-w-[min(100%,1380px)] gap-4 px-3 py-3 sm:gap-5 sm:px-4 sm:py-4 lg:gap-6 lg:px-6 lg:py-6">
         <aside className="sticky top-4 hidden h-[calc(100vh-32px)] w-[min(252px,100%)] max-w-[252px] shrink-0 flex-col rounded-2xl border border-white/[0.06] bg-[#0c0f16] p-5 shadow-[var(--admin-shadow-panel)] lg:flex lg:flex-col">
           <div className="flex items-center gap-2">
             <Logo variant="dark" />
           </div>
           <nav className="mt-8 space-y-1" aria-label="Primary">
-            {navItems.map((item) => {
+            {primaryNavItems.map((item) => {
               const active = activePath === item.href;
               return (
                 <Link
@@ -48,6 +50,29 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children, h
               );
             })}
           </nav>
+          {secondaryNavItems.length ? (
+            <details className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2">
+              <summary className="cursor-pointer list-none rounded-lg px-2 py-2 text-[12px] font-semibold text-slate-300 hover:bg-white/[0.05]">
+                More
+              </summary>
+              <nav className="mt-2 space-y-1 px-1 pb-1" aria-label="Secondary">
+                {secondaryNavItems.map((item) => {
+                  const active = activePath === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`block rounded-lg px-2 py-2 text-[12px] font-medium transition-[background-color,color] ${
+                        active ? "bg-white/[0.09] text-white" : "text-slate-400 hover:bg-white/[0.05] hover:text-slate-100"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </details>
+          ) : null}
           <div className="mt-auto rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 shadow-[0_1px_0_rgba(255,255,255,0.03)_inset]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">System</p>
             <p className="mt-2 text-[12px] leading-relaxed text-slate-400">
@@ -58,7 +83,13 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children, h
 
         <div className="min-w-0 flex-1 rounded-2xl border border-white/[0.06] bg-[#0c0f16] shadow-[var(--admin-shadow-panel)]">
           <header className="border-b border-white/[0.06] px-5 pb-5 pt-4 sm:px-7 sm:pb-6 sm:pt-5 lg:px-8">
-            <AdminTopBar activePath={activePath} navItems={navItems} logoutSlot={logoutSlot} />
+            <AdminTopBar
+              activePath={activePath}
+              navItems={navItems}
+              primaryNavItems={primaryNavItems}
+              secondaryNavItems={secondaryNavItems}
+              logoutSlot={logoutSlot}
+            />
             <div className="mt-6 flex flex-col gap-1 sm:mt-7">
               <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-slate-500">Console</p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
@@ -70,7 +101,7 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children, h
               </div>
             </div>
           </header>
-          <section className="space-y-7 p-5 sm:space-y-8 sm:p-7 lg:p-8">{children}</section>
+          <section className="space-y-6 p-4 sm:space-y-7 sm:p-6 lg:p-7">{children}</section>
         </div>
       </div>
     </main>

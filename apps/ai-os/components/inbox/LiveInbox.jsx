@@ -4,13 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { POLL_MS } from "@/components/chat/constants";
 import { ActiveChatPanel } from "@/components/inbox/ActiveChatPanel";
 import { ConversationPane } from "@/components/inbox/ConversationPane";
+import { LeadInfoDrawer } from "@/components/inbox/LeadInfoDrawer";
 
-function applyFilter(rows, filter) {
-  if (filter === "unread") return rows.filter((r) => (r.unread || 0) > 0);
-  if (filter === "hot") return rows.filter((r) => String(r.temperature || "").toLowerCase() === "hot");
+function applyFilter(rows, filter, archivedMap, deletedMap) {
+  const withState = rows.filter((r) => !deletedMap[r.phone]);
+  const activeRows = withState.filter((r) => !archivedMap[r.phone]);
+  if (filter === "archived") return withState.filter((r) => archivedMap[r.phone]);
+  if (filter === "deleted") return rows.filter((r) => deletedMap[r.phone]);
+  if (filter === "unread") return activeRows.filter((r) => (r.unread || 0) > 0);
+  if (filter === "hot") return activeRows.filter((r) => String(r.temperature || "").toLowerCase() === "hot");
   if (filter === "closed")
-    return rows.filter((r) => String(r.status || "").toLowerCase() === "closed" || (r.tags || []).includes("closed"));
-  return rows;
+    return activeRows.filter((r) => String(r.status || "").toLowerCase() === "closed" || (r.tags || []).includes("closed"));
+  return activeRows;
 }
 
 function playSubtlePing() {
@@ -50,6 +55,10 @@ export function LiveInbox() {
   const [mobileTab, setMobileTab] = useState("list");
   const [filter, setFilter] = useState("all");
   const [ownerMap, setOwnerMap] = useState({});
+  const [archivedMap, setArchivedMap] = useState({});
+  const [deletedMap, setDeletedMap] = useState({});
+  const [compactMode, setCompactMode] = useState(false);
+  const [stickToBottom, setStickToBottom] = useState(true);
   const scrollRef = useRef(null);
   const initialListDoneRef = useRef(false);
   const prevUnreadRef = useRef(0);
@@ -152,10 +161,21 @@ export function LiveInbox() {
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [detail?.transcript, selected]);
+    if (!el) return;
+    const onScroll = () => {
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 72;
+      setStickToBottom(nearBottom);
+    };
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
-  const filteredRows = useMemo(() => applyFilter(rows, filter), [rows, filter]);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el && (stickToBottom || !selected)) el.scrollTop = el.scrollHeight;
+  }, [detail?.transcript, selected, stickToBottom]);
+
+  const filteredRows = useMemo(() => applyFilter(rows, filter, archivedMap, deletedMap), [rows, filter, archivedMap, deletedMap]);
   const selectedRow = useMemo(() => rows.find((item) => item.phone === selected) || null, [rows, selected]);
 
   const liveEmpty = !listError && !loadingList && rows.length === 0 && !debouncedQ && filter === "all";
@@ -251,9 +271,28 @@ export function LiveInbox() {
         >
           Chat
         </button>
+        <button
+          type="button"
+          onClick={() => setMobileTab("intel")}
+          disabled={!selected}
+          className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold ${mobileTab === "intel" ? "bg-white/10 text-white" : "text-slate-500"} disabled:opacity-40`}
+        >
+          Lead
+        </button>
       </div>
 
-      <div className="grid min-h-[560px] flex-1 gap-3 lg:min-h-[calc(100vh-240px)] lg:grid-cols-[minmax(0,330px)_1fr] lg:gap-4">
+      <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2">
+        <p className="text-[11px] text-slate-400">Conversation workspace</p>
+        <button
+          type="button"
+          onClick={() => setCompactMode((v) => !v)}
+          className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold ${compactMode ? "bg-white/12 text-white" : "text-slate-400"}`}
+        >
+          Compact mode
+        </button>
+      </div>
+
+      <div className="grid min-h-[540px] flex-1 gap-3 overflow-hidden lg:min-h-[calc(100vh-260px)] lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)_minmax(0,290px)] lg:gap-4">
         <ConversationPane
           rows={filteredRows}
           selected={selected}
@@ -271,6 +310,7 @@ export function LiveInbox() {
           onRetry={() => setListRetryKey((k) => k + 1)}
           mobileTab={mobileTab}
           liveEmpty={liveEmpty}
+          compactMode={compactMode}
         />
         <ActiveChatPanel
           selected={selected}
@@ -283,11 +323,22 @@ export function LiveInbox() {
           onSend={sendReply}
           sending={sending}
           selectedRow={selectedRow}
+          onQuickTemplate={sendQuickTemplate}
+          compactMode={compactMode}
+        />
+        <LeadInfoDrawer
+          selected={selected}
+          detail={detail}
+          mobileTab={mobileTab}
           owner={ownerMap[selected] || "Unassigned"}
           onOwnerChange={(value) => setOwnerMap((prev) => ({ ...prev, [selected]: value }))}
-          onQuickTemplate={sendQuickTemplate}
           onAddTag={addTag}
           onAddNote={addNote}
+          onArchive={() => setArchivedMap((prev) => ({ ...prev, [selected]: true }))}
+          onDelete={() => {
+            setDeletedMap((prev) => ({ ...prev, [selected]: true }));
+            setSelected("");
+          }}
         />
       </div>
     </div>

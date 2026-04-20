@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { formatFullTime } from "@/components/chat/format";
-import { OWNER_OPTIONS, QUICK_REPLIES, WHATSAPP_QUICK_TEMPLATES } from "@/components/inbox/constants";
+import { QUICK_REPLIES, WHATSAPP_QUICK_TEMPLATES } from "@/components/inbox/constants";
 
 export function ActiveChatPanel({
   selected,
@@ -16,20 +15,13 @@ export function ActiveChatPanel({
   onSend,
   sending,
   selectedRow,
-  owner,
-  onOwnerChange,
   onQuickTemplate,
-  onAddTag,
-  onAddNote,
+  compactMode = false,
 }) {
   const reduce = useReducedMotion();
-  const [tagInput, setTagInput] = useState("");
-  const [noteInput, setNoteInput] = useState("");
   const growthScore = selectedRow?.growth_score ?? detail?.state?.growth_score;
   const growthLabel = selectedRow?.growth_label ?? detail?.state?.growth_label;
   const lastActive = selectedRow?.last_time || detail?.state?.last_reply_time || "";
-  const tags = detail?.state?.tags || [];
-  const notes = detail?.state?.lead_notes || [];
 
   return (
     <section
@@ -56,31 +48,8 @@ export function ActiveChatPanel({
                 <span className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 py-1">
                   Last active: {lastActive ? formatFullTime(lastActive) : "--"}
                 </span>
-                <label className="col-span-2 flex items-center gap-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 py-1 sm:col-span-1">
-                  <span>Assign owner:</span>
-                  <select
-                    value={owner}
-                    onChange={(e) => onOwnerChange(e.target.value)}
-                    className="bg-transparent text-slate-200 outline-none"
-                  >
-                    {OWNER_OPTIONS.map((item) => (
-                      <option key={item} value={item} className="bg-[#0d1118]">
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                </label>
               </div>
             </div>
-            {tags.length ? (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {tags.map((t) => (
-                  <span key={t} className="rounded-full border border-sky-400/25 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-100">
-                    {t}
-                  </span>
-                ))}
-              </div>
-            ) : null}
           </header>
 
           <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
@@ -103,7 +72,7 @@ export function ActiveChatPanel({
                       className={`flex ${isUser ? "justify-start" : "justify-end"}`}
                     >
                       <div
-                        className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed shadow-lg sm:max-w-[72%] ${
+                        className={`max-w-[88%] rounded-2xl ${compactMode ? "px-2.5 py-2 text-[12px]" : "px-3.5 py-2.5 text-[13px]"} leading-relaxed shadow-lg sm:max-w-[72%] ${
                           isUser
                             ? "border border-white/[0.08] bg-white/[0.06] text-slate-100"
                             : "border border-sky-500/20 bg-gradient-to-br from-sky-500/25 to-indigo-600/20 text-white"
@@ -149,58 +118,6 @@ export function ActiveChatPanel({
                   ))}
                 </div>
               </>
-            ) : null}
-            {onAddTag && onAddNote ? (
-              <div className="mb-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Notes & tags</p>
-                <div className="flex flex-wrap gap-2">
-                  <input
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    placeholder="New tag"
-                    className="min-w-[120px] flex-1 rounded-lg border border-white/[0.1] bg-white/[0.04] px-2 py-1.5 text-[12px] text-white outline-none placeholder:text-slate-600"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!tagInput.trim()) return;
-                      onAddTag(tagInput.trim());
-                      setTagInput("");
-                    }}
-                    className="rounded-lg border border-white/[0.1] bg-white/[0.06] px-3 py-1.5 text-[11px] font-semibold text-slate-200"
-                  >
-                    Add tag
-                  </button>
-                </div>
-                <textarea
-                  value={noteInput}
-                  onChange={(e) => setNoteInput(e.target.value)}
-                  rows={2}
-                  placeholder="Internal note (visible in CRM)…"
-                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.1] bg-white/[0.04] px-2 py-1.5 text-[12px] text-white outline-none placeholder:text-slate-600"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!noteInput.trim()) return;
-                    onAddNote(noteInput.trim());
-                    setNoteInput("");
-                  }}
-                  className="mt-2 rounded-lg border border-sky-400/30 bg-sky-500/15 px-3 py-1.5 text-[11px] font-semibold text-sky-100"
-                >
-                  Save note
-                </button>
-                {notes.length ? (
-                  <ul className="mt-2 max-h-24 space-y-1 overflow-y-auto text-[11px] text-slate-400">
-                    {notes.slice(-6).map((n, i) => (
-                      <li key={i} className="border-l border-white/[0.08] pl-2">
-                        {(n.text || "").slice(0, 120)}
-                        <span className="text-slate-600"> · {n.at || ""}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
             ) : null}
             <div className="flex gap-2">
               <textarea

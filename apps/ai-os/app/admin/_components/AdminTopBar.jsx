@@ -42,7 +42,7 @@ function BellIcon({ className }) {
   );
 }
 
-export function AdminTopBar({ activePath, navItems, logoutSlot }) {
+export function AdminTopBar({ activePath, navItems, primaryNavItems = [], secondaryNavItems = [], logoutSlot }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [filter, setFilter] = useState("all");
   const [notifOpen, setNotifOpen] = useState(false);
@@ -174,6 +174,32 @@ export function AdminTopBar({ activePath, navItems, logoutSlot }) {
 
       <div className="mt-3 border-t border-white/[0.06] pt-3 sm:hidden">{logoutSlot}</div>
 
+      <div className="fixed bottom-3 left-1/2 z-40 flex w-[min(96vw,460px)] -translate-x-1/2 items-center justify-between rounded-2xl border border-white/[0.1] bg-[#0a0d14]/95 px-2 py-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.5)] backdrop-blur sm:hidden">
+        {primaryNavItems.map((item) => {
+          const active = activePath === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`rounded-lg px-2.5 py-1.5 text-[11px] font-semibold ${
+                active ? "bg-white/[0.12] text-white" : "text-slate-400"
+              }`}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+        {secondaryNavItems.length ? (
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-slate-300"
+          >
+            More
+          </button>
+        ) : null}
+      </div>
+
       <AnimatePresence>
         {menuOpen ? (
           <>
@@ -217,6 +243,29 @@ export function AdminTopBar({ activePath, navItems, logoutSlot }) {
                   );
                 })}
               </ul>
+              {secondaryNavItems.length ? (
+                <>
+                  <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">More</p>
+                  <ul className="mt-2 space-y-1">
+                    {secondaryNavItems.map((item) => {
+                      const active = activePath === item.href;
+                      return (
+                        <li key={`secondary-${item.href}`}>
+                          <Link
+                            href={item.href}
+                            onClick={() => setMenuOpen(false)}
+                            className={`block rounded-xl py-2.5 pl-[11px] pr-3 text-[13px] font-medium tracking-tight transition-colors duration-150 ${
+                              active ? "bg-white/[0.08] text-white" : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-100"
+                            }`}
+                          >
+                            {item.label}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
+              ) : null}
             </motion.nav>
           </>
         ) : null}

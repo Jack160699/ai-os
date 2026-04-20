@@ -3,6 +3,8 @@ export const INBOX_FILTERS = [
   { id: "unread", label: "Unread" },
   { id: "hot", label: "Hot Leads" },
   { id: "closed", label: "Closed" },
+  { id: "archived", label: "Archived" },
+  { id: "deleted", label: "Deleted" },
 ];
 
 export const QUICK_REPLIES = [
