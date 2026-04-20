@@ -80,7 +80,7 @@ export function AdminTopBar({ activePath, navItems, primaryNavItems = [], second
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
-            className="admin-button-glow flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-300 transition-[border-color,background-color,color,box-shadow] duration-150 hover:border-white/[0.12] hover:bg-white/[0.07] hover:text-white hover:shadow-[0_8px_28px_rgba(0,0,0,0.35)] lg:hidden"
+            className="admin-button-glow admin-control flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-300 hover:text-white lg:hidden"
             aria-expanded={menuOpen}
             aria-controls="admin-mobile-nav"
             onClick={() => setMenuOpen((o) => !o)}
@@ -94,7 +94,7 @@ export function AdminTopBar({ activePath, navItems, primaryNavItems = [], second
             <input
               type="search"
               placeholder="Search leads, phone, status…"
-              className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-2 pl-9 pr-3 text-[13px] text-slate-100 outline-none ring-sky-500/25 placeholder:text-slate-600 transition-[border-color,background-color,box-shadow] duration-150 focus:border-white/[0.14] focus:bg-white/[0.06] focus:ring-2 sm:h-9 sm:max-w-md sm:text-[12px]"
+              className="admin-control h-10 w-full rounded-xl py-2 pl-9 pr-3 text-[13px] text-slate-100 outline-none ring-sky-500/25 placeholder:text-slate-600 sm:h-9 sm:max-w-md sm:text-[12px]"
               aria-label="Search workspace"
             />
           </div>
@@ -102,7 +102,7 @@ export function AdminTopBar({ activePath, navItems, primaryNavItems = [], second
 
         <div className="flex flex-wrap items-center justify-between gap-2 sm:ml-auto sm:flex-nowrap sm:justify-end sm:gap-3">
           <div
-            className="flex flex-wrap items-center gap-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-0.5 shadow-[0_1px_0_rgba(255,255,255,0.03)_inset]"
+            className="hidden flex-wrap items-center gap-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-0.5 shadow-[0_1px_0_rgba(255,255,255,0.03)_inset] md:flex"
             role="group"
             aria-label="Time scope"
           >
@@ -137,7 +137,7 @@ export function AdminTopBar({ activePath, navItems, primaryNavItems = [], second
             <button
               type="button"
               onClick={() => setNotifOpen((v) => !v)}
-              className="admin-button-glow relative z-[91] flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-slate-400 pointer-events-auto transition-all duration-200 ease-in-out hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-slate-100 hover:shadow-[0_10px_32px_rgba(0,0,0,0.38)]"
+              className="admin-button-glow admin-control relative z-[91] flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-400 pointer-events-auto hover:text-slate-100 hover:shadow-[0_10px_32px_rgba(0,0,0,0.38)]"
               aria-label="Notifications"
               aria-expanded={notifOpen}
             >
@@ -174,14 +174,14 @@ export function AdminTopBar({ activePath, navItems, primaryNavItems = [], second
 
       <div className="mt-3 border-t border-white/[0.06] pt-3 sm:hidden">{logoutSlot}</div>
 
-      <div className="fixed bottom-3 left-1/2 z-40 flex w-[min(96vw,460px)] -translate-x-1/2 items-center justify-between rounded-2xl border border-white/[0.1] bg-[#0a0d14]/95 px-2 py-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.5)] backdrop-blur sm:hidden">
+      <div className="fixed bottom-3 left-1/2 z-40 flex w-[min(96vw,460px)] -translate-x-1/2 items-center justify-between rounded-2xl border border-white/[0.1] bg-[#0a0d14]/95 px-2 py-2 shadow-[0_20px_60px_rgba(0,0,0,0.5)] backdrop-blur sm:hidden">
         {primaryNavItems.map((item) => {
           const active = activePath === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`rounded-lg px-2.5 py-1.5 text-[11px] font-semibold ${
+              className={`rounded-lg px-3 py-2 text-[11px] font-semibold ${
                 active ? "bg-white/[0.12] text-white" : "text-slate-400"
               }`}
             >
@@ -193,7 +193,7 @@ export function AdminTopBar({ activePath, navItems, primaryNavItems = [], second
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-slate-300"
+            className="rounded-lg px-3 py-2 text-[11px] font-semibold text-slate-300"
           >
             More
           </button>

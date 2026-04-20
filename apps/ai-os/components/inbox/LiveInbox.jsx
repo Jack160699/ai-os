@@ -283,13 +283,24 @@ export function LiveInbox() {
 
       <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2">
         <p className="text-[11px] text-slate-400">Conversation workspace</p>
-        <button
-          type="button"
-          onClick={() => setCompactMode((v) => !v)}
-          className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold ${compactMode ? "bg-white/12 text-white" : "text-slate-400"}`}
-        >
-          Compact mode
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setStickToBottom((v) => !v)}
+            className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold ${
+              stickToBottom ? "bg-sky-500/20 text-sky-100" : "text-slate-400"
+            }`}
+          >
+            Auto-scroll
+          </button>
+          <button
+            type="button"
+            onClick={() => setCompactMode((v) => !v)}
+            className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold ${compactMode ? "bg-white/12 text-white" : "text-slate-400"}`}
+          >
+            Compact
+          </button>
+        </div>
       </div>
 
       <div className="grid min-h-[540px] flex-1 gap-3 overflow-hidden lg:min-h-[calc(100vh-260px)] lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)_minmax(0,290px)] lg:gap-4">

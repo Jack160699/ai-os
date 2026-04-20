@@ -96,7 +96,7 @@ export function ActiveChatPanel({
                   key={item.id}
                   type="button"
                   onClick={() => setReply(item.text)}
-                  className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11px] text-slate-300 transition hover:border-white/[0.12] hover:bg-white/[0.06]"
+                  className="admin-control rounded-lg px-2.5 py-1 text-[11px] text-slate-300"
                 >
                   {item.label}
                 </button>
@@ -111,7 +111,7 @@ export function ActiveChatPanel({
                       key={item.id}
                       type="button"
                       onClick={() => onQuickTemplate(item.id)}
-                      className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-100 transition hover:border-emerald-400/40"
+                      className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-100 transition hover:border-emerald-400/40 hover:bg-emerald-500/18"
                     >
                       {item.label}
                     </button>
@@ -123,9 +123,15 @@ export function ActiveChatPanel({
               <textarea
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                    e.preventDefault();
+                    onSend();
+                  }
+                }}
                 rows={2}
-                placeholder="Type agent reply..."
-                className="min-h-[72px] flex-1 resize-none rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-[13px] text-white outline-none ring-sky-500/20 placeholder:text-slate-600 focus:border-white/[0.16] focus:ring-2"
+                placeholder="Type reply... (Ctrl/Cmd + Enter to send)"
+                className="admin-control min-h-[72px] flex-1 resize-none rounded-xl px-3 py-2 text-[13px] text-white outline-none ring-sky-500/20 placeholder:text-slate-600"
               />
               <button
                 type="button"

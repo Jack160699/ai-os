@@ -43,7 +43,7 @@ export function ConversationPane({
           value={q}
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="Search phone or lead..."
-          className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-2 pl-3 pr-3 text-[13px] text-white outline-none ring-sky-500/20 placeholder:text-slate-600 focus:border-white/[0.14] focus:ring-2"
+          className="admin-control h-10 w-full rounded-xl py-2 pl-3 pr-3 text-[13px] text-white outline-none ring-sky-500/20 placeholder:text-slate-600"
         />
         <div className="mt-2 flex flex-wrap gap-1.5">
           {INBOX_FILTERS.map((item) => (
@@ -97,7 +97,7 @@ export function ConversationPane({
             ) : null}
           </div>
         ) : (
-          <ul className="space-y-1">
+          <ul className={`${compactMode ? "space-y-0.5" : "space-y-1"}`}>
             {rows.map((c) => {
               const active = selected === c.phone;
               const status = statusFromRow(c);
@@ -106,15 +106,15 @@ export function ConversationPane({
                   <button
                     type="button"
                     onClick={() => onSelect(c.phone)}
-                    className={`flex w-full cursor-pointer flex-col gap-1 rounded-xl border px-3 ${compactMode ? "py-2" : "py-2.5"} text-left transition-[border-color,background-color,box-shadow,transform] duration-150 ${
+                    className={`flex w-full cursor-pointer flex-col ${compactMode ? "gap-0.5 rounded-lg py-1.5" : "gap-1 py-2.5"} rounded-xl border px-3 text-left transition-[border-color,background-color,box-shadow,transform] duration-150 ${
                       active
                         ? "border-sky-400/35 bg-sky-500/10 shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
                         : "border-transparent bg-transparent hover:-translate-y-0.5 hover:border-white/[0.08] hover:bg-white/[0.04]"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="truncate text-[13px] font-semibold text-white">{c.name || "Lead"}</span>
-                      <span className="shrink-0 text-[11px] text-slate-500">{formatTime(c.last_time)}</span>
+                      <span className={`${compactMode ? "text-[12px]" : "text-[13px]"} truncate font-semibold text-white`}>{c.name || "Lead"}</span>
+                      <span className="shrink-0 text-[10px] text-slate-500">{formatTime(c.last_time)}</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-slate-400">
@@ -132,8 +132,8 @@ export function ConversationPane({
                         </span>
                       ) : null}
                     </div>
-                    <p className="line-clamp-2 text-[12px] leading-snug text-slate-500">{c.last_message}</p>
-                    <p className="text-[11px] text-slate-600">+{c.phone}</p>
+                    <p className={`line-clamp-2 ${compactMode ? "text-[11px]" : "text-[12px]"} leading-snug text-slate-500`}>{c.last_message}</p>
+                    <p className="text-[10px] text-slate-600">+{c.phone}</p>
                   </button>
                 </li>
               );

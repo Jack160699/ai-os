@@ -21,7 +21,7 @@ export function LeadInfoDrawer({
 
   return (
     <aside
-      className={`flex min-h-0 flex-col rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4 ${
+      className={`flex min-h-0 flex-col rounded-2xl border border-white/[0.07] bg-white/[0.02] p-3 sm:p-4 ${
         mobileTab === "intel" ? "flex" : "hidden"
       } lg:flex`}
     >
@@ -29,11 +29,11 @@ export function LeadInfoDrawer({
         <p className="text-[13px] text-slate-500">Select a conversation to view lead details.</p>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-          <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Lead Info</p>
+          <div className="admin-pill rounded-xl p-3">
+            <p className="admin-section-label">Lead Info</p>
             <label className="mt-2 flex items-center justify-between gap-2 text-[12px] text-slate-300">
               Owner
-              <select value={owner} onChange={(e) => onOwnerChange(e.target.value)} className="rounded bg-[#0d1118] px-2 py-1 text-[12px]">
+              <select value={owner} onChange={(e) => onOwnerChange(e.target.value)} className="admin-control rounded px-2 py-1 text-[12px]">
                 {OWNER_OPTIONS.map((item) => (
                   <option key={item} value={item}>
                     {item}
@@ -50,14 +50,14 @@ export function LeadInfoDrawer({
             </div>
           </div>
 
-          <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Add Tag</p>
+          <div className="admin-pill rounded-xl p-3">
+            <p className="admin-section-label">Add Tag</p>
             <div className="mt-2 flex gap-2">
               <input
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 placeholder="New tag"
-                className="min-w-0 flex-1 rounded-lg border border-white/[0.1] bg-white/[0.04] px-2 py-1.5 text-[12px] text-white outline-none placeholder:text-slate-600"
+                className="admin-control min-w-0 flex-1 rounded-lg px-2 py-1.5 text-[12px] text-white outline-none placeholder:text-slate-600"
               />
               <button
                 type="button"
@@ -66,21 +66,21 @@ export function LeadInfoDrawer({
                   onAddTag(tagInput.trim());
                   setTagInput("");
                 }}
-                className="rounded-lg border border-white/[0.1] bg-white/[0.06] px-3 py-1.5 text-[11px] font-semibold text-slate-200"
+                className="admin-control rounded-lg px-3 py-1.5 text-[11px] font-semibold text-slate-200"
               >
                 Add
               </button>
             </div>
           </div>
 
-          <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Internal Notes</p>
+          <div className="admin-pill rounded-xl p-3">
+            <p className="admin-section-label">Internal Notes</p>
             <textarea
               value={noteInput}
               onChange={(e) => setNoteInput(e.target.value)}
               rows={3}
               placeholder="Add internal note..."
-              className="mt-2 w-full resize-none rounded-lg border border-white/[0.1] bg-white/[0.04] px-2 py-1.5 text-[12px] text-white outline-none placeholder:text-slate-600"
+              className="admin-control mt-2 w-full resize-none rounded-lg px-2 py-1.5 text-[12px] text-white outline-none placeholder:text-slate-600"
             />
             <button
               type="button"

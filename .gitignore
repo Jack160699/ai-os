@@ -14,3 +14,4 @@ honest-asset-management/
 premium-consulting-demo/
 backend/__pycache__/
 memory.json
+.vercel
