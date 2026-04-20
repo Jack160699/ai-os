@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --color-border: oklch(0.28 0.02 260);
+  --color-background: oklch(0.14 0.02 260);
+  --color-foreground: oklch(0.96 0.01 260);
+  --color-muted: oklch(0.62 0.02 260);
+  --color-accent: oklch(0.72 0.14 250);
+  --color-card: oklch(0.18 0.02 260 / 0.65);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Glass panels — subtle, not heavy */
+.os-glass {
+  background: linear-gradient(
+    145deg,
+    oklch(0.22 0.02 260 / 0.55),
+    oklch(0.16 0.02 260 / 0.45)
+  );
+  backdrop-filter: blur(14px);
+  border: 1px solid oklch(1 0 0 / 0.06);
+  box-shadow: 0 1px 0 oklch(1 0 0 / 0.04) inset;
+}
+
+.os-glass:hover {
+  border-color: oklch(1 0 0 / 0.1);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-control {
+  border: 1px solid oklch(1 0 0 / 0.08);
+  background: oklch(1 0 0 / 0.04);
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-control:hover {
+  border-color: oklch(1 0 0 / 0.12);
+  background: oklch(1 0 0 / 0.06);
+}
+
+.admin-control:focus-visible {
+  outline: none;
+  border-color: oklch(0.72 0.14 250 / 0.55);
+  box-shadow: 0 0 0 2px oklch(0.72 0.14 250 / 0.18);
+}
