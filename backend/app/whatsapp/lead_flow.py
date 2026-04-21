@@ -23,6 +23,7 @@ from app.memory.store import (
     set_conversation_state,
 )
 from app.sales import states as S
+from app.sales.intent import wants_human
 from app.whatsapp.copy_variants import (
     pick_booking_question,
     pick_challenge_prompt,
@@ -195,6 +196,93 @@ def handle_lead_message(
         state = get_conversation_state(sender)
 
     display_name = (state.get("profile_name") or profile_name or "").strip()
+
+    msg = (message or "").strip()
+    lower_msg = msg.lower()
+    if wants_human(msg):
+        set_conversation_state(
+            sender,
+            {
+                **state,
+                "human_required": True,
+                "sales_stage": S.HUMAN_REQUIRED,
+                "step": state.get("step", "start"),
+                "transcript_lines": lines,
+            },
+        )
+        return LeadFlowReply(body="Connecting you to a strategist now. You'll get a reply shortly.")
+
+    # AI-first sales strategist mode: acknowledge intent fast and always push to next conversion step.
+    try:
+        qual = extract_lead_qualification(
+            settings,
+            latest_message=msg,
+            transcript_excerpt="\n".join(lines[-12:]),
+        )
+    except Exception:
+        qual = {}
+
+    budget = qual.get("budget_inr") if isinstance(qual, dict) else None
+    timeline = str((qual or {}).get("timeline") or "").strip() if isinstance(qual, dict) else ""
+    need = str((qual or {}).get("need_summary") or "").strip() if isinstance(qual, dict) else ""
+    proposal_intent = bool((qual or {}).get("proposal_intent")) if isinstance(qual, dict) else False
+    payment_intent = bool((qual or {}).get("payment_intent")) if isinstance(qual, dict) else False
+    call_intent = bool((qual or {}).get("book_call_intent")) if isinstance(qual, dict) else False
+    urgent = ("urgent" in lower_msg) or ("asap" in lower_msg) or ("today" in lower_msg) or ("immediately" in lower_msg)
+    has_service_intent = any(k in lower_msg for k in ("website", "marketing", "ads", "seo", "automation", "funnel", "growth"))
+
+    if step == "start":
+        _record_lead_event("started", sender)
+        set_conversation_state(
+            sender,
+            {
+                "step": "ai_active",
+                "transcript_lines": lines,
+                "profile_name": display_name,
+                "lead_status": "active",
+                "followup_total_sent": 0,
+                "followup_stage_sent": 0,
+                "sales_stage": S.QUALIFYING,
+                "budget_inr": budget,
+                "timeline_hint": timeline[:120],
+            },
+        )
+
+    st_after = get_conversation_state(sender)
+    set_conversation_state(
+        sender,
+        {
+            **st_after,
+            "step": "ai_active",
+            "transcript_lines": lines,
+            "budget_inr": budget if budget else st_after.get("budget_inr"),
+            "timeline_hint": timeline[:120] if timeline else st_after.get("timeline_hint", ""),
+            "lead_status": "active",
+            "sales_stage": S.QUALIFIED if (budget or has_service_intent or need) else S.QUALIFYING,
+        },
+    )
+
+    if payment_intent:
+        return LeadFlowReply(body="Perfect. I can send the payment link right away and start immediately.\nReply 'Send payment link' to confirm, or share your preferred start time.")
+    if proposal_intent:
+        return LeadFlowReply(body="Done. I can share a focused proposal with scope, timeline, and pricing today.\nReply 'Send proposal' or book a quick call for final alignment.")
+    if call_intent:
+        return LeadFlowReply(body="Great call. A 10-minute strategy call will lock scope fast.\nShare your preferred slot, or reply 'Book call' and I'll confirm it now.")
+
+    if budget:
+        if urgent:
+            return LeadFlowReply(body=f"Got it — urgent and clear. We can execute fast within {int(budget):,} INR with a conversion-focused plan.\nWant a quick proposal now or should I lock a strategist call immediately?")
+        return LeadFlowReply(body=f"Perfect, {int(budget):,} INR is workable for a high-conversion build with clear milestones.\nWant the quick plan as a proposal, or should I schedule a strategist call now?")
+
+    if urgent and (has_service_intent or need):
+        return LeadFlowReply(body="Understood — this is priority. We'll skip delays and move straight to execution with a clear action plan.\nShould I send the quick proposal now or connect you to a strategist call right away?")
+
+    if has_service_intent or need:
+        return LeadFlowReply(body="Got it. We can solve this with a focused execution plan tied to leads and conversion outcomes.\nWant a quick proposal first, or should I connect you to a strategist now?")
+
+    return LeadFlowReply(
+        body="Understood. Share your goal and budget, and I'll map the fastest plan.\nWant to move ahead with a quick call or proposal?"
+    )
 
     if step == "start":
         _record_lead_event("started", sender)
