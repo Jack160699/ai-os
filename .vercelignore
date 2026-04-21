@@ -1,0 +1,12 @@
+# Keep Vercel CLI uploads small (Git deployments use git tree only)
+node_modules
+**/.next
+.turbo
+**/.turbo
+.env
+.env.*
+backend
+honest-asset-management
+premium-consulting-demo
+**/*.log
+.git
