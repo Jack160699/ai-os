@@ -2665,11 +2665,8 @@ def create_app(settings: Settings) -> Flask:
                 ):
                     _finalize_wa_auto_reply(settings, sender, ai_result, wa_mid)
                     return "", 200
-                ai_state = get_state(sender)
-                if bool(ai_state.get("human_required")):
-                    print("[wa-webhook] human_required=true -> suppressing bot reply")
-                    return "", 200
-                print("[wa-webhook] AI returned empty result -> fallback legacy flow")
+                print("[wa-webhook] AI returned no reply -> no fallback")
+                return "", 200
 
                 st_entry_check = get_conversation_state(sender)
                 if _contains_entry_greeting(inbound):

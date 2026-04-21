@@ -668,11 +668,10 @@ def _default_state() -> dict[str, Any]:
     return {
         "stage": STAGE_NEW,
         "human_required": False,
-        "service": "",
+        "service": None,
         "budget": None,
         "urgency": False,
         "last_updated": _now_iso(),
-        "last_reply": "",
     }
 
 
@@ -728,14 +727,24 @@ def _contains_any(text: str, words: tuple[str, ...]) -> bool:
     return any(w in t for w in words)
 
 
-def _dedupe_reply(state: dict[str, Any], reply: str) -> str:
-    last = str(state.get("last_reply") or "").strip()
-    cur = (reply or "").strip()
-    if cur and cur == last:
-        if cur.endswith("?"):
-            return cur.replace("?", " now?")
-        return f"{cur} Reply now and we will start."
-    return cur
+def notify_admin(phone: str, state: dict[str, Any]) -> None:
+    print(f"🚨 {phone} → {state['stage']}")
+
+
+def handle_final_stage(state: dict[str, Any], message: str) -> LeadFlowReply | None:
+    if bool(state.get("human_required")):
+        return None
+    stage = str(state.get("stage") or "")
+    low = (message or "").strip().lower()
+    if stage == STAGE_PAYMENT_READY:
+        if "upi" in low:
+            return LeadFlowReply(body="Done. Sharing UPI payment link now.")
+        if "bank" in low:
+            return LeadFlowReply(body="Sharing bank transfer details now.")
+        return LeadFlowReply(body="Want UPI, bank transfer, or payment link?")
+    if stage == STAGE_CALL_READY:
+        return LeadFlowReply(body=f"Confirmed for {message}. Our strategist will call you.")
+    return None
 
 
 def _handle_lead_message_state_machine(phone: str, message: str) -> LeadFlowReply | None:
@@ -743,17 +752,19 @@ def _handle_lead_message_state_machine(phone: str, message: str) -> LeadFlowRepl
     msg = (message or "").strip()
     low = msg.lower()
 
+    # FINAL STAGES LOCK: never fall back to generic routing once in final stages.
+    if str(state.get("stage") or "") in {STAGE_PAYMENT_READY, STAGE_CALL_READY, STAGE_HUMAN_REQUIRED}:
+        return handle_final_stage(state, msg)
+
     if state.get("human_required"):
         return None
 
-    if _contains_any(low, ("talk to human", "human", "person", "agent")):
+    if _contains_any(low, ("talk to human", "human", "real person", "agent")):
         state["human_required"] = True
         state["stage"] = STAGE_HUMAN_REQUIRED
         save_state(phone, state)
-        handoff = "Connecting you to a strategist now. You'll get a reply shortly."
-        state["last_reply"] = handoff
-        save_state(phone, state)
-        return LeadFlowReply(body=handoff)
+        notify_admin(phone, state)
+        return LeadFlowReply(body="Connecting you to a strategist now. You'll get a reply shortly.")
 
     service = _detect_service(low)
     budget = _detect_budget(low)
@@ -767,29 +778,25 @@ def _handle_lead_message_state_machine(phone: str, message: str) -> LeadFlowRepl
 
     if _contains_any(low, ("proposal", "quote", "pricing", "estimate")):
         state["stage"] = STAGE_PROPOSAL_REQUESTED
-        svc = state.get("service") or "project"
+        svc = state.get("service") or "service"
         b = state.get("budget")
-        budget_text = f"₹{int(b)}" if isinstance(b, int) else "your budget"
+        budget_text = f"₹{int(b)}" if isinstance(b, int) else "₹0"
         body = f"Proposal ready for your {svc}. We’ll structure scope, timeline, and pricing around {budget_text}. Reply 'pay now' or 'book call'."
-        body = _dedupe_reply(state, body)
-        state["last_reply"] = body
         save_state(phone, state)
         return LeadFlowReply(body=body)
 
     if _contains_any(low, ("pay", "payment", "advance")):
         state["stage"] = STAGE_PAYMENT_READY
-        body = "Perfect. I’ll arrange payment details today. Want UPI, bank transfer, or payment link?"
-        body = _dedupe_reply(state, body)
-        state["last_reply"] = body
+        notify_admin(phone, state)
         save_state(phone, state)
+        body = "Perfect. I’ll arrange payment details today. Want UPI, bank transfer, or payment link?"
         return LeadFlowReply(body=body)
 
     if _contains_any(low, ("call", "meeting", "talk now")):
         state["stage"] = STAGE_CALL_READY
-        body = "Great. A strategist can speak with you today. Share your preferred time slot."
-        body = _dedupe_reply(state, body)
-        state["last_reply"] = body
+        notify_admin(phone, state)
         save_state(phone, state)
+        body = "Great. A strategist can speak with you today. Share your preferred time slot."
         return LeadFlowReply(body=body)
 
     state["stage"] = STAGE_INTENT_CAPTURED
@@ -801,8 +808,6 @@ def _handle_lead_message_state_machine(phone: str, message: str) -> LeadFlowRepl
         body = f"₹{b} is workable. Want proposal or quick call?"
     else:
         body = "Got it. We can help. Want proposal or quick call?"
-    body = _dedupe_reply(state, body)
-    state["last_reply"] = body
     save_state(phone, state)
     return LeadFlowReply(body=body)
 
