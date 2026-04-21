@@ -3,22 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Bell,
-  ChevronDown,
-  Home,
-  Inbox,
-  Kanban,
-  LayoutGrid,
-  LogOut,
-  MoreHorizontal,
-  Search,
-  Settings,
-  UserRound,
-} from "lucide-react";
+import { Bell, ChevronDown, Globe, LogOut, MoreHorizontal, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { OS_MAIN_NAV, navActive } from "@/lib/os-nav";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,33 +15,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { CopilotFab } from "@/components/os/copilot-fab";
 import { AddLeadQuickButton } from "@/components/os/add-lead-quick-button";
+import { CommandPalette } from "@/components/os/command-palette";
 import { createClient } from "@/lib/supabase/client";
+import { useWorkspace, type WorkspaceId } from "@/components/os/workspace-context";
 
-const primaryNav = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/inbox", label: "Inbox", icon: Inbox },
-  { href: "/leads", label: "Leads", icon: LayoutGrid },
-  { href: "/pipeline", label: "Pipeline", icon: Kanban },
-] as const;
-
-const moreLinks = [
-  { href: "/more/automation", label: "Automation" },
-  { href: "/more/proposals", label: "Proposal templates" },
-  { href: "/more/payments", label: "Payments" },
-  { href: "/more/team", label: "Team" },
-  { href: "/more/branding", label: "Branding" },
-  { href: "/more/ai-workspace", label: "AI workspace" },
-  { href: "/more/settings", label: "Settings" },
-] as const;
-
-function isPrimaryActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
+const MOBILE_BAR = OS_MAIN_NAV.slice(0, 4);
+const MOBILE_MORE = OS_MAIN_NAV.slice(4);
 
 function MobileMoreSheet({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -69,31 +39,33 @@ function MobileMoreSheet({ children }: { children: React.ReactNode }) {
         <SheetHeader className="text-left">
           <SheetTitle className="text-base">More</SheetTitle>
         </SheetHeader>
-        <nav className="mt-4 flex max-h-[min(60vh,28rem)] flex-col gap-1 overflow-y-auto pr-1">
-          {moreLinks.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="rounded-lg px-3 py-2.5 text-sm text-slate-200 transition-colors hover:bg-white/5"
-            >
-              {l.label}
-            </Link>
-          ))}
+        <nav className="mt-4 flex max-h-[min(60vh,28rem)] flex-col gap-0.5 overflow-y-auto pr-1">
+          {MOBILE_MORE.map((n) => {
+            const active = navActive(pathname, n.href);
+            return (
+              <Link
+                key={n.href}
+                href={n.href}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                  active ? "bg-white/10 text-sky-200" : "text-slate-200 hover:bg-white/5",
+                )}
+              >
+                <n.icon className="size-4 opacity-80" />
+                {n.label}
+              </Link>
+            );
+          })}
         </nav>
       </SheetContent>
     </Sheet>
   );
 }
 
-export function OsShell({ children }: { children: React.ReactNode }) {
+export function OsShell({ children, userLabel = "Operator" }: { children: React.ReactNode; userLabel?: string }) {
   const pathname = usePathname();
-  const [moreOpen, setMoreOpen] = React.useState(() => pathname.startsWith("/more"));
-
-  React.useEffect(() => {
-    if (pathname.startsWith("/more")) setMoreOpen(true);
-  }, [pathname]);
-
-  const moreActive = pathname.startsWith("/more");
+  const { id: workspaceId, label: workspaceLabel, setWorkspace } = useWorkspace();
+  const [cmdOpen, setCmdOpen] = React.useState(false);
 
   const signOut = React.useCallback(async () => {
     const supabase = createClient();
@@ -102,120 +74,151 @@ export function OsShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="flex min-h-dvh bg-background">
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-white/[0.06] bg-[oklch(0.12_0.02_260)] md:flex">
+    <div className="flex min-h-dvh bg-[oklch(0.1_0.02_270)] text-foreground">
+      <aside className="hidden w-[248px] shrink-0 flex-col border-r border-white/[0.06] bg-[oklch(0.11_0.025_270)] md:flex">
         <div className="flex h-14 items-center border-b border-white/[0.06] px-4">
-          <Link href="/" className="text-sm font-semibold tracking-tight text-foreground">
-            StratXcel OS
+          <Link href="/" className="flex flex-col leading-tight">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-300/90">StratXcel</span>
+            <span className="text-sm font-semibold tracking-tight text-white">StratXcel OS</span>
           </Link>
         </div>
-        <nav className="flex flex-1 flex-col gap-0.5 p-2">
-          {primaryNav.map(({ href, label, icon: Icon }) => {
-            const active = isPrimaryActive(pathname, href);
+
+        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
+          {OS_MAIN_NAV.map(({ href, label, icon: Icon }) => {
+            const active = navActive(pathname, href);
             return (
               <Link
                 key={href}
                 href={href}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
-                  active ? "bg-white/10 text-foreground shadow-sm" : "text-slate-400 hover:bg-white/5 hover:text-slate-200",
+                  "relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
+                  active
+                    ? "nav-item-active text-white"
+                    : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200",
                 )}
               >
-                <Icon className="size-4 opacity-80" />
+                <Icon className={cn("size-4", active ? "text-sky-300" : "opacity-70")} />
                 {label}
               </Link>
             );
           })}
-
-          <Collapsible open={moreOpen} onOpenChange={setMoreOpen}>
-            <CollapsibleTrigger
-              type="button"
-              className={cn(
-                "flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors",
-                moreActive ? "bg-white/10 text-foreground" : "text-slate-400 hover:bg-white/5 hover:text-slate-200",
-              )}
-            >
-              <span className="flex items-center gap-2">
-                <MoreHorizontal className="size-4 opacity-80" />
-                More
-              </span>
-              <ChevronDown className={cn("size-4 opacity-60 transition-transform", moreOpen && "rotate-180")} />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-0.5 pl-2 pt-0.5 data-[state=closed]:animate-none">
-              {moreLinks.map((l) => {
-                const active = pathname === l.href || pathname.startsWith(`${l.href}/`);
-                return (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    className={cn(
-                      "block rounded-md py-1.5 pl-7 pr-2 text-[13px] transition-colors",
-                      active ? "text-sky-200" : "text-slate-500 hover:text-slate-300",
-                    )}
-                  >
-                    {l.label}
-                  </Link>
-                );
-              })}
-            </CollapsibleContent>
-          </Collapsible>
         </nav>
+
+        <div className="mt-auto space-y-2 border-t border-white/[0.06] p-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-black/25 px-3 py-2 text-left text-xs font-medium text-slate-200 transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
+              >
+                <span className="truncate">{workspaceLabel}</span>
+                <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-56 border-white/[0.1] bg-[oklch(0.14_0.02_260)]">
+              <DropdownMenuLabel className="text-[10px] font-normal uppercase tracking-wide text-slate-500">
+                Workspace
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-white/10" />
+              {(["india", "global"] as WorkspaceId[]).map((id) => (
+                <DropdownMenuItem
+                  key={id}
+                  className="text-slate-200 focus:bg-white/10"
+                  onClick={() => setWorkspace(id)}
+                >
+                  {id === "india" ? "StratXcel India" : "StratXcel Global"}
+                  {workspaceId === id ? <span className="ml-auto text-[10px] text-sky-400">Active</span> : null}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button
+            type="button"
+            onClick={() => setWorkspace("global")}
+            className={cn(
+              "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] text-slate-500 transition-colors hover:text-slate-300",
+              workspaceId === "global" && "text-sky-300/90",
+            )}
+          >
+            <Globe className="size-3.5 opacity-70" />
+            StratXcel Global
+            <span className="ml-auto rounded border border-white/10 px-1 font-mono text-[9px] text-slate-600">v</span>
+          </button>
+        </div>
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-white/[0.06] bg-background/85 px-3 backdrop-blur-xl md:px-4">
-          <div className="flex flex-1 items-center gap-2">
-            <div className="relative hidden max-w-md flex-1 md:block">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
-              <Input placeholder="Search leads, messages…" className="h-9 w-full border-white/[0.08] bg-white/[0.03] pl-9 shadow-inner" />
-            </div>
-            <div className="flex flex-1 items-center md:hidden">
-              <span className="text-sm font-semibold tracking-tight">StratXcel OS</span>
-            </div>
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-white/[0.06] bg-[oklch(0.1_0.02_270/0.88)] px-3 backdrop-blur-xl md:gap-3 md:px-5">
+          <div className="hidden shrink-0 md:block md:w-[248px]" aria-hidden />
+
+          <div className="flex min-w-0 flex-1 justify-center">
+            <button
+              type="button"
+              onClick={() => setCmdOpen(true)}
+              className="group relative flex h-9 w-full max-w-xl items-center gap-2 rounded-lg border border-white/[0.08] bg-black/30 px-3 text-left text-sm text-slate-500 shadow-inner transition-colors hover:border-white/[0.12] hover:bg-black/40"
+            >
+              <Search className="size-4 shrink-0 opacity-70" />
+              <span className="truncate">Global command bar</span>
+              <kbd className="ml-auto hidden shrink-0 rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-slate-400 sm:inline-block">
+                ⌘K
+              </kbd>
+            </button>
           </div>
-          <AddLeadQuickButton className="border-white/10 text-slate-200" />
-          <Button variant="ghost" size="icon" className="text-slate-300" aria-label="Notifications">
-            <Bell className="size-4" />
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-slate-300" aria-label="Profile">
-                <UserRound className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 border-white/[0.08] bg-[oklch(0.16_0.02_260)]">
-              <DropdownMenuLabel className="text-xs font-normal text-slate-500">Account</DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-white/10" />
-              <DropdownMenuItem asChild className="text-slate-200 focus:bg-white/10">
-                <Link href="/more/settings" className="flex cursor-pointer items-center gap-2">
-                  <Settings className="size-3.5 opacity-70" />
-                  Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/10" />
-              <DropdownMenuItem
-                className="cursor-pointer text-slate-200 focus:bg-white/10"
-                onSelect={(e) => {
-                  e.preventDefault();
-                  void signOut();
-                }}
-              >
-                <span className="flex items-center gap-2">
-                  <LogOut className="size-3.5 opacity-70" />
-                  Log out
-                </span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
+          <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
+            <AddLeadQuickButton showLabel className="hidden border-white/10 sm:flex" />
+            <AddLeadQuickButton className="border-white/10 sm:hidden" />
+            <Button variant="ghost" size="icon" className="text-slate-300 hover:bg-white/5" aria-label="Notifications">
+              <Bell className="size-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="h-9 gap-2 rounded-lg px-2 text-slate-200 hover:bg-white/5"
+                  aria-label="Profile menu"
+                >
+                  <span className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-500/80 to-sky-600/80 text-xs font-semibold text-white shadow-[0_0_20px_oklch(0.55_0.2_280/0.35)]">
+                    {userLabel.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="hidden max-w-[7rem] truncate text-xs font-medium md:inline">{userLabel}</span>
+                  <ChevronDown className="hidden size-3.5 opacity-50 md:inline" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52 border-white/[0.1] bg-[oklch(0.14_0.02_260)]">
+                <DropdownMenuLabel className="text-xs font-normal text-slate-500">Signed in as {userLabel}</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-white/10" />
+                <DropdownMenuItem asChild className="text-slate-200 focus:bg-white/10">
+                  <Link href="/more/settings" className="flex cursor-pointer items-center gap-2">
+                    <Settings className="size-3.5 opacity-70" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-white/10" />
+                <DropdownMenuItem
+                  className="cursor-pointer text-slate-200 focus:bg-white/10"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    void signOut();
+                  }}
+                >
+                  <span className="flex items-center gap-2">
+                    <LogOut className="size-3.5 opacity-70" />
+                    Log out
+                  </span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </header>
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:overflow-auto md:pb-0">
           {children}
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-white/[0.08] bg-[oklch(0.12_0.02_260/0.92)] px-1 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur-xl md:hidden">
-          {primaryNav.map(({ href, label, icon: Icon }) => {
-            const active = isPrimaryActive(pathname, href);
+        <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-white/[0.08] bg-[oklch(0.11_0.025_270/0.95)] px-1 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur-xl md:hidden">
+          {MOBILE_BAR.map(({ href, label, icon: Icon }) => {
+            const active = navActive(pathname, href);
             return (
               <Link
                 key={href}
@@ -226,7 +229,7 @@ export function OsShell({ children }: { children: React.ReactNode }) {
                 )}
               >
                 <Icon className={cn("size-5", active && "text-sky-400")} />
-                {label}
+                <span className="max-w-full truncate px-0.5">{label}</span>
               </Link>
             );
           })}
@@ -235,15 +238,16 @@ export function OsShell({ children }: { children: React.ReactNode }) {
               type="button"
               className={cn(
                 "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg py-1.5 text-[10px] font-medium transition-colors",
-                moreActive ? "text-sky-300" : "text-slate-500",
+                MOBILE_MORE.some((n) => navActive(pathname, n.href)) ? "text-sky-300" : "text-slate-500",
               )}
             >
-              <MoreHorizontal className={cn("size-5", moreActive && "text-sky-400")} />
+              <MoreHorizontal className="size-5" />
               More
             </button>
           </MobileMoreSheet>
         </nav>
 
+        <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
         <CopilotFab />
       </div>
     </div>

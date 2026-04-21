@@ -125,6 +125,19 @@ export async function getInboxSnapshot(resetBatchId: string, limit = 4): Promise
   }, []);
 }
 
+export async function getInboxThreadCount(resetBatchId: string): Promise<number> {
+  return safe(async () => {
+    const supabase = await createClient();
+    const { count, error } = await supabase
+      .from("conversations")
+      .select("id", { count: "exact", head: true })
+      .eq("reset_batch_id", resetBatchId)
+      .eq("archived", false);
+    if (error) throw error;
+    return count ?? 0;
+  }, 0);
+}
+
 export async function getConversationsForInbox(resetBatchId: string): Promise<ConversationListItem[]> {
   return safe(async () => {
     const supabase = await createClient();

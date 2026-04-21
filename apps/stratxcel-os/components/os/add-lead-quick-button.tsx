@@ -3,25 +3,27 @@
 import * as React from "react";
 import { Plus } from "lucide-react";
 import { createLead } from "@/app/(os)/actions";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-export function AddLeadQuickButton({ className }: { className?: string }) {
+export function AddLeadQuickButton({ className, showLabel }: { className?: string; showLabel?: boolean }) {
   const [open, setOpen] = React.useState(false);
 
   return (
     <>
       <Button
         type="button"
-        size="icon"
+        size={showLabel ? "sm" : "icon"}
         variant="outline"
         aria-label="Add lead"
-        className={className}
+        className={cn(showLabel && "gap-1.5 px-3", className)}
         onClick={() => setOpen(true)}
       >
         <Plus className="size-4" />
+        {showLabel ? <span className="hidden text-xs font-medium sm:inline">Quick add</span> : null}
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent

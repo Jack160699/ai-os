@@ -5,7 +5,7 @@
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
   --color-border: oklch(0.28 0.02 260);
-  --color-background: oklch(0.14 0.02 260);
+  --color-background: oklch(0.1 0.02 270);
   --color-foreground: oklch(0.96 0.01 260);
   --color-muted: oklch(0.62 0.02 260);
   --color-accent: oklch(0.72 0.14 250);
@@ -20,6 +20,15 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+/* Sidebar nav — Linear-style active glow */
+.nav-item-active {
+  background: linear-gradient(105deg, oklch(0.28 0.12 270 / 0.45), oklch(0.2 0.08 250 / 0.25));
+  box-shadow:
+    0 0 0 1px oklch(1 0 0 / 0.1),
+    0 0 28px -4px oklch(0.55 0.22 260 / 0.45),
+    inset 0 1px 0 oklch(1 0 0 / 0.08);
 }
 
 /* Glass panels — subtle, not heavy */
