@@ -257,6 +257,19 @@ def handle_lead_message(phone, message):
     state = get_state(phone)
     print("STATE:", phone, state)
 
+    if state.get("human_required"):
+        last_seen = int(state.get("last_seen") or 0)
+        if int(time.time()) - last_seen >= 15 * 60:
+            state["human_required"] = False
+            state["stage"] = "new"
+            state["last_seen"] = int(time.time())
+            save_state(phone, state)
+
+    if state.get("human_required") and contains(msg, ["hi", "hello", "start", "restart", "menu", "bot"]):
+        state["stage"] = "new"
+        state["human_required"] = False
+        save_state(phone, state)
+
     # HUMAN HANDOFF (TOP PRIORITY)
     if contains(msg, ["human", "real person", "agent", "talk to human"]):
         state["human_required"] = True
