@@ -1,3 +1,158 @@
+import os
+import json
+import time
+from pathlib import Path
+from openai import OpenAI
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+MEMORY_FILE = Path("memory.json")
+
+
+def load_db():
+    if not MEMORY_FILE.exists():
+        return {}
+    try:
+        with open(MEMORY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {}
+
+
+def save_db(db):
+    with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(db, f, indent=2)
+
+
+def normalize_phone(phone):
+    phone = str(phone).replace("+", "").strip()
+    return phone[-10:]
+
+
+def get_memory(phone):
+    db = load_db()
+    key = normalize_phone(phone)
+
+    if key not in db:
+        db[key] = {
+            "user_id": key,
+            "user_type": "unknown",
+            "summary": "",
+            "last_intent": "",
+            "human_required": False,
+            "stage": "new",
+            "last_seen": int(time.time())
+        }
+        save_db(db)
+
+    return db[key]
+
+
+def save_memory(phone, memory):
+    db = load_db()
+    key = normalize_phone(phone)
+    db[key] = memory
+    save_db(db)
+
+
+def handle_lead_message(phone, message):
+    return handle_conversation(phone, message)
+
+
+def handle_conversation(phone, message):
+    memory = get_memory(phone)
+    msg = str(message).strip()
+
+    lower = msg.lower()
+
+    handoff_words = [
+        "human",
+        "agent",
+        "real person",
+        "talk to human"
+    ]
+
+    if any(word in lower for word in handoff_words):
+        memory["human_required"] = True
+        memory["stage"] = "human_required"
+        save_memory(phone, memory)
+        return "Connecting you to a strategist now. You'll get a reply shortly."
+
+    if memory.get("human_required"):
+        return None
+
+    result = ai_reply(memory, msg)
+
+    memory["summary"] = result["summary"]
+    memory["user_type"] = result["user_type"]
+    memory["last_intent"] = result["intent"]
+    memory["stage"] = result["stage"]
+    memory["last_seen"] = int(time.time())
+
+    save_memory(phone, memory)
+
+    return result["reply"]
+
+
+def ai_reply(memory, user_message):
+    prompt = f"""
+You are Stratxcel AI.
+
+You represent the company in chat.
+
+Roles:
+lead = sales naturally
+client = support
+founder = assistant
+unknown = understand first
+
+Current Memory:
+User type: {memory["user_type"]}
+Summary: {memory["summary"]}
+Last intent: {memory["last_intent"]}
+Stage: {memory["stage"]}
+
+User Message:
+{user_message}
+
+Rules:
+- Sound human
+- No robotic replies
+- No repetitive CTA
+- Use context
+- Keep replies short
+
+Return ONLY valid JSON:
+
+{{
+  "reply": "...",
+  "user_type": "...",
+  "intent": "...",
+  "stage": "...",
+  "summary": "..."
+}}
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            temperature=0.7,
+            messages=[
+                {"role": "system", "content": "You are a business AI operator."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        text = response.choices[0].message.content.strip()
+        return json.loads(text)
+
+    except Exception:
+        return {
+            "reply": "Got it — tell me a bit more so I can help properly.",
+            "user_type": memory["user_type"],
+            "intent": "unknown",
+            "stage": memory["stage"],
+            "summary": memory["summary"]
+        }
 from datetime import datetime
 import json
 import os
