@@ -29,14 +29,37 @@ def _clean_generic_questions(text: str) -> str:
 
 def _buying_signal(text: str) -> bool:
     low = (text or "").lower()
-    return any(k in low for k in ("just do it", "i trust you", "no time"))
+    return any(
+        k in low
+        for k in (
+            "just do it",
+            "i trust you",
+            "no time",
+            "kar do",
+            "start karo",
+            "chalu karo",
+            "proceed karo",
+            "karna hai",
+            "trust hai",
+            "tum dekh lo",
+            "aap sambhalo",
+            "time nahi hai",
+            "discuss nahi karna",
+            "jaldi hai",
+        )
+    )
 
 
 def generate_reply(message: str, memory: dict[str, Any], role: str, intent_data: dict[str, Any]) -> str:
     low = (message or "").lower()
+    lang = str(memory.get("preferred_language") or "english")
     if _buying_signal(message) or bool(intent_data.get("force_close")):
-        if "i trust you" in low:
+        if "i trust you" in low or "trust hai" in low or "tum dekh lo" in low or "aap sambhalo" in low:
+            if lang == "hinglish":
+                return "Appreciate that 👍 hum proper handle karenge.\nGot it 👍\nBudget ke andar sab manage kar denge.\n\nNext step:\nAbhi start karein ya quick call?"
             return "Appreciate that 👍 we'll take care of it properly.\nGot it 👍\nWe’ll handle everything within your budget.\n\nNext step:\nStart now or quick call?"
+        if lang == "hinglish":
+            return "Got it 👍\nBudget ke andar sab handle kar denge.\n\nNext step:\nAbhi start karein ya quick call?"
         return "Got it 👍\nWe’ll handle everything within your budget.\n\nNext step:\nStart now or quick call?"
 
     tone = "guiding"

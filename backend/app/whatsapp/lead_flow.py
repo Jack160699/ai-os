@@ -77,6 +77,12 @@ def handle_lead_message(phone: str, message: str):
     ) + (1 if service_now else 0)
     if budget_mentions > 1 or service_mentions > 1:
         intent_data["force_close"] = True
+    if bool(intent_data.get("ready_to_buy")) or bool(intent_data.get("trust_signal")) or bool(intent_data.get("no_time_signal")):
+        intent_data["force_close"] = True
+    if bool(intent_data.get("no_time_signal")):
+        intent_data["urgency"] = True
+    if bool(intent_data.get("wants_call")):
+        intent_data["ready_to_buy"] = True
 
     role = detect_role(phone, msg, memory)
     memory["role"] = role
