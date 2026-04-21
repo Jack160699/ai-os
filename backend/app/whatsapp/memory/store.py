@@ -7,6 +7,8 @@ from typing import Any
 
 MEMORY_FILE = Path("memory.json")
 _LOCK = threading.RLock()
+_IO_RETRIES = 4
+_IO_BACKOFF_SEC = 0.05
 
 
 def normalize_phone(phone: str) -> str:
@@ -31,6 +33,7 @@ def _default_memory(user_id: str) -> dict[str, Any]:
         "last_reply": "",
         "last_mode_for_dup": "",
         "last_reply_at": 0,
+        "last_inbound_norm": "",
         "updated_at": "",
         "human_required": False,
         "last_seen": int(time.time()),
@@ -65,6 +68,7 @@ def _migrate_record(raw: dict[str, Any], user_id: str) -> dict[str, Any]:
     base["last_reply"] = str(raw.get("last_reply") or "")
     base["last_mode_for_dup"] = str(raw.get("last_mode_for_dup") or "")
     base["last_reply_at"] = int(raw.get("last_reply_at") or 0)
+    base["last_inbound_norm"] = str(raw.get("last_inbound_norm") or "")
     base["human_required"] = bool(raw.get("human_required"))
     base["last_seen"] = int(raw.get("last_seen") or int(time.time()))
     base["reply_cooldown_until"] = int(raw.get("reply_cooldown_until") or 0)
@@ -75,19 +79,41 @@ def _migrate_record(raw: dict[str, Any], user_id: str) -> dict[str, Any]:
 def _load_db() -> dict[str, dict[str, Any]]:
     if not MEMORY_FILE.exists():
         return {}
-    try:
-        with MEMORY_FILE.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-            return data if isinstance(data, dict) else {}
-    except Exception:
+    last_err: OSError | None = None
+    for attempt in range(_IO_RETRIES):
+        try:
+            with MEMORY_FILE.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data if isinstance(data, dict) else {}
+        except OSError as e:
+            last_err = e
+            time.sleep(_IO_BACKOFF_SEC * (attempt + 1))
+        except Exception:
+            return {}
+    if last_err:
         return {}
+    return {}
 
 
 def _save_db(db: dict[str, dict[str, Any]]) -> None:
-    tmp = MEMORY_FILE.with_suffix(".tmp")
-    with tmp.open("w", encoding="utf-8") as f:
-        json.dump(db, f, indent=2, ensure_ascii=False)
-    tmp.replace(MEMORY_FILE)
+    last_err: OSError | None = None
+    for attempt in range(_IO_RETRIES):
+        tmp = MEMORY_FILE.with_suffix(".tmp")
+        try:
+            with tmp.open("w", encoding="utf-8") as f:
+                json.dump(db, f, indent=2, ensure_ascii=False)
+            tmp.replace(MEMORY_FILE)
+            return
+        except OSError as e:
+            last_err = e
+            try:
+                if tmp.exists():
+                    tmp.unlink()
+            except OSError:
+                pass
+            time.sleep(_IO_BACKOFF_SEC * (attempt + 1))
+    if last_err:
+        raise last_err
 
 
 def get_memory(phone: str) -> dict[str, Any]:
@@ -98,12 +124,18 @@ def get_memory(phone: str) -> dict[str, Any]:
         if not isinstance(raw, dict):
             memory = _default_memory(key)
             db[key] = memory
-            _save_db(db)
+            try:
+                _save_db(db)
+            except OSError:
+                return memory
             return memory
         memory = _migrate_record(raw, key)
         if memory != raw:
             db[key] = memory
-            _save_db(db)
+            try:
+                _save_db(db)
+            except OSError:
+                return memory
         return memory
 
 

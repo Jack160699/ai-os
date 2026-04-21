@@ -1,13 +1,18 @@
+import re
 import time
 
 from app.whatsapp.admin.commands import maybe_handle_admin_command
 from app.whatsapp.brain.nlu import analyze_intent
-from app.whatsapp.brain.reply import generate_reply
+from app.whatsapp.brain.reply import FAILSAFE, generate_reply
 from app.whatsapp.memory.store import get_memory, save_memory
 from app.whatsapp.utils.lang import detect_language
 from app.whatsapp.utils.safety import should_cooldown, should_suppress_duplicate
 
 HUMAN_RESET_WORDS = {"hi", "hello", "start", "restart", "menu", "bot"}
+
+
+def _normalize_inbound(msg: str) -> str:
+    return re.sub(r"\s+", " ", (msg or "").strip().lower())
 
 
 def _notify_admin_hot(phone: str, memory: dict) -> None:
@@ -26,6 +31,22 @@ def _reset_from_human(memory: dict) -> None:
     if isinstance(st, dict):
         st["mode"] = "normal"
         st["stage"] = "explore"
+
+
+def _human_timeout_resume_message(memory: dict) -> str:
+    svc = str(memory.get("service") or "").strip()
+    bud = memory.get("budget")
+    parts: list[str] = []
+    if svc:
+        parts.append(svc)
+    if bud is not None and bud != "":
+        parts.append(f"~₹{bud}")
+    ctx = ", ".join(parts) if parts else "your project"
+    return (
+        "Hey — good to catch you again 👍\n"
+        f"We had {ctx} on record.\n"
+        "Pick it up from here: call, payment, or scope — what works?"
+    )
 
 
 def _bump_summary(prev: str, msg: str) -> str:
@@ -68,9 +89,21 @@ def _apply_state_from_signals(memory: dict, signals: dict) -> str:
     return str(st.get("mode") or "normal")
 
 
+def _safe_save(phone: str, memory: dict) -> None:
+    try:
+        save_memory(phone, memory)
+    except OSError:
+        pass
+
+
 def handle_lead_message(phone: str, message: str):
     msg = str(message or "").strip()
     low = msg.lower()
+    inbound_norm = _normalize_inbound(msg)
+
+    if not inbound_norm:
+        return FAILSAFE
+
     memory = get_memory(phone)
     now = int(time.time())
 
@@ -82,17 +115,19 @@ def handle_lead_message(phone: str, message: str):
         if now - int(memory.get("last_seen") or 0) >= 15 * 60:
             _reset_from_human(memory)
             memory["last_seen"] = now
-            save_memory(phone, memory)
-            return "Our strategist is unavailable right now. I can still help instantly."
+            _safe_save(phone, memory)
+            return _human_timeout_resume_message(memory)
         if low in HUMAN_RESET_WORDS:
             _reset_from_human(memory)
             memory["last_seen"] = now
-            save_memory(phone, memory)
+            _safe_save(phone, memory)
         else:
             return None
 
     if should_cooldown(int(memory.get("reply_cooldown_until") or 0)):
         return None
+
+    prev_inbound = str(memory.get("last_inbound_norm") or "")
 
     signals = analyze_intent(msg, memory)
     if signals.get("wants_human") and not memory.get("human_required"):
@@ -126,18 +161,21 @@ def handle_lead_message(phone: str, message: str):
         current_mode,
         int(memory.get("last_reply_at") or 0),
         now,
-        window_sec=90,
+        prev_inbound,
+        inbound_norm,
+        window_sec=12,
     ):
         memory["reply_cooldown_until"] = now + 30
         memory["last_seen"] = now
-        save_memory(phone, memory)
+        _safe_save(phone, memory)
         return None
 
     memory["last_reply"] = reply
     memory["last_mode_for_dup"] = current_mode
     memory["last_reply_at"] = now
+    memory["last_inbound_norm"] = inbound_norm
     memory["summary"] = _bump_summary(str(memory.get("summary") or ""), msg)
     memory["last_seen"] = now
     _notify_admin_hot(phone, memory)
-    save_memory(phone, memory)
+    _safe_save(phone, memory)
     return reply

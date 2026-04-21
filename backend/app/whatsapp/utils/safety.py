@@ -12,12 +12,20 @@ def should_suppress_duplicate(
     current_mode: str,
     last_reply_at: int,
     now: int,
-    window_sec: int = 90,
+    last_inbound_norm: str,
+    current_inbound_norm: str,
+    window_sec: int = 12,
 ) -> bool:
-    """Suppress only when same text, same mode, and within a short window."""
+    """
+    Anti double-post only: identical model text + same mode + same user text
+    within a short window (e.g. webhook retry). Does not block repeated 'Hi'
+    across a real conversation gap.
+    """
     if (last_reply or "").strip().lower() != (new_reply or "").strip().lower():
         return False
     if (last_mode or "").strip().lower() != (current_mode or "").strip().lower():
+        return False
+    if (last_inbound_norm or "").strip().lower() != (current_inbound_norm or "").strip().lower():
         return False
     return (now - int(last_reply_at or 0)) <= int(window_sec)
 
