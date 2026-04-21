@@ -8,7 +8,7 @@
   --color-background: #0b0f14;
   --color-foreground: #e7edf7;
   --color-muted: #8c97aa;
-  --color-accent: #4f6bff;
+  --color-accent: #5b6cff;
   --color-card: #121821;
 }
 
@@ -24,10 +24,10 @@
 
 /* Sidebar nav — Linear-style active glow */
 .nav-item-active {
-  background: color-mix(in oklab, var(--color-accent) 18%, var(--color-card));
+  background: color-mix(in oklab, var(--color-accent) 16%, var(--color-card));
   box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--color-accent) 28%, #243049),
-    0 8px 24px -16px rgb(0 0 0 / 0.75),
+    0 0 0 1px color-mix(in oklab, var(--color-accent) 30%, #243049),
+    0 10px 28px -16px rgb(0 0 0 / 0.78),
     inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
 
@@ -36,8 +36,9 @@
   background: var(--color-card);
   border: 1px solid var(--color-border);
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.04) inset,
-    0 12px 28px -20px rgb(0 0 0 / 0.9);
+    0 1px 0 rgb(255 255 255 / 0.05) inset,
+    0 12px 24px -20px rgb(0 0 0 / 0.84),
+    0 24px 56px -46px rgb(0 0 0 / 0.88);
 }
 
 .os-glass:hover {
@@ -48,9 +49,10 @@
 /* Elevated surfaces — dashboard cards */
 .sx-card {
   box-shadow:
-    0 0 0 1px rgb(30 38 50 / 0.9),
-    0 1px 0 rgb(255 255 255 / 0.04) inset,
-    0 18px 40px -26px rgb(0 0 0 / 0.88);
+    0 0 0 1px rgb(30 38 50 / 0.95),
+    0 1px 0 rgb(255 255 255 / 0.05) inset,
+    0 14px 34px -24px rgb(0 0 0 / 0.82),
+    0 28px 56px -48px rgb(0 0 0 / 0.94);
 }
 
 .admin-control {

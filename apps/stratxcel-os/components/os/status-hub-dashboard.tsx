@@ -28,7 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useWorkspace, statusHubRegion } from "@/components/os/workspace-context";
 
-const axis = { fill: "#7f8a9d", fontSize: 10 };
+const axis = { fill: "#7f8a9d", fontSize: 11 };
 const grid = { stroke: "rgba(255,255,255,0.07)" };
 const tip = {
   contentStyle: {
@@ -40,18 +40,33 @@ const tip = {
   labelStyle: { color: "#d8e0ee" },
 };
 
-function EmptyState({ title, hint }: { title: string; hint: string }) {
+function EmptyState({
+  title,
+  hint,
+  ctaLabel,
+  ctaHref,
+}: {
+  title: string;
+  hint: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}) {
   return (
     <div className="flex h-full min-h-[140px] flex-col items-center justify-center rounded-lg border border-[#1E2632] bg-[#0f141c] px-4 text-center">
-      <p className="text-sm font-medium text-slate-200">{title}</p>
+      <p className="text-sm font-semibold tracking-tight text-slate-200">{title}</p>
       <p className="mt-1 text-xs leading-relaxed text-slate-500">{hint}</p>
+      {ctaLabel && ctaHref ? (
+        <Button asChild size="sm" variant="outline" className="mt-3 h-8 text-[11px]">
+          <Link href={ctaHref}>{ctaLabel}</Link>
+        </Button>
+      ) : null}
     </div>
   );
 }
 
 function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
   const pts = data.map((v, i) => ({ i, v }));
-  const stroke = positive ? "#6f86ff" : "#95a1b6";
+  const stroke = positive ? "#5b6cff" : "#95a1b6";
   if (pts.length === 0) return <div className="h-7 w-16" />;
   return (
     <div className="h-7 w-20 opacity-90">
@@ -74,9 +89,9 @@ const RevenuePerformance = React.memo(function RevenuePerformance({ data }: { da
 
   return (
     <Card className="sx-card overflow-hidden rounded-xl border-[#1E2632] bg-[#121821]">
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 pt-5">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 pt-6">
         <div>
-          <CardTitle className="text-sm font-medium tracking-tight text-foreground">Revenue performance</CardTitle>
+          <CardTitle className="text-[15px] font-semibold tracking-tight text-foreground">Revenue performance</CardTitle>
           <CardDescription className="text-xs text-slate-500">Actuals vs forecast (current run rate)</CardDescription>
         </div>
         {targetLabel ? (
@@ -86,18 +101,23 @@ const RevenuePerformance = React.memo(function RevenuePerformance({ data }: { da
       <CardContent className="pb-5 pt-0">
         <div className="h-[280px] w-full">
           {data.length === 0 ? (
-            <EmptyState title="No closed revenue yet" hint="Revenue trend appears once won deals are recorded." />
+            <EmptyState
+              title="No closed revenue yet"
+              hint="Revenue trend appears once won deals are recorded."
+              ctaLabel="Open pipeline"
+              ctaHref="/pipeline"
+            />
           ) : (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="revAct" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#4F6BFF" stopOpacity={0.34} />
-                  <stop offset="100%" stopColor="#4F6BFF" stopOpacity={0.04} />
+                  <stop offset="0%" stopColor="#5b6cff" stopOpacity={0.32} />
+                  <stop offset="100%" stopColor="#5b6cff" stopOpacity={0.03} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" {...grid} vertical={false} />
-              <XAxis dataKey="label" tick={axis} tickLine={false} axisLine={false} />
+              <XAxis dataKey="label" tick={axis} tickLine={false} axisLine={false} dy={6} />
               <YAxis tick={axis} tickLine={false} axisLine={false} width={40} />
               <Tooltip
                 {...tip}
@@ -107,7 +127,7 @@ const RevenuePerformance = React.memo(function RevenuePerformance({ data }: { da
                   return [`₹${n.toLocaleString("en-IN")}`, label];
                 }}
               />
-              <Area type="monotone" dataKey="actualVal" stroke="#4F6BFF" strokeWidth={2.2} fill="url(#revAct)" isAnimationActive={false} />
+              <Area type="monotone" dataKey="actualVal" stroke="#5b6cff" strokeWidth={2.2} fill="url(#revAct)" isAnimationActive={false} />
               <Line
                 type="monotone"
                 dataKey="forecast"
@@ -130,15 +150,20 @@ const FunnelViz = React.memo(function FunnelViz({ funnel }: { funnel: FunnelStag
   const max = Math.max(1, ...funnel.map((f) => f.count));
   return (
     <Card className="sx-card flex h-full flex-col rounded-xl border-[#1E2632] bg-[#121821]">
-      <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 pt-5">
         <div>
-          <CardTitle className="text-sm font-medium">Pipeline funnel</CardTitle>
+          <CardTitle className="text-[15px] font-semibold tracking-tight">Pipeline funnel</CardTitle>
           <CardDescription className="text-xs">Stage volume & conversion</CardDescription>
         </div>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col justify-center gap-3 pb-5">
         {funnel.length === 0 ? (
-          <EmptyState title="No pipeline distribution yet" hint="Create leads and move stages to populate funnel." />
+          <EmptyState
+            title="No pipeline distribution yet"
+            hint="Create leads and move stages to populate funnel."
+            ctaLabel="Add lead"
+            ctaHref="/leads"
+          />
         ) : null}
         {funnel.slice(0, 8).map((row, i) => {
           const w = Math.round((100 * row.count) / max);
@@ -155,7 +180,7 @@ const FunnelViz = React.memo(function FunnelViz({ funnel }: { funnel: FunnelStag
                   transition={{ duration: 0.45, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
                   className="h-full rounded-full"
                   style={{
-                    background: "#4F6BFF",
+                    background: "#5b6cff",
                     opacity: 0.72,
                     boxShadow: "none",
                   }}
@@ -176,14 +201,19 @@ const SourcesDonut = React.memo(function SourcesDonut({ sources }: { sources: Le
   const barData = sources.map((s) => ({ name: s.name, pct: s.value }));
   return (
     <Card className="sx-card rounded-xl border-[#1E2632] bg-[#121821]">
-      <CardHeader className="pb-2 pt-4">
-        <CardTitle className="text-sm font-medium">Lead source breakdown</CardTitle>
+      <CardHeader className="pb-2 pt-5">
+        <CardTitle className="text-[15px] font-semibold tracking-tight">Lead source breakdown</CardTitle>
         <CardDescription className="text-xs">Share of active leads</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 pb-5 md:grid-cols-[1fr_140px]">
         {sources.length === 0 ? (
           <div className="md:col-span-2">
-            <EmptyState title="No lead-source data yet" hint="Lead source share appears when source values are captured." />
+            <EmptyState
+              title="No lead-source data yet"
+              hint="Lead source share appears when source values are captured."
+              ctaLabel="Review leads"
+              ctaHref="/leads"
+            />
           </div>
         ) : null}
         <div className="h-[200px] min-h-[180px]">
@@ -191,12 +221,12 @@ const SourcesDonut = React.memo(function SourcesDonut({ sources }: { sources: Le
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={barData} layout="vertical" margin={{ left: 4, right: 8, top: 4, bottom: 4 }}>
               <CartesianGrid {...grid} horizontal={false} strokeDasharray="3 3" />
-              <XAxis type="number" domain={[0, 100]} tick={axis} tickLine={false} axisLine={false} unit="%" />
+              <XAxis type="number" domain={[0, 100]} tick={axis} tickLine={false} axisLine={false} unit="%" dy={4} />
               <YAxis type="category" dataKey="name" width={72} tick={axis} tickLine={false} axisLine={false} />
               <Tooltip {...tip} formatter={(v: number) => [`${v}%`, "Share"]} />
               <Bar dataKey="pct" radius={[0, 6, 6, 0]} isAnimationActive={false}>
                 {sources.map((s, i) => (
-                  <Cell key={i} fill="#4F6BFF" fillOpacity={Math.max(0.3, 1 - i * 0.12)} />
+                  <Cell key={i} fill="#5b6cff" fillOpacity={Math.max(0.3, 1 - i * 0.12)} />
                 ))}
               </Bar>
             </BarChart>
@@ -219,7 +249,7 @@ const SourcesDonut = React.memo(function SourcesDonut({ sources }: { sources: Le
                 isAnimationActive={false}
               >
                 {sources.map((s, i) => (
-                  <Cell key={i} fill="#4F6BFF" fillOpacity={Math.max(0.34, 1 - i * 0.12)} />
+                  <Cell key={i} fill="#5b6cff" fillOpacity={Math.max(0.34, 1 - i * 0.12)} />
                 ))}
               </Pie>
               <Tooltip {...tip} formatter={(v: number, n: string) => [`${v}%`, n]} />
@@ -277,7 +307,7 @@ export function StatusHubDashboard({
 
   return (
     <div className="relative min-h-full w-full overflow-x-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(79,107,255,0.10),transparent)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(91,108,255,0.09),transparent)]" />
 
       <div className="relative mx-auto max-w-[1600px] px-4 py-6 md:px-6 md:py-8">
         <motion.header
@@ -288,10 +318,10 @@ export function StatusHubDashboard({
         >
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">StratXcel OS · Status hub</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white md:text-3xl lg:text-[1.75rem]">
+            <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-white md:text-3xl lg:text-[1.9rem]">
               {statusHubRegion(workspaceId)}
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">{subtitle}</p>
+            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-slate-400">{subtitle}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -317,7 +347,7 @@ export function StatusHubDashboard({
                   {mode === m ? (
                     <motion.span
                       layoutId="mode-pill"
-                      className="absolute inset-0 rounded-md bg-[#4F6BFF]"
+                      className="absolute inset-0 rounded-md bg-[#5b6cff] shadow-[0_6px_16px_-8px_rgba(91,108,255,0.85)]"
                       transition={{ type: "spring", stiffness: 380, damping: 32 }}
                     />
                   ) : null}
@@ -357,9 +387,9 @@ export function StatusHubDashboard({
                       }}
                     >
                       <Card className="sx-card h-full rounded-xl border-[#1E2632] bg-[#121821] p-5">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{k.label}</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-slate-500">{k.label}</p>
                         <div className="mt-2 flex items-end justify-between gap-2">
-                          <p className="text-2xl font-semibold tabular-nums tracking-tight text-white md:text-3xl">{k.value}</p>
+                          <p className="text-[30px] font-semibold tabular-nums tracking-tight text-white">{k.value}</p>
                           {k.sparkline ? <Sparkline data={k.sparkline} positive={k.deltaPositive} /> : null}
                         </div>
                         <p
@@ -387,13 +417,18 @@ export function StatusHubDashboard({
 
               <aside className="flex min-w-0 flex-col gap-4">
                 <Card className="sx-card rounded-xl border-[#1E2632] bg-[#121821]">
-                  <CardHeader className="pb-2 pt-4">
-                    <CardTitle className="text-sm font-medium">Quick-action feed</CardTitle>
+                  <CardHeader className="pb-2 pt-5">
+                    <CardTitle className="text-[15px] font-semibold tracking-tight">Quick-action feed</CardTitle>
                     <CardDescription className="text-xs">What needs you now</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3 pb-4">
                     {alerts.length === 0 ? (
-                      <p className="text-sm text-slate-500">You&apos;re clear — no automated alerts.</p>
+                      <EmptyState
+                        title="No critical actions right now"
+                        hint="Signals and automation alerts appear here in real time."
+                        ctaLabel="Open pipeline"
+                        ctaHref="/pipeline"
+                      />
                     ) : (
                       alerts.slice(0, 4).map((a) => (
                         <div
@@ -416,9 +451,9 @@ export function StatusHubDashboard({
                 </Card>
 
                 <Card className="sx-card rounded-xl border-[#1E2632] bg-[#121821]">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 pt-5">
                     <div>
-                      <CardTitle className="text-sm font-medium">AI insights</CardTitle>
+                      <CardTitle className="text-[15px] font-semibold tracking-tight">AI insights</CardTitle>
                       <CardDescription className="text-xs">Model-assisted signals</CardDescription>
                     </div>
                     <div className="flex gap-1">
@@ -432,11 +467,16 @@ export function StatusHubDashboard({
                   </CardHeader>
                   <CardContent className="space-y-3 pb-4">
                     {insights.length === 0 ? (
-                      <p className="text-sm text-slate-500">No AI rows yet — add activities with kind ai_insight.</p>
+                      <EmptyState
+                        title="No AI insights yet"
+                        hint="Insights appear after activity analysis runs on your live data."
+                        ctaLabel="Open inbox"
+                        ctaHref="/inbox"
+                      />
                     ) : (
                       insights.map((ins) => (
                         <div key={ins.id} className="flex gap-2 text-sm leading-snug text-slate-200">
-                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#4F6BFF]" />
+                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#5b6cff]" />
                           <p>{ins.summary}</p>
                         </div>
                       ))
@@ -445,19 +485,24 @@ export function StatusHubDashboard({
                 </Card>
 
                 <Card className="sx-card rounded-xl border-[#1E2632] bg-[#121821]">
-                  <CardHeader className="pb-2 pt-4">
-                    <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
+                  <CardHeader className="pb-2 pt-5">
+                    <CardTitle className="text-[15px] font-semibold tracking-tight">Upcoming</CardTitle>
                     <CardDescription className="text-xs">Timeline</CardDescription>
                   </CardHeader>
                   <CardContent className="relative pb-4 pl-2">
                     {timeline.length === 0 ? (
-                      <EmptyState title="No upcoming items" hint="Tasks and payment follow-ups will appear automatically." />
+                      <EmptyState
+                        title="No upcoming items"
+                        hint="Tasks and payment follow-ups will appear automatically."
+                        ctaLabel="Review payments"
+                        ctaHref="/more/payments"
+                      />
                     ) : null}
                     <div className="absolute bottom-4 left-[11px] top-2 w-px bg-[#253148]" />
                     <ul className="space-y-4">
                       {timeline.map((t) => (
                         <li key={t.id} className="relative flex gap-3 pl-5">
-                          <span className="absolute left-0 top-1.5 size-2.5 rounded-full border border-[#4F6BFF]/70 bg-[#0b0f14]" />
+                          <span className="absolute left-0 top-1.5 size-2.5 rounded-full border border-[#5b6cff]/70 bg-[#0b0f14]" />
                           <div>
                             <p className="text-[11px] font-medium uppercase tracking-wide text-[#8ea0c4]">{t.time}</p>
                             <p className="text-sm font-medium text-slate-100">{t.title}</p>

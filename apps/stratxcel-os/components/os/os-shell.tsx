@@ -48,7 +48,7 @@ function MobileMoreSheet({ children }: { children: React.ReactNode }) {
                 href={n.href}
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                  active ? "bg-[#4F6BFF]/15 text-slate-100" : "text-slate-300 hover:bg-white/5",
+                  active ? "bg-[#5b6cff]/15 text-slate-100" : "text-slate-300 hover:bg-white/5",
                 )}
               >
                 <n.icon className="size-4 opacity-80" />
@@ -77,9 +77,14 @@ export function OsShell({ children, userLabel = "Operator" }: { children: React.
     <div className="flex min-h-dvh bg-[#0B0F14] text-foreground">
       <aside className="hidden w-[248px] shrink-0 flex-col border-r border-[#1E2632] bg-[#0f141c] md:flex">
         <div className="flex h-14 items-center border-b border-[#1E2632] px-4">
-          <Link href="/" className="flex flex-col leading-tight">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">StratXcel</span>
-            <span className="text-sm font-semibold tracking-tight text-white">StratXcel OS</span>
+          <Link href="/" className="group flex items-center gap-2.5 leading-tight">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md border border-[#2a3446] bg-[#171f2c] text-[11px] font-semibold text-[#a9b6d8] transition-colors group-hover:border-[#3a4a66] group-hover:text-[#c2ccf1]">
+              SX
+            </span>
+            <span className="flex flex-col">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">StratXcel</span>
+              <span className="text-sm font-semibold tracking-tight text-white">StratXcel OS</span>
+            </span>
           </Link>
         </div>
 
@@ -94,7 +99,7 @@ export function OsShell({ children, userLabel = "Operator" }: { children: React.
                   "relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
                   active
                     ? "nav-item-active text-white"
-                    : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200",
+                    : "text-slate-400 hover:bg-[#151c27] hover:text-slate-200",
                 )}
               >
                 <Icon className={cn("size-4", active ? "text-[#9aabff]" : "opacity-70")} />
@@ -109,7 +114,7 @@ export function OsShell({ children, userLabel = "Operator" }: { children: React.
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-2 rounded-lg border border-[#1E2632] bg-[#121821] px-3 py-2 text-left text-xs font-medium text-slate-200 transition-colors hover:border-[#2a3442] hover:bg-[#141c27]"
+                className="flex w-full items-center justify-between gap-2 rounded-lg border border-[#1E2632] bg-[#121821] px-3 py-2 text-left text-xs font-medium text-slate-200 transition-colors hover:border-[#34435b] hover:bg-[#18212e]"
               >
                 <span className="truncate">{workspaceLabel}</span>
                 <ChevronDown className="size-3.5 shrink-0 opacity-60" />
