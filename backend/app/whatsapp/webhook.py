@@ -8,13 +8,14 @@ from datetime import datetime, timedelta, timezone
 
 from flask import Flask, g, jsonify, make_response, request
 
-from app.ai.assistant import get_ai_reply
+from app.ai.assistant import get_ai_reply, extract_lead_qualification
 from app.config import Settings
 from app.leads.analytics import compute_dashboard_metrics
 from app.leads.utils import parse_iso
 from app.leads.email_digest import build_daily_digest, build_weekly_digest, send_smtp_html
 from app.leads.classification import map_business_interactive_id
 from app.leads.constants import OWNER_NUMBER
+from app.leads.admin_alerts import send_admin_human_required, send_admin_hot_lead
 from app.leads.followups import (
     arm_followup_after_bot_send,
     clear_followup_on_user_inbound,
@@ -53,8 +54,10 @@ from app.memory.store import (
     upsert_payment_note,
 )
 from app.sales import states as sales_states
+from app.sales.intent import wants_human
 from app.sales.intercept import build_preview_state_for_sales, try_handle
 from app.sales.razorpay_link import create_payment_link_http
+from app.integrations.supabase_revenue_bot import sync_activity, sync_message_event
 from app.whatsapp.lead_flow import LeadFlowReply, ListMenuSpec, handle_lead_message
 from app.whatsapp.quick_reply_templates import get_quick_reply_templates
 from app.whatsapp.messaging import (
@@ -202,6 +205,41 @@ def _profile_name_for_sender(value: dict, sender: str) -> str:
 
 def _compute_dashboard_metrics() -> dict:
     return compute_dashboard_metrics(get_lead_events(), get_all_states())
+
+
+def _merge_qualification_into_state(state: dict, q: dict) -> dict:
+    st = {**(state or {})}
+    need = str(q.get("need_summary") or "").strip()
+    timeline = str(q.get("timeline") or "").strip()
+    budget = q.get("budget_inr")
+    if need and not st.get("challenge"):
+        st["challenge"] = need[:180]
+    if timeline:
+        st["timeline_hint"] = timeline[:100]
+    if isinstance(budget, (int, float)) and int(budget) > 0:
+        st["budget_inr"] = int(budget)
+    if q.get("qualified") is True:
+        st["sales_stage"] = st.get("sales_stage") or sales_states.QUALIFIED
+        st["qualification_status"] = "qualified"
+    if q.get("hot_lead") is True:
+        st["intent_score"] = "hot"
+        st["temperature"] = "hot"
+    if q.get("book_call_intent") is True:
+        st["wants_call"] = True
+    return st
+
+
+def _stage_key_from_state(st: dict) -> str:
+    raw = str(st.get("sales_stage") or st.get("funnel_stage") or "").lower()
+    if "won" in raw or "paid" in raw:
+        return "won"
+    if "proposal" in raw:
+        return "proposal"
+    if "negotiat" in raw:
+        return "negotiation"
+    if "qual" in raw or "hot" in raw:
+        return "qualified"
+    return "new"
 
 
 def _try_ceo_pricing_approve(settings: Settings, inbound: str) -> str | None:
@@ -795,7 +833,17 @@ def _finalize_wa_auto_reply(settings: Settings, sender: str, reply: LeadFlowRepl
         st1["last_wa_mid"] = wa_mid
         st1["last_bot_inbound_mid"] = wa_mid
         set_conversation_state(sender, st1)
-        append_thread_message(sender, "assistant", _localize_reply_for_sender(sender, reply).body or "")
+        localized_body = _localize_reply_for_sender(sender, reply).body or ""
+        append_thread_message(sender, "assistant", localized_body)
+        sync_message_event(
+            phone=sender,
+            profile_name=str(st1.get("profile_name") or ""),
+            direction="out",
+            body=localized_body,
+            stage_key=_stage_key_from_state(st1),
+            budget_inr=st1.get("budget_inr"),
+            hot=str(st1.get("intent_score") or "").lower() == "hot",
+        )
         arm_followup_after_bot_send(sender)
 
 
@@ -2456,12 +2504,76 @@ def create_app(settings: Settings) -> Flask:
                 set_conversation_state(sender, st_seen)
 
                 clear_followup_on_user_inbound(sender, inbound)
+                profile_name = _profile_name_for_sender(value, sender)
                 added = append_thread_message(
                     sender,
                     "user",
                     inbound,
                     wa_message_id=wa_mid,
                     timestamp_utc=ts_iso,
+                )
+                st_for_enrichment = get_conversation_state(sender)
+                transcript_excerpt = "\n".join((st_for_enrichment.get("transcript_lines") or [])[-12:])
+                qual = extract_lead_qualification(
+                    settings,
+                    latest_message=inbound,
+                    transcript_excerpt=transcript_excerpt,
+                )
+                if isinstance(qual, dict):
+                    merged = _merge_qualification_into_state(st_for_enrichment, qual)
+                    set_conversation_state(sender, merged)
+                    st_for_enrichment = merged
+                    # Hot lead alert immediately, not only on delayed follow-up cycle.
+                    if bool(qual.get("hot_lead")) and not st_for_enrichment.get("hot_alert_sent"):
+                        try:
+                            send_admin_hot_lead(
+                                settings,
+                                sender,
+                                (st_for_enrichment.get("profile_name") or profile_name or "Customer"),
+                                str(st_for_enrichment.get("challenge") or inbound)[:260],
+                            )
+                            st_for_enrichment["hot_alert_sent"] = True
+                            set_conversation_state(sender, st_for_enrichment)
+                            sync_activity(
+                                phone=sender,
+                                profile_name=(st_for_enrichment.get("profile_name") or profile_name or "Customer"),
+                                kind="hot_lead_detected",
+                                summary="Lead marked hot by qualification signal",
+                                meta={
+                                    "budget_inr": st_for_enrichment.get("budget_inr"),
+                                    "timeline": st_for_enrichment.get("timeline_hint"),
+                                },
+                                stage_key="qualified",
+                            )
+                        except Exception as e:
+                            print(f"[wa-webhook] hot lead alert failed: {e}")
+                    if bool(qual.get("proposal_intent")):
+                        sync_activity(
+                            phone=sender,
+                            profile_name=(st_for_enrichment.get("profile_name") or profile_name or "Customer"),
+                            kind="proposal_requested",
+                            summary="Lead asked for proposal/quote details",
+                            meta={"message": inbound[:300]},
+                            stage_key="proposal",
+                        )
+                    if bool(qual.get("payment_intent")):
+                        sync_activity(
+                            phone=sender,
+                            profile_name=(st_for_enrichment.get("profile_name") or profile_name or "Customer"),
+                            kind="payment_intent",
+                            summary="Lead expressed payment intent",
+                            meta={"message": inbound[:300]},
+                            stage_key="negotiation",
+                        )
+                sync_message_event(
+                    phone=sender,
+                    profile_name=(st_for_enrichment.get("profile_name") or profile_name or "Customer"),
+                    direction="in",
+                    body=inbound,
+                    stage_key=_stage_key_from_state(st_for_enrichment),
+                    budget_inr=st_for_enrichment.get("budget_inr"),
+                    hot=str(st_for_enrichment.get("intent_score") or "").lower() == "hot",
+                    created_at_iso=ts_iso,
                 )
                 if added:
                     bump_inbox_unread(sender)
@@ -2482,6 +2594,44 @@ def create_app(settings: Settings) -> Flask:
                         set_conversation_state(sender, st_done)
                     print("[wa-webhook] conversation updated (client, auto-reply off — inbox only)")
                     continue
+
+                # Human takeover is always available immediately.
+                if wants_human(inbound):
+                    st_h = get_conversation_state(sender)
+                    st_h["human_required"] = True
+                    st_h["sales_stage"] = sales_states.HUMAN_REQUIRED
+                    set_conversation_state(sender, st_h)
+                    try:
+                        send_admin_human_required(
+                            settings,
+                            sender,
+                            (st_h.get("profile_name") or profile_name or "Customer"),
+                            str(st_h.get("step") or "start"),
+                            inbound,
+                        )
+                    except Exception as e:
+                        print(f"[wa-webhook] human-required alert failed: {e}")
+                    sync_activity(
+                        phone=sender,
+                        profile_name=(st_h.get("profile_name") or profile_name or "Customer"),
+                        kind="human_takeover_requested",
+                        summary="Lead requested a human handoff",
+                        meta={"message": inbound[:320]},
+                        stage_key="qualified",
+                    )
+                    _finalize_wa_auto_reply(
+                        settings,
+                        sender,
+                        LeadFlowReply(
+                            body=(
+                                "Understood — I'm assigning a strategist now. "
+                                "A human teammate will continue here shortly.\n\n"
+                                "Meanwhile, you can share budget, timeline, and your top priority."
+                            )
+                        ),
+                        wa_mid,
+                    )
+                    return "", 200
 
                 if wa_mid and get_conversation_state(sender).get("last_bot_inbound_mid") == wa_mid:
                     print("[wa-webhook] skip bot already sent for wa_mid=", wa_mid)

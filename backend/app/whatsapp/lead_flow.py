@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.ai.assistant import generate_lead_recommendation
+from app.ai.assistant import extract_lead_qualification, generate_lead_recommendation, get_ai_reply
 from app.config import Settings
 from app.leads.admin_alerts import send_admin_new_lead, send_admin_qualified_lead
 from app.leads.alerts import send_lead_owner_alerts
@@ -255,12 +255,34 @@ def handle_lead_message(
     if step == "await_challenge":
         challenge = classify_challenge(message)
         if not challenge:
+            ai_line = ""
+            try:
+                ai_line = (
+                    get_ai_reply(
+                        settings,
+                        f"User message: {message}\nReply naturally in one short sentence, then ask their core business pain.",
+                        wa_user_id=sender,
+                        mode="client",
+                    )
+                    .strip()
+                    .split("\n")[0][:180]
+                )
+            except Exception:
+                ai_line = ""
             return LeadFlowReply(
                 body=(
-                    "Thanks — what is the biggest friction right now: leads, follow-ups, "
-                    "manual work, or scaling? A short sentence works."
+                    (f"{ai_line}\n\n" if ai_line else "")
+                    + "What is the biggest friction right now: leads, follow-ups, manual work, or scaling?"
                 ),
             )
+        try:
+            qual = extract_lead_qualification(
+                settings,
+                latest_message=message,
+                transcript_excerpt=transcript,
+            )
+        except Exception:
+            qual = {}
         business_type = state.get("business_type", "Business")
         recommendation = generate_lead_recommendation(settings, business_type, challenge)
         if not state.get("qualified_alert_sent"):
@@ -282,6 +304,8 @@ def handle_lead_message(
                 "business_type": business_type,
                 "challenge": challenge,
                 "transcript_lines": lines,
+                "budget_inr": qual.get("budget_inr") if isinstance(qual, dict) else None,
+                "timeline_hint": str(qual.get("timeline") or "")[:120] if isinstance(qual, dict) else "",
                 "booking_link_sent": False,
                 "lead_status": "active",
                 "qualified_alert_sent": True,
