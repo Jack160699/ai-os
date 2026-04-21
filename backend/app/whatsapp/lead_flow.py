@@ -1,341 +1,100 @@
-import os
-import json
+import re
 import time
-from pathlib import Path
-from openai import OpenAI
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-MEMORY_FILE = Path("memory.json")
+from app.whatsapp.admin.commands import maybe_handle_admin_command
+from app.whatsapp.brain.nlu import analyze_intent
+from app.whatsapp.brain.reply import generate_reply
+from app.whatsapp.memory.store import get_memory, save_memory
+from app.whatsapp.roles.router import detect_role
+from app.whatsapp.sales.pipeline import classify_lead_score, next_best_action
+from app.whatsapp.utils.lang import detect_language
+from app.whatsapp.utils.safety import is_duplicate_reply, should_cooldown
 
-
-def load_db():
-    if not MEMORY_FILE.exists():
-        return {}
-    try:
-        with open(MEMORY_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return {}
+HUMAN_RESET_WORDS = {"hi", "hello", "start", "restart", "menu", "bot"}
 
 
-def save_db(db):
-    with open(MEMORY_FILE, "w", encoding="utf-8") as f:
-        json.dump(db, f, indent=2)
+def _notify_admin_hot(phone: str, memory: dict) -> None:
+    if memory.get("lead_score") in {"hot", "warm"}:
+        print(
+            f"[hot-lead] phone={phone} score={memory.get('lead_score')} "
+            f"service={memory.get('service')} budget={memory.get('budget')} urgency={memory.get('urgency')}"
+        )
 
 
-def normalize_phone(phone):
-    phone = str(phone).replace("+", "").strip()
-    return phone[-10:]
+def _reset_from_human(memory: dict) -> None:
+    memory["human_required"] = False
+    memory["stage"] = "new"
+    memory["next_best_action"] = "qualify_need"
 
 
-def get_memory(phone):
-    db = load_db()
-    key = normalize_phone(phone)
-
-    if key not in db:
-        db[key] = {
-            "user_id": key,
-            "user_type": "unknown",
-            "summary": "",
-            "last_intent": "",
-            "human_required": False,
-            "stage": "new",
-            "last_seen": int(time.time())
-        }
-        save_db(db)
-
-    return db[key]
-
-
-def save_memory(phone, memory):
-    db = load_db()
-    key = normalize_phone(phone)
-    db[key] = memory
-    save_db(db)
-
-
-def handle_lead_message(phone, message):
-    return handle_conversation(phone, message)
-
-
-def handle_conversation(phone, message):
+def handle_lead_message(phone: str, message: str):
+    msg = str(message or "").strip()
+    low = msg.lower()
     memory = get_memory(phone)
-    msg = str(message).strip()
+    now = int(time.time())
 
-    lower = msg.lower()
+    admin_reply = maybe_handle_admin_command(phone, msg)
+    if admin_reply:
+        return admin_reply
 
-    handoff_words = [
-        "human",
-        "agent",
-        "real person",
-        "talk to human"
-    ]
+    if memory.get("human_required"):
+        if now - int(memory.get("last_seen") or 0) >= 15 * 60:
+            _reset_from_human(memory)
+            memory["last_seen"] = now
+            save_memory(phone, memory)
+            return "Our strategist is unavailable right now. I can still help instantly."
+        if low in HUMAN_RESET_WORDS:
+            _reset_from_human(memory)
+            memory["last_seen"] = now
+            save_memory(phone, memory)
+        else:
+            return None
 
-    if any(word in lower for word in handoff_words):
+    if re.search(r"\b(human|agent|real person|talk to human)\b", low):
         memory["human_required"] = True
         memory["stage"] = "human_required"
+        memory["human_handoff_history"] = list(memory.get("human_handoff_history") or []) + [
+            {"at": now, "message": msg}
+        ]
+        memory["last_seen"] = now
         save_memory(phone, memory)
         return "Connecting you to a strategist now. You'll get a reply shortly."
 
-    if memory.get("human_required"):
+    if should_cooldown(int(memory.get("reply_cooldown_until") or 0)):
         return None
 
-    result = ai_reply(memory, msg)
+    intent_data = analyze_intent(msg, memory)
+    role = detect_role(phone, msg, memory)
+    memory["role"] = role
+    memory["preferred_language"] = detect_language(msg)
+    memory["last_intent"] = str(intent_data.get("intent") or "general_chat")
+    memory["service"] = str(intent_data.get("service") or memory.get("service") or "")
+    if intent_data.get("budget"):
+        memory["budget"] = intent_data.get("budget")
+    memory["urgency"] = bool(intent_data.get("urgency") or memory.get("urgency"))
+    memory["lead_score"] = classify_lead_score(memory, memory["last_intent"])
+    memory["next_best_action"] = next_best_action(memory["last_intent"], memory["lead_score"])
+    memory["stage"] = memory["next_best_action"]
 
-    memory["summary"] = result["summary"]
-    memory["user_type"] = result["user_type"]
-    memory["last_intent"] = result["intent"]
-    memory["stage"] = result["stage"]
-    memory["last_seen"] = int(time.time())
+    reply = generate_reply(msg, memory, role, intent_data)
+    if is_duplicate_reply(str(memory.get("last_reply") or ""), reply):
+        if (
+            str(memory.get("last_intent") or "") == str(intent_data.get("intent") or "")
+            and now - int(memory.get("last_seen") or 0) <= 60
+        ):
+            memory["reply_cooldown_until"] = now + 30
+            memory["last_seen"] = now
+            save_memory(phone, memory)
+            return None
 
+    memory["last_reply"] = reply
+    memory["last_conversation_summary"] = str(
+        intent_data.get("summary") or memory.get("last_conversation_summary") or ""
+    )
+    memory["last_seen"] = now
+    chats = list(memory.get("previous_chats") or [])
+    chats.append({"at": now, "in": msg, "out": reply, "intent": memory["last_intent"]})
+    memory["previous_chats"] = chats[-30:]
+    _notify_admin_hot(phone, memory)
     save_memory(phone, memory)
-
-    return result["reply"]
-
-
-def ai_reply(memory, user_message):
-    prompt = f"""
-You are Stratxcel AI.
-
-You represent the company in chat.
-
-Roles:
-lead = sales naturally
-client = support
-founder = assistant
-unknown = understand first
-
-Current Memory:
-User type: {memory["user_type"]}
-Summary: {memory["summary"]}
-Last intent: {memory["last_intent"]}
-Stage: {memory["stage"]}
-
-User Message:
-{user_message}
-
-Rules:
-- Sound human
-- No robotic replies
-- No repetitive CTA
-- Use context
-- Keep replies short
-
-Return ONLY valid JSON:
-
-{{
-  "reply": "...",
-  "user_type": "...",
-  "intent": "...",
-  "stage": "...",
-  "summary": "..."
-}}
-"""
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            temperature=0.7,
-            messages=[
-                {"role": "system", "content": "You are a business AI operator."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-
-        text = response.choices[0].message.content.strip()
-        return json.loads(text)
-
-    except Exception:
-        return {
-            "reply": "Got it — tell me a bit more so I can help properly.",
-            "user_type": memory["user_type"],
-            "intent": "unknown",
-            "stage": memory["stage"],
-            "summary": memory["summary"]
-        }
-from datetime import datetime
-import json
-import os
-
-DB_FILE = "state.json"
-
-FINAL_STAGES = ["payment_ready", "call_ready", "human_required"]
-
-
-def normalize_phone(phone):
-    phone = str(phone or "").replace("+", "").strip()
-    if phone.startswith("91") and len(phone) > 10:
-        return phone[-10:]
-    return phone
-
-
-def load_db():
-    if not os.path.exists(DB_FILE):
-        return {}
-    with open(DB_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def save_db(db):
-    with open(DB_FILE, "w", encoding="utf-8") as f:
-        json.dump(db, f)
-
-
-def get_state(phone):
-    phone = normalize_phone(phone)
-    db = load_db()
-    return db.get(phone, {
-        "stage": "new",
-        "human_required": False,
-        "service": None,
-        "budget": None,
-        "urgency": False,
-        "last_updated": str(datetime.utcnow())
-    })
-
-
-def save_state(phone, state):
-    phone = normalize_phone(phone)
-    db = load_db()
-    state["last_updated"] = str(datetime.utcnow())
-    db[phone] = state
-    save_db(db)
-
-
-def contains(msg, words):
-    return any(w in msg for w in words)
-
-
-def detect_service(msg):
-    if "app" in msg:
-        return "app"
-    if "website" in msg or "web" in msg:
-        return "website"
-    if "marketing" in msg or "ads" in msg:
-        return "marketing"
-    if "seo" in msg:
-        return "seo"
-    return None
-
-
-def extract_budget(msg):
-    import re
-    m = re.search(r'(\d+)\s*k?', msg)
-    if m:
-        val = int(m.group(1))
-        if "k" in msg:
-            val *= 1000
-        return val
-    return None
-
-
-def notify_admin(phone, state):
-    print(f"🚨 {phone} → {state['stage']}")
-
-
-def handle_final_stage(phone, state, msg):
-
-    if state["stage"] == "human_required":
-        return None
-
-    if state["stage"] == "payment_ready":
-        if "upi" in msg:
-            return "Done. Sharing UPI payment link now."
-        if "bank" in msg:
-            return "Sharing bank transfer details now."
-        return "Want UPI, bank transfer, or payment link?"
-
-    if state["stage"] == "call_ready":
-        return f"Confirmed for {msg}. Our strategist will call you."
-
-    return None
-
-
-def handle_lead_message(phone, message):
-    phone = normalize_phone(phone)
-    msg = message.lower().strip()
-    state = get_state(phone)
-    print("STATE:", phone, state)
-
-    if state.get("human_required"):
-        last_seen = int(state.get("last_seen") or 0)
-        if int(time.time()) - last_seen >= 15 * 60:
-            state["human_required"] = False
-            state["stage"] = "new"
-            state["last_seen"] = int(time.time())
-            save_state(phone, state)
-            return "Our strategist is still unavailable right now.\nMeanwhile I can help instantly — what do you need?"
-
-    if state.get("human_required") and contains(msg, ["hi", "hello", "start", "restart", "menu", "bot"]):
-        state["stage"] = "new"
-        state["human_required"] = False
-        save_state(phone, state)
-
-    # HUMAN HANDOFF (TOP PRIORITY)
-    if contains(msg, ["human", "real person", "agent", "talk to human"]):
-        state["human_required"] = True
-        state["stage"] = "human_required"
-        save_state(phone, state)
-
-        notify_admin(phone, state)
-
-        return "Connecting you to a strategist now. You'll get a reply shortly."
-
-    # FINAL STAGE LOCK
-    if state["stage"] in FINAL_STAGES:
-        return handle_final_stage(phone, state, msg)
-
-    # DATA EXTRACTION
-    service = detect_service(msg)
-    budget = extract_budget(msg)
-    urgency = contains(msg, ["urgent", "asap", "today", "immediately"])
-
-    if service:
-        state["service"] = service
-
-    if budget:
-        state["budget"] = budget
-
-    if urgency:
-        state["urgency"] = True
-
-    # PAYMENT
-    if contains(msg, ["pay", "payment"]):
-        state["stage"] = "payment_ready"
-        save_state(phone, state)
-
-        notify_admin(phone, state)
-
-        return "Perfect. I’ll arrange payment details today. Want UPI, bank transfer, or payment link?"
-
-    # CALL
-    if contains(msg, ["call", "talk", "meeting"]):
-        state["stage"] = "call_ready"
-        save_state(phone, state)
-
-        notify_admin(phone, state)
-
-        return "Great. A strategist can speak with you today. Share your preferred time slot."
-
-    # PROPOSAL
-    if contains(msg, ["proposal", "quote", "pricing"]):
-        state["stage"] = "proposal_requested"
-        save_state(phone, state)
-
-        return f"Proposal ready for your {state['service'] or 'project'}. We’ll structure scope, timeline, and pricing around ₹{state['budget'] or ''}. Reply 'pay now' or 'book call'."
-
-    # FIRST MESSAGE
-    if state["stage"] == "new":
-        state["stage"] = "intent_captured"
-        save_state(phone, state)
-
-        if state["urgency"] and state["budget"]:
-            return f"Got it — urgent and clear. We can deliver fast within ₹{state['budget']}. Want a quick proposal or strategist call now?"
-
-        if state["budget"]:
-            return f"₹{state['budget']} is workable. Want proposal or quick call?"
-
-        return "Got it. We can help. Want proposal or quick call?"
-
-    save_state(phone, state)
-    return "Want to move ahead with a proposal or quick call?"
+    return reply
