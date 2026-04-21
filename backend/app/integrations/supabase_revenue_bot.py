@@ -80,6 +80,7 @@ def _iso_now() -> str:
 
 
 def _get_or_create_lead(*, phone: str, profile_name: str, stage_key: str, budget_inr: int | None, hot: bool) -> dict[str, Any] | None:
+    print("Saving lead to Supabase:", phone)
     bid = _batch_id()
     rows = _postgrest(
         "leads",
@@ -189,11 +190,13 @@ def sync_message_event(
         if created_at_iso:
             payload["created_at"] = created_at_iso
         _postgrest("messages", method="POST", json_payload=payload)
+        print("[supabase-sync] message inserted:", payload.get("direction"), "lead_id=", lead["id"])
         _postgrest(
             f"conversations?id=eq.{conv_id}",
             method="PATCH",
             json_payload={"last_message_at": created_at_iso or _iso_now()},
         )
+        print("[supabase-sync] message write success:", phone)
     except Exception as e:
         print(f"[supabase-sync] message sync failed: {e}")
 
@@ -210,6 +213,7 @@ def sync_activity(
     if not _enabled():
         return
     try:
+        print("Activity:", kind)
         lead = _get_or_create_lead(phone=phone, profile_name=profile_name, stage_key=stage_key, budget_inr=None, hot=False)
         if not lead:
             return
@@ -221,6 +225,7 @@ def sync_activity(
             "meta": meta or {},
         }
         _postgrest("activities", method="POST", json_payload=payload)
+        print("[supabase-sync] activity write success:", kind, "lead_id=", lead["id"])
     except Exception as e:
         print(f"[supabase-sync] activity sync failed: {e}")
 

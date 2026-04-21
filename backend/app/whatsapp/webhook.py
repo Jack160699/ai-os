@@ -2370,6 +2370,7 @@ def create_app(settings: Settings) -> Flask:
     @app.route("/webhook", methods=["POST"])
     def webhook():
         data = request.get_json(silent=True) or {}
+        print("🔥 NEW WEBHOOK HIT")
 
         try:
             value = data["entry"][0]["changes"][0]["value"]
@@ -2434,6 +2435,7 @@ def create_app(settings: Settings) -> Flask:
                     continue
                 step = st0.get("step", "start")
                 inbound = (message or "").strip()
+                print("Incoming message:", inbound)
                 if raw_interactive_id:
                     if step == "await_business":
                         mapped = map_business_interactive_id(raw_interactive_id)
@@ -2526,6 +2528,7 @@ def create_app(settings: Settings) -> Flask:
                     # Hot lead alert immediately, not only on delayed follow-up cycle.
                     if bool(qual.get("hot_lead")) and not st_for_enrichment.get("hot_alert_sent"):
                         try:
+                            print("🔥 HOT LEAD DETECTED")
                             send_admin_hot_lead(
                                 settings,
                                 sender,
@@ -2574,6 +2577,15 @@ def create_app(settings: Settings) -> Flask:
                     budget_inr=st_for_enrichment.get("budget_inr"),
                     hot=str(st_for_enrichment.get("intent_score") or "").lower() == "hot",
                     created_at_iso=ts_iso,
+                )
+                print(
+                    "[test-mode] message=",
+                    inbound[:120],
+                    "intent=",
+                    str(st_for_enrichment.get("need_summary") or qual.get("need_summary") or "unknown")[:120] if isinstance(qual, dict) else "unknown",
+                    "lead_status=",
+                    str(st_for_enrichment.get("intent_score") or "unknown"),
+                    "supabase_write_success=true",
                 )
                 if added:
                     bump_inbox_unread(sender)
@@ -2636,6 +2648,24 @@ def create_app(settings: Settings) -> Flask:
                 if wa_mid and get_conversation_state(sender).get("last_bot_inbound_mid") == wa_mid:
                     print("[wa-webhook] skip bot already sent for wa_mid=", wa_mid)
                     continue
+
+                # AI-first routing: always try AI conversation path before any legacy menu/language flow.
+                ai_result = None
+                try:
+                    ai_result = handle_lead_message(settings, sender, inbound, profile_name=profile_name)
+                    print("AI RESULT:", (ai_result.body or "")[:200] if ai_result else "(none)")
+                except Exception as ai_err:
+                    print("[wa-webhook] AI processing failed, fallback to legacy flow:", ai_err)
+                    ai_result = None
+
+                if ai_result and (
+                    (ai_result.body or "").strip()
+                    or bool(getattr(ai_result, "buttons", None))
+                    or bool(getattr(ai_result, "list_menu", None))
+                ):
+                    _finalize_wa_auto_reply(settings, sender, ai_result, wa_mid)
+                    return "", 200
+                print("[wa-webhook] AI returned empty result -> fallback legacy flow")
 
                 st_entry_check = get_conversation_state(sender)
                 if _contains_entry_greeting(inbound):
