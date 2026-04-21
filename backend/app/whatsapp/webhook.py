@@ -2649,23 +2649,14 @@ def create_app(settings: Settings) -> Flask:
                     print("[wa-webhook] skip bot already sent for wa_mid=", wa_mid)
                     continue
 
-                # AI-first routing: always try AI conversation path before any legacy menu/language flow.
-                ai_result = None
-                try:
-                    ai_result = handle_lead_message(settings, sender, inbound, profile_name=profile_name)
-                    print("AI RESULT:", (ai_result.body or "")[:200] if ai_result else "(none)")
-                except Exception as ai_err:
-                    print("[wa-webhook] AI processing failed, fallback to legacy flow:", ai_err)
-                    ai_result = None
+                phone = sender
+                message = inbound
+                reply = handle_lead_message(phone, message)
 
-                if ai_result and (
-                    (ai_result.body or "").strip()
-                    or bool(getattr(ai_result, "buttons", None))
-                    or bool(getattr(ai_result, "list_menu", None))
-                ):
-                    _finalize_wa_auto_reply(settings, sender, ai_result, wa_mid)
+                if reply is None:
                     return "", 200
-                print("[wa-webhook] AI returned no reply -> no fallback")
+
+                send_whatsapp_text(settings, phone, reply)
                 return "", 200
 
                 st_entry_check = get_conversation_state(sender)
