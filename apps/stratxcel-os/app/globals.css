@@ -4,12 +4,12 @@
   --font-sans: ui-sans-serif, system-ui, sans-serif;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
-  --color-border: oklch(0.28 0.02 260);
-  --color-background: oklch(0.1 0.02 270);
-  --color-foreground: oklch(0.96 0.01 260);
-  --color-muted: oklch(0.62 0.02 260);
-  --color-accent: oklch(0.72 0.14 250);
-  --color-card: oklch(0.18 0.02 260 / 0.65);
+  --color-border: #1e2632;
+  --color-background: #0b0f14;
+  --color-foreground: #e7edf7;
+  --color-muted: #8c97aa;
+  --color-accent: #4f6bff;
+  --color-card: #121821;
 }
 
 @layer base {
@@ -24,36 +24,33 @@
 
 /* Sidebar nav — Linear-style active glow */
 .nav-item-active {
-  background: linear-gradient(105deg, oklch(0.28 0.12 270 / 0.45), oklch(0.2 0.08 250 / 0.25));
+  background: color-mix(in oklab, var(--color-accent) 18%, var(--color-card));
   box-shadow:
-    0 0 0 1px oklch(1 0 0 / 0.1),
-    0 0 28px -4px oklch(0.55 0.22 260 / 0.45),
-    inset 0 1px 0 oklch(1 0 0 / 0.08);
+    0 0 0 1px color-mix(in oklab, var(--color-accent) 28%, #243049),
+    0 8px 24px -16px rgb(0 0 0 / 0.75),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
 
-/* Glass panels — subtle, not heavy */
+/* Premium enterprise panels */
 .os-glass {
-  background: linear-gradient(
-    145deg,
-    oklch(0.22 0.02 260 / 0.55),
-    oklch(0.16 0.02 260 / 0.45)
-  );
-  backdrop-filter: blur(14px);
-  border: 1px solid oklch(1 0 0 / 0.06);
-  box-shadow: 0 1px 0 oklch(1 0 0 / 0.04) inset;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.04) inset,
+    0 12px 28px -20px rgb(0 0 0 / 0.9);
 }
 
 .os-glass:hover {
-  border-color: oklch(1 0 0 / 0.1);
+  border-color: color-mix(in oklab, var(--color-border) 70%, #2f3d54);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 /* Elevated surfaces — dashboard cards */
 .sx-card {
   box-shadow:
-    0 0 0 1px oklch(1 0 0 / 0.05),
-    0 1px 0 oklch(1 0 0 / 0.06) inset,
-    0 28px 80px -36px oklch(0 0 0 / 0.65);
+    0 0 0 1px rgb(30 38 50 / 0.9),
+    0 1px 0 rgb(255 255 255 / 0.04) inset,
+    0 18px 40px -26px rgb(0 0 0 / 0.88);
 }
 
 .admin-control {
