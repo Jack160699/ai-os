@@ -1,12 +1,35 @@
 from datetime import datetime
+import json
+import os
 
-MEMORY = {}
+DB_FILE = "state.json"
 
 FINAL_STAGES = ["payment_ready", "call_ready", "human_required"]
 
 
+def normalize_phone(phone):
+    phone = str(phone or "").replace("+", "").strip()
+    if phone.startswith("91") and len(phone) > 10:
+        return phone[-10:]
+    return phone
+
+
+def load_db():
+    if not os.path.exists(DB_FILE):
+        return {}
+    with open(DB_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_db(db):
+    with open(DB_FILE, "w", encoding="utf-8") as f:
+        json.dump(db, f)
+
+
 def get_state(phone):
-    return MEMORY.get(phone, {
+    phone = normalize_phone(phone)
+    db = load_db()
+    return db.get(phone, {
         "stage": "new",
         "human_required": False,
         "service": None,
@@ -17,8 +40,11 @@ def get_state(phone):
 
 
 def save_state(phone, state):
+    phone = normalize_phone(phone)
+    db = load_db()
     state["last_updated"] = str(datetime.utcnow())
-    MEMORY[phone] = state
+    db[phone] = state
+    save_db(db)
 
 
 def contains(msg, words):
@@ -71,9 +97,10 @@ def handle_final_stage(phone, state, msg):
 
 
 def handle_lead_message(phone, message):
-
+    phone = normalize_phone(phone)
     msg = message.lower().strip()
     state = get_state(phone)
+    print("STATE:", phone, state)
 
     # HUMAN HANDOFF (TOP PRIORITY)
     if contains(msg, ["human", "real person", "agent", "talk to human"]):
