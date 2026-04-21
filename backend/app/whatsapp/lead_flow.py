@@ -264,6 +264,7 @@ def handle_lead_message(phone, message):
             state["stage"] = "new"
             state["last_seen"] = int(time.time())
             save_state(phone, state)
+            return "Our strategist is still unavailable right now.\nMeanwhile I can help instantly — what do you need?"
 
     if state.get("human_required") and contains(msg, ["hi", "hello", "start", "restart", "menu", "bot"]):
         state["stage"] = "new"
