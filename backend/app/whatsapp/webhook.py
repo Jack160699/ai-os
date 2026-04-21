@@ -58,7 +58,7 @@ from app.sales.intent import wants_human
 from app.sales.intercept import build_preview_state_for_sales, try_handle
 from app.sales.razorpay_link import create_payment_link_http
 from app.integrations.supabase_revenue_bot import sync_activity, sync_message_event
-from app.whatsapp.lead_flow import LeadFlowReply, ListMenuSpec, handle_lead_message
+from app.whatsapp.lead_flow import LeadFlowReply, ListMenuSpec, get_state, handle_lead_message
 from app.whatsapp.quick_reply_templates import get_quick_reply_templates
 from app.whatsapp.messaging import (
     send_interactive_buttons,
@@ -2664,6 +2664,10 @@ def create_app(settings: Settings) -> Flask:
                     or bool(getattr(ai_result, "list_menu", None))
                 ):
                     _finalize_wa_auto_reply(settings, sender, ai_result, wa_mid)
+                    return "", 200
+                ai_state = get_state(sender)
+                if bool(ai_state.get("human_required")):
+                    print("[wa-webhook] human_required=true -> suppressing bot reply")
                     return "", 200
                 print("[wa-webhook] AI returned empty result -> fallback legacy flow")
 

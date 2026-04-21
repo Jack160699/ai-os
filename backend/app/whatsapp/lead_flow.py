@@ -642,3 +642,183 @@ def _is_no(text: str) -> bool:
 def _is_greeting(text: str) -> bool:
     t = (text or "").strip().lower()
     return t in {"hi", "hello", "hey", "hii", "yo", "start"}
+
+
+# --- Production state-machine override (authoritative implementation) ---
+from datetime import datetime, timezone
+import re
+from typing import Any
+
+_LEAD_STATE_STORE: dict[str, dict[str, Any]] = {}
+
+STAGE_NEW = "new"
+STAGE_INTENT_CAPTURED = "intent_captured"
+STAGE_PROPOSAL_REQUESTED = "proposal_requested"
+STAGE_PAYMENT_READY = "payment_ready"
+STAGE_CALL_READY = "call_ready"
+STAGE_HUMAN_REQUIRED = "human_required"
+STAGE_CONVERTED = "converted"
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _default_state() -> dict[str, Any]:
+    return {
+        "stage": STAGE_NEW,
+        "human_required": False,
+        "service": "",
+        "budget": None,
+        "urgency": False,
+        "last_updated": _now_iso(),
+        "last_reply": "",
+    }
+
+
+def get_state(phone: str) -> dict[str, Any]:
+    key = str(phone or "").strip()
+    if not key:
+        return _default_state()
+    if key not in _LEAD_STATE_STORE:
+        _LEAD_STATE_STORE[key] = _default_state()
+    return dict(_LEAD_STATE_STORE[key])
+
+
+def save_state(phone: str, state: dict[str, Any]) -> None:
+    key = str(phone or "").strip()
+    if not key:
+        return
+    merged = {**_default_state(), **(state or {})}
+    merged["last_updated"] = _now_iso()
+    _LEAD_STATE_STORE[key] = merged
+
+
+def _detect_service(text: str) -> str:
+    t = (text or "").lower()
+    if any(k in t for k in ("website", " web ", "web")):
+        return "website"
+    if any(k in t for k in ("android", "ios", " app ", "app")):
+        return "app"
+    if any(k in t for k in ("marketing", "ads", "meta")):
+        return "marketing"
+    if any(k in t for k in ("seo", "google ranking")):
+        return "seo"
+    return ""
+
+
+def _detect_budget(text: str) -> int | None:
+    t = (text or "").lower().replace(",", "")
+    mk = re.search(r"\b(\d{1,3})\s*k\b", t)
+    if mk:
+        return int(mk.group(1)) * 1000
+    m = re.search(r"(?:₹|rs\.?|inr)?\s*(\d{4,7})\b", t)
+    if m:
+        return int(m.group(1))
+    return None
+
+
+def _detect_urgency(text: str) -> bool:
+    t = (text or "").lower()
+    return any(k in t for k in ("urgent", "asap", "today", "immediately"))
+
+
+def _contains_any(text: str, words: tuple[str, ...]) -> bool:
+    t = (text or "").lower()
+    return any(w in t for w in words)
+
+
+def _dedupe_reply(state: dict[str, Any], reply: str) -> str:
+    last = str(state.get("last_reply") or "").strip()
+    cur = (reply or "").strip()
+    if cur and cur == last:
+        if cur.endswith("?"):
+            return cur.replace("?", " now?")
+        return f"{cur} Reply now and we will start."
+    return cur
+
+
+def _handle_lead_message_state_machine(phone: str, message: str) -> LeadFlowReply | None:
+    state = get_state(phone)
+    msg = (message or "").strip()
+    low = msg.lower()
+
+    if state.get("human_required"):
+        return None
+
+    if _contains_any(low, ("talk to human", "human", "person", "agent")):
+        state["human_required"] = True
+        state["stage"] = STAGE_HUMAN_REQUIRED
+        save_state(phone, state)
+        handoff = "Connecting you to a strategist now. You'll get a reply shortly."
+        state["last_reply"] = handoff
+        save_state(phone, state)
+        return LeadFlowReply(body=handoff)
+
+    service = _detect_service(low)
+    budget = _detect_budget(low)
+    urgency = _detect_urgency(low)
+    if service:
+        state["service"] = service
+    if budget is not None:
+        state["budget"] = int(budget)
+    if urgency:
+        state["urgency"] = True
+
+    if _contains_any(low, ("proposal", "quote", "pricing", "estimate")):
+        state["stage"] = STAGE_PROPOSAL_REQUESTED
+        svc = state.get("service") or "project"
+        b = state.get("budget")
+        budget_text = f"₹{int(b)}" if isinstance(b, int) else "your budget"
+        body = f"Proposal ready for your {svc}. We’ll structure scope, timeline, and pricing around {budget_text}. Reply 'pay now' or 'book call'."
+        body = _dedupe_reply(state, body)
+        state["last_reply"] = body
+        save_state(phone, state)
+        return LeadFlowReply(body=body)
+
+    if _contains_any(low, ("pay", "payment", "advance")):
+        state["stage"] = STAGE_PAYMENT_READY
+        body = "Perfect. I’ll arrange payment details today. Want UPI, bank transfer, or payment link?"
+        body = _dedupe_reply(state, body)
+        state["last_reply"] = body
+        save_state(phone, state)
+        return LeadFlowReply(body=body)
+
+    if _contains_any(low, ("call", "meeting", "talk now")):
+        state["stage"] = STAGE_CALL_READY
+        body = "Great. A strategist can speak with you today. Share your preferred time slot."
+        body = _dedupe_reply(state, body)
+        state["last_reply"] = body
+        save_state(phone, state)
+        return LeadFlowReply(body=body)
+
+    state["stage"] = STAGE_INTENT_CAPTURED
+    b = state.get("budget")
+    u = bool(state.get("urgency"))
+    if isinstance(b, int) and u:
+        body = f"Got it — urgent and clear. We can deliver fast within ₹{b}. Want a quick proposal or strategist call now?"
+    elif isinstance(b, int):
+        body = f"₹{b} is workable. Want proposal or quick call?"
+    else:
+        body = "Got it. We can help. Want proposal or quick call?"
+    body = _dedupe_reply(state, body)
+    state["last_reply"] = body
+    save_state(phone, state)
+    return LeadFlowReply(body=body)
+
+
+def handle_lead_message(*args, **kwargs) -> LeadFlowReply | None:
+    """
+    Compatibility wrapper:
+    - handle_lead_message(phone, message)
+    - handle_lead_message(settings, sender, message, profile_name=...)
+    """
+    if len(args) >= 3:
+        phone = str(args[1] or "").strip()
+        message = str(args[2] or "")
+        return _handle_lead_message_state_machine(phone, message)
+    if len(args) >= 2:
+        phone = str(args[0] or "").strip()
+        message = str(args[1] or "")
+        return _handle_lead_message_state_machine(phone, message)
+    raise TypeError("handle_lead_message expects (phone, message) or (settings, sender, message)")
