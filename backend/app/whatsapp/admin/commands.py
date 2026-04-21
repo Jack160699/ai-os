@@ -15,6 +15,25 @@ def _load() -> dict:
         return {}
 
 
+def _row_mode(r: dict) -> str:
+    st = r.get("state")
+    if isinstance(st, dict):
+        return str(st.get("mode") or "normal")
+    return "normal"
+
+
+def _is_hot_row(r: dict) -> bool:
+    if r.get("lead_score") == "hot":
+        return True
+    return _row_mode(r) == "close"
+
+
+def _is_warm_row(r: dict) -> bool:
+    if r.get("lead_score") == "warm":
+        return True
+    return _row_mode(r) in {"call", "normal"} and bool(r.get("budget") or r.get("urgency"))
+
+
 def maybe_handle_admin_command(phone: str, message: str) -> str | None:
     if not str(phone or "").endswith(str(OWNER_NUMBER)[-10:]):
         return None
@@ -22,14 +41,14 @@ def maybe_handle_admin_command(phone: str, message: str) -> str | None:
     db = _load()
     rows = [v for v in db.values() if isinstance(v, dict)]
     if cmd == "stats":
-        hot = sum(1 for r in rows if r.get("lead_score") == "hot")
-        warm = sum(1 for r in rows if r.get("lead_score") == "warm")
+        hot = sum(1 for r in rows if _is_hot_row(r))
+        warm = sum(1 for r in rows if _is_warm_row(r) and not _is_hot_row(r))
         human = sum(1 for r in rows if r.get("human_required"))
         return f"Total leads: {len(rows)} | Hot: {hot} | Warm: {warm} | Human requests: {human}"
     if cmd == "today leads":
         return f"Today's leads tracked: {len(rows)}"
     if cmd == "hot leads":
-        phones = [r.get("user_id", "") for r in rows if r.get("lead_score") == "hot"]
+        phones = [r.get("user_id", "") for r in rows if _is_hot_row(r)]
         return "Hot leads: " + (", ".join(phones[:15]) if phones else "none")
     if cmd == "who asked for human":
         phones = [r.get("user_id", "") for r in rows if r.get("human_required")]
