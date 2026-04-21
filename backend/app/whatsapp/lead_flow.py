@@ -64,6 +64,20 @@ def handle_lead_message(phone: str, message: str):
         return None
 
     intent_data = analyze_intent(msg, memory)
+    recent = list(memory.get("previous_chats") or [])[-8:]
+    budget_mentions = sum(
+        1 for c in recent if re.search(r"(?:₹|rs\.?|inr|\b\d+\s*k\b|\b\d{4,7}\b)", str(c.get("in", "")).lower())
+    ) + (1 if intent_data.get("budget") else 0)
+    service_now = str(intent_data.get("service") or memory.get("service") or "").strip().lower()
+    service_mentions = sum(
+        1
+        for c in recent
+        if service_now
+        and service_now in str(c.get("in", "")).lower()
+    ) + (1 if service_now else 0)
+    if budget_mentions > 1 or service_mentions > 1:
+        intent_data["force_close"] = True
+
     role = detect_role(phone, msg, memory)
     memory["role"] = role
     memory["preferred_language"] = detect_language(msg)

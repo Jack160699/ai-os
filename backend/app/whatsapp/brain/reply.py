@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from typing import Any
 
 from openai import OpenAI
@@ -7,7 +8,45 @@ from openai import OpenAI
 _client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
+def _limit_lines(text: str, max_lines: int = 4) -> str:
+    lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
+    if not lines:
+        return "Got it 👍\nTell me what outcome you want and I will handle it."
+    return "\n".join(lines[:max_lines])
+
+
+def _clean_generic_questions(text: str) -> str:
+    t = text or ""
+    bad = [
+        "can you share more details?",
+        "what features do you want?",
+    ]
+    for b in bad:
+        t = re.sub(re.escape(b), "", t, flags=re.I)
+    t = re.sub(r"\n{3,}", "\n\n", t).strip()
+    return t
+
+
+def _buying_signal(text: str) -> bool:
+    low = (text or "").lower()
+    return any(k in low for k in ("just do it", "i trust you", "no time"))
+
+
 def generate_reply(message: str, memory: dict[str, Any], role: str, intent_data: dict[str, Any]) -> str:
+    low = (message or "").lower()
+    if _buying_signal(message) or bool(intent_data.get("force_close")):
+        if "i trust you" in low:
+            return "Appreciate that 👍 we'll take care of it properly.\nGot it 👍\nWe’ll handle everything within your budget.\n\nNext step:\nStart now or quick call?"
+        return "Got it 👍\nWe’ll handle everything within your budget.\n\nNext step:\nStart now or quick call?"
+
+    tone = "guiding"
+    if bool(intent_data.get("urgency")):
+        tone = "fast_decisive"
+    elif any(k in low for k in ("ready", "proceed", "book", "pay now", "done", "yes")):
+        tone = "confident_direct"
+    elif bool(intent_data.get("is_confused")):
+        tone = "guiding"
+
     prompt = f"""
 You are StratXcel AI business agent.
 Role mode: {role}
@@ -19,14 +58,17 @@ Lead score: {memory.get("lead_score")}
 Language: {memory.get("preferred_language")}
 Last summary: {memory.get("last_conversation_summary")}
 Next action: {memory.get("next_best_action")}
+Tone: {tone}
+Force close: {intent_data.get("force_close")}
 
 User message: {message}
 
 Rules:
-- Sound human and contextual
-- No repetitive spam CTA
-- Keep concise unless user asks detail
-- If user says hi after old context, reference prior context naturally
+- WhatsApp style only, max 2-4 short lines
+- Sound like a professional human sales closer, not a bot
+- Ask at most one question, only if absolutely required
+- If user is ready/urgent, move directly to closing step
+- Show emotional intelligence; acknowledge trust explicitly
 - Match user language (English/Hindi/Hinglish)
 Return JSON only: {{"reply":"...","summary":"...","objection":"...","interest":"..."}}
 """
@@ -38,6 +80,9 @@ Return JSON only: {{"reply":"...","summary":"...","objection":"...","interest":"
             messages=[{"role": "user", "content": prompt}],
         )
         payload = json.loads((res.choices[0].message.content or "").strip())
-        return str(payload.get("reply") or "Got it. Tell me what outcome you want and I will help right away.")
+        raw = str(payload.get("reply") or "Got it 👍\nTell me what outcome you want and I will handle it.")
+        return _limit_lines(_clean_generic_questions(raw), max_lines=4)
     except Exception:
-        return "Got it. Tell me what outcome you want and I will help right away."
+        if bool(intent_data.get("urgency")):
+            return "Got it 👍\nUnderstood this is urgent.\nWe can move fast from here.\nStart now or quick call?"
+        return "Got it 👍\nI can help right away.\nStart now or quick call?"
