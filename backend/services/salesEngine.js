@@ -1,5 +1,11 @@
-import { insertLeadEvent, upsertLeadRecord, upsertSalesOpportunity } from "./supabase.js";
+import {
+  fetchSalesOpportunityByPhone,
+  insertLeadEvent,
+  upsertLeadRecord,
+  upsertSalesOpportunity,
+} from "./supabase.js";
 import { log } from "../utils/logger.js";
+import { trackPhaseDAnalytics } from "./phaseDAnalytics.js";
 
 const QUAL_STATES = new Set(["unqualified", "engaged", "qualified", "proposal_sent", "closed_won", "closed_lost"]);
 
@@ -21,6 +27,10 @@ export function hotLead(signals = {}) {
 }
 
 export async function updateQualification(phone, incoming = {}) {
+  const prevOpp = await fetchSalesOpportunityByPhone(phone);
+  const prevState = String(prevOpp?.qualification_state || "");
+  const prevHot = Boolean(prevOpp?.hot);
+
   const state = QUAL_STATES.has(incoming.state)
     ? incoming.state
     : computeQualificationState(incoming);
@@ -86,5 +96,27 @@ export async function updateQualification(phone, incoming = {}) {
       budget: incoming.budget ?? null,
     });
   }
+
+  const niche = incoming.service || null;
+  const metaBase = {
+    buyer_type: incoming.buyer_type,
+    intent_score: incoming.intent_score,
+    niche,
+    language: incoming.language || null,
+  };
+
+  if (state === "qualified" && prevState !== "qualified") {
+    await trackPhaseDAnalytics({ phone, event_type: "qualified", meta: metaBase });
+  }
+  if (isHot && !prevHot) {
+    await trackPhaseDAnalytics({ phone, event_type: "hot_lead", meta: metaBase });
+  }
+  if (state === "closed_won" && prevState !== "closed_won") {
+    await trackPhaseDAnalytics({ phone, event_type: "closed_won", meta: metaBase });
+  }
+  if (state === "closed_lost" && prevState !== "closed_lost") {
+    await trackPhaseDAnalytics({ phone, event_type: "closed_lost", meta: metaBase });
+  }
+
   return { ok: true, state, stage, hot: isHot, next_followup_at: nextFollowupAt };
 }

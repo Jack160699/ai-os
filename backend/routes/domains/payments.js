@@ -15,6 +15,7 @@ import {
 } from "../../services/supabase.js";
 import { log } from "../../utils/logger.js";
 import { ENV } from "../../config/env.js";
+import { trackPhaseDAnalytics } from "../../services/phaseDAnalytics.js";
 
 const router = express.Router();
 
@@ -107,6 +108,15 @@ router.post("/webhook/razorpay", async (req, res) => {
       `payment_event=${parsed.event} amount=${parsed.amount_rupees ?? "na"}`,
       "system"
     );
+    await trackPhaseDAnalytics({
+      phone: parsed.phone,
+      event_type: "closed_won",
+      meta: {
+        niche: "payment_webhook",
+        reply_excerpt: `paid ${parsed.amount_rupees ?? "na"} INR`,
+        extra: { event: parsed.event, payment_link_id: parsed.payment_link_id || null },
+      },
+    });
   }
   if (parsed.payment_link_id) {
     const mark = await markPaymentLinkPaidByProviderId(

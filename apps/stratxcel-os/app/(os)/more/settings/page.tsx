@@ -14,6 +14,7 @@ const COMMAND_OPTIONS = [
   "create task",
   "assign lead",
   "start ads",
+  "weekly optimization report",
 ];
 
 export default async function SettingsPage() {

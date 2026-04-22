@@ -12,6 +12,7 @@ import {
   updateLead,
 } from "./supabase.js";
 import { getDashboardCore } from "./dashboardMetrics.js";
+import { buildWeeklyOptimizationReportForFounder } from "./phaseDOptimizer.js";
 
 function normPhone(v) {
   return String(v || "").replace(/\D/g, "");
@@ -27,7 +28,16 @@ function envOwnerNumbers() {
 function envPermissions() {
   const raw = String(ENV.CEO_COMMAND_PERMISSIONS || "");
   if (!raw.trim()) {
-    return ["today stats", "hot leads", "revenue", "pending followups", "create task", "assign lead", "start ads"];
+    return [
+      "today stats",
+      "hot leads",
+      "revenue",
+      "pending followups",
+      "create task",
+      "assign lead",
+      "start ads",
+      "weekly optimization report",
+    ];
   }
   return raw.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
 }
@@ -36,7 +46,9 @@ async function effectiveSettings() {
   const db = await readCeoSettings();
   return {
     owners: db.owner_numbers?.length ? db.owner_numbers : envOwnerNumbers(),
-    permissions: db.permissions?.length ? db.permissions : envPermissions(),
+    permissions: db.permissions?.length
+      ? db.permissions.map((x) => String(x).trim().toLowerCase())
+      : envPermissions(),
   };
 }
 
@@ -74,6 +86,9 @@ function detectIntent(commandRaw) {
   if (cmd.includes("create task") || cmd.startsWith("task ")) return "create task";
   if (cmd.includes("assign lead") || cmd.includes("assign")) return "assign lead";
   if (cmd.includes("start ads") || cmd.includes("ads start")) return "start ads";
+  if (cmd.includes("weekly optimization report") || (cmd.includes("weekly") && cmd.includes("optimization"))) {
+    return "weekly optimization report";
+  }
   return "unknown";
 }
 
@@ -136,7 +151,8 @@ export async function executeCeoCommand({ command, phone }) {
   const intent = detectIntent(raw);
   const settings = await effectiveSettings();
   const allowed = settings.permissions.includes(intent);
-  let response = "Unknown command. Try: today stats, hot leads, revenue, pending followups, create task, assign lead, start ads.";
+  let response =
+    "Unknown command. Try: today stats, hot leads, revenue, pending followups, create task, assign lead, start ads, weekly optimization report.";
   let status = "unknown";
   let payload = {};
 
@@ -219,6 +235,10 @@ export async function executeCeoCommand({ command, phone }) {
     });
     response = "Ads kickoff queued ✅\nMedia team notified.\nCheck dashboard in 15 mins.";
     payload = { queued: true };
+    status = "ok";
+  } else if (intent === "weekly optimization report") {
+    response = await buildWeeklyOptimizationReportForFounder();
+    payload = { kind: "phase_d_weekly_report" };
     status = "ok";
   }
 

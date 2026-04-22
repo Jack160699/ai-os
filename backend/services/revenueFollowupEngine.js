@@ -13,6 +13,7 @@ import {
   upsertLeadMemory,
 } from "./supabase.js";
 import { sendWhatsApp } from "./whatsapp.js";
+import { inferCtaFromReply, inferResponseStyle, savePhaseDPromptPerformance } from "./phaseDAnalytics.js";
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -121,11 +122,34 @@ export async function runLeadMemoryRevenueFollowupSweep(limit = 20) {
       next_followup_at: nextAt,
     });
 
+    const niche = lm.business_type || lm.service_interest || null;
     await insertLeadEvent({
       phone,
       event_type: "phase_c_followup_sent",
       event_value: String(lm.buyer_type || "unknown"),
-      payload: { intent_score: lm.intent_score, stage: lm.stage, next_followup_at: nextAt },
+      payload: {
+        intent_score: lm.intent_score,
+        stage: lm.stage,
+        next_followup_at: nextAt,
+        buyer_type: lm.buyer_type,
+        niche,
+        language: null,
+        followup_variant: `phase_c_${String(lm.buyer_type || "default")}`,
+        reply_excerpt: msg.slice(0, 220),
+      },
+      created_at: now,
+    });
+    await savePhaseDPromptPerformance({
+      phone,
+      reply_excerpt: msg.slice(0, 320),
+      buyer_type: lm.buyer_type ?? null,
+      intent_score: Number.isFinite(Number(lm.intent_score)) ? Math.round(Number(lm.intent_score)) : null,
+      niche,
+      cta_used: inferCtaFromReply(msg),
+      response_style: inferResponseStyle(msg),
+      is_first_reply: false,
+      source: "phase_c_followup",
+      outcome_hint: "followup_sent",
       created_at: now,
     });
   }

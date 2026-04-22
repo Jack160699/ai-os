@@ -413,6 +413,67 @@ export async function insertLeadEvent(eventRow) {
   }
 }
 
+/** Phase D: recent `lead_events` for analytics / weekly optimizer. */
+export async function fetchLeadEventsSince(isoSince, limit = 8000) {
+  if (!supabase || !isoSince) return [];
+  const n = Math.min(20_000, Math.max(50, Number.parseInt(String(limit), 10) || 8000));
+  try {
+    const { data, error } = await supabase
+      .from("lead_events")
+      .select("*")
+      .gte("created_at", isoSince)
+      .order("created_at", { ascending: false })
+      .limit(n);
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    log.warn("fetchLeadEventsSince failed", { err: err?.message || String(err) });
+    return [];
+  }
+}
+
+export async function insertPromptPerformanceRow(row) {
+  if (!supabase) return { ok: false, reason: "no_supabase" };
+  try {
+    const { error } = await supabase.from("prompt_performance").insert([row]);
+    if (error) throw error;
+    return { ok: true };
+  } catch (err) {
+    log.warn("insertPromptPerformanceRow failed", { err: err?.message || String(err) });
+    return { ok: false, reason: err?.message || "insert_failed" };
+  }
+}
+
+export async function insertConversionMetric(row) {
+  if (!supabase) return { ok: false, reason: "no_supabase" };
+  try {
+    const { error } = await supabase.from("conversion_metrics").insert([row]);
+    if (error) throw error;
+    return { ok: true };
+  } catch (err) {
+    log.warn("insertConversionMetric failed", { err: err?.message || String(err) });
+    return { ok: false, reason: err?.message || "insert_failed" };
+  }
+}
+
+export async function fetchPromptPerformanceSince(isoSince, limit = 4000) {
+  if (!supabase || !isoSince) return [];
+  const n = Math.min(10_000, Math.max(20, Number.parseInt(String(limit), 10) || 4000));
+  try {
+    const { data, error } = await supabase
+      .from("prompt_performance")
+      .select("*")
+      .gte("created_at", isoSince)
+      .order("created_at", { ascending: false })
+      .limit(n);
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    log.warn("fetchPromptPerformanceSince failed", { err: err?.message || String(err) });
+    return [];
+  }
+}
+
 export async function saveProposal(row) {
   if (!supabase) return { ok: false, reason: "no_supabase" };
   try {
@@ -534,6 +595,22 @@ export async function fetchLeadByPhone(phone) {
     return data || null;
   } catch (err) {
     log.warn("Supabase fetchLeadByPhone failed", { err: err?.message || String(err) });
+    return null;
+  }
+}
+
+export async function fetchSalesOpportunityByPhone(phone) {
+  if (!supabase || !phone) return null;
+  try {
+    const { data, error } = await supabase
+      .from("sales_opportunities")
+      .select("*")
+      .eq("phone", phone)
+      .maybeSingle();
+    if (error) throw error;
+    return data || null;
+  } catch (err) {
+    log.warn("Supabase fetchSalesOpportunityByPhone failed", { err: err?.message || String(err) });
     return null;
   }
 }

@@ -47,6 +47,44 @@ create table if not exists public.lead_events (
 );
 create index if not exists lead_events_phone_idx on public.lead_events (phone, created_at desc);
 
+create index if not exists lead_events_type_created_idx
+  on public.lead_events (event_type, created_at desc);
+
+-- Phase D: rollups for weekly self-optimization job
+create table if not exists public.conversion_metrics (
+  id bigserial primary key,
+  period_start timestamptz not null,
+  period_end timestamptz not null,
+  scope text not null default 'global',
+  metric_key text not null,
+  metric_value numeric,
+  dimensions jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists conversion_metrics_period_idx
+  on public.conversion_metrics (period_start desc, metric_key);
+
+-- Phase D: per-reply prompt / CTA performance (feeds weekly report)
+create table if not exists public.prompt_performance (
+  id bigserial primary key,
+  phone text not null,
+  reply_excerpt text,
+  buyer_type text,
+  intent_score int,
+  niche text,
+  language text,
+  cta_used text,
+  response_style text,
+  is_first_reply boolean not null default false,
+  source text not null default 'whatsapp_bot',
+  outcome_hint text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists prompt_performance_created_idx
+  on public.prompt_performance (created_at desc);
+
 -- Sales opportunity state machine snapshot
 create table if not exists public.sales_opportunities (
   id bigserial primary key,
@@ -134,7 +172,7 @@ insert into public.ceo_bridge_settings (id, owner_numbers, permissions)
 values (
   'default',
   '{}',
-  '{"today stats","hot leads","revenue","pending followups","create task","assign lead","start ads"}'
+  '{"today stats","hot leads","revenue","pending followups","create task","assign lead","start ads","weekly optimization report"}'
 )
 on conflict (id) do nothing;
 

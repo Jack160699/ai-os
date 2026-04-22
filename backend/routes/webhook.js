@@ -7,6 +7,12 @@ import {
   refreshLeadMemoryAfterAiTurn,
 } from "../services/conversationMemory.js";
 import { bumpLeadMemoryNextFollowupAfterBotReply } from "../services/revenueFollowupEngine.js";
+import {
+  inferCtaFromReply,
+  inferResponseStyle,
+  savePhaseDPromptPerformance,
+  trackPhaseDAnalytics,
+} from "../services/phaseDAnalytics.js";
 import { analyzeAdaptiveSalesBrain } from "../services/adaptiveSalesBrain.js";
 import { getAIResponse } from "../services/openai.js";
 import { executeCeoCommand, isOwnerNumber } from "../services/ceoBridge.js";
@@ -19,6 +25,47 @@ import { ENV } from "../config/env.js";
 import { log } from "../utils/logger.js";
 
 const router = express.Router();
+
+function wantsExplicitCall(message) {
+  return /\b(book|schedule)\s+(a\s+)?call\b|\bcall me\b|\bzoom\b|\bgoogle meet\b|\bvoice call\b/i.test(
+    String(message || "")
+  );
+}
+
+async function recordPhaseDBotTurn({ phone, replyText, source, adaptive, niche, lang, userTurnCount }) {
+  const cta = inferCtaFromReply(replyText);
+  const style = inferResponseStyle(replyText);
+  const excerpt = String(replyText || "").slice(0, 280);
+  const isFirst = userTurnCount === 1;
+  await trackPhaseDAnalytics({
+    phone,
+    event_type: "replied",
+    meta: {
+      buyer_type: adaptive.buyer_type,
+      intent_score: adaptive.intent_score,
+      niche,
+      language: lang,
+      cta_used: cta,
+      response_style: style,
+      is_first_reply: isFirst,
+      reply_excerpt: excerpt,
+    },
+  });
+  await savePhaseDPromptPerformance({
+    phone: String(phone),
+    reply_excerpt: String(replyText || "").slice(0, 320),
+    buyer_type: adaptive.buyer_type ?? null,
+    intent_score: Number.isFinite(Number(adaptive.intent_score)) ? Math.round(Number(adaptive.intent_score)) : null,
+    niche,
+    language: lang,
+    cta_used: cta,
+    response_style: style,
+    is_first_reply: isFirst,
+    source,
+    outcome_hint: isFirst ? "first_reply" : "replied",
+    created_at: new Date().toISOString(),
+  });
+}
 
 function getVerifyToken() {
   return ENV.WHATSAPP_VERIFY_TOKEN || "";
@@ -137,18 +184,58 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       intent_score: adaptive.intent_score,
     });
 
+    const lang = detectUserLanguage(message);
+    const userTurnCount = recentRows.filter((r) => String(r?.sender || "").toLowerCase() === "user").length;
+    const sig0 = extractSalesSignals(message);
+    const niche =
+      leadMem?.business_type || leadMem?.service_interest || sig0.service || null;
+
+    await trackPhaseDAnalytics({
+      phone,
+      event_type: "inbound_message",
+      meta: {
+        buyer_type: adaptive.buyer_type,
+        intent_score: adaptive.intent_score,
+        niche,
+        language: lang,
+      },
+    });
+    if (sig0.payment_intent) {
+      await trackPhaseDAnalytics({
+        phone,
+        event_type: "payment_intent",
+        meta: {
+          buyer_type: adaptive.buyer_type,
+          intent_score: adaptive.intent_score,
+          niche,
+          language: lang,
+        },
+      });
+    }
+
     const signals = {
-      ...extractSalesSignals(message),
+      ...sig0,
       intent_score: adaptive.intent_score,
       buyer_type: adaptive.buyer_type,
+      language: lang,
     };
     await updateQualification(phone, signals);
 
     const mode = detectMode(message);
     const intent = routeStrategicIntent(message);
-    const lang = detectUserLanguage(message);
 
     if (mode === "HUMAN_MODE") {
+      await trackPhaseDAnalytics({
+        phone,
+        event_type: "call_requested",
+        meta: {
+          buyer_type: adaptive.buyer_type,
+          intent_score: adaptive.intent_score,
+          niche,
+          language: lang,
+          extra: { kind: "human_handoff" },
+        },
+      });
       await updateLead(phone, "human_requested");
       const ok = await sendWhatsApp(
         phone,
@@ -160,6 +247,20 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       return res.sendStatus(200);
     }
 
+    if (wantsExplicitCall(message)) {
+      await trackPhaseDAnalytics({
+        phone,
+        event_type: "call_requested",
+        meta: {
+          buyer_type: adaptive.buyer_type,
+          intent_score: adaptive.intent_score,
+          niche,
+          language: lang,
+          extra: { kind: "sales_call" },
+        },
+      });
+    }
+
     const direct = directIntentReply(intent, lang);
     if (direct) {
       await saveMessage(phone, direct, "bot");
@@ -167,6 +268,15 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       if (!sentDirect) {
         log.error("Outbound direct reply failed to send after retries", { phone, waMessageId, intent });
       }
+      await recordPhaseDBotTurn({
+        phone,
+        replyText: direct,
+        source: "whatsapp_direct_intent",
+        adaptive,
+        niche,
+        lang,
+        userTurnCount,
+      });
       await bumpLeadMemoryNextFollowupAfterBotReply(phone);
       return res.sendStatus(200);
     }
@@ -177,6 +287,15 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
 
     await saveMessage(phone, reply, "bot");
     await refreshLeadMemoryAfterAiTurn(phone);
+    await recordPhaseDBotTurn({
+      phone,
+      replyText: reply,
+      source: "whatsapp_ai",
+      adaptive,
+      niche,
+      lang,
+      userTurnCount,
+    });
 
     const sent = await sendWhatsApp(phone, reply);
     if (!sent) {

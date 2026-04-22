@@ -2,6 +2,8 @@ import { dueFollowups, insertLeadEvent, saveMessage, upsertSalesOpportunity } fr
 import { sendWhatsApp } from "./whatsapp.js";
 import { log } from "../utils/logger.js";
 import { runLeadMemoryRevenueFollowupSweep } from "./revenueFollowupEngine.js";
+import { savePhaseDPromptPerformance } from "./phaseDAnalytics.js";
+import { maybeRunPhaseDWeekly } from "./phaseDOptimizer.js";
 
 function followupText(service) {
   const svc = service ? ` for ${service}` : "";
@@ -24,7 +26,23 @@ export async function runFollowupSweep(limit = 20) {
       phone,
       event_type: "followup_sent",
       event_value: row?.stage || "unknown",
-      payload: { source: "scheduler" },
+      payload: {
+        source: "scheduler",
+        niche: row?.service || null,
+        followup_variant: "scheduler_sweep",
+        reply_excerpt: msg.slice(0, 220),
+      },
+      created_at: now,
+    });
+    await savePhaseDPromptPerformance({
+      phone,
+      reply_excerpt: msg.slice(0, 320),
+      niche: row?.service || null,
+      cta_used: null,
+      response_style: "scheduler_template",
+      is_first_reply: false,
+      source: "scheduler_followup",
+      outcome_hint: "followup_sent",
       created_at: now,
     });
     await upsertSalesOpportunity({
@@ -48,6 +66,7 @@ export function startFollowupScheduler() {
   const mins = Math.max(5, Number.parseInt(process.env.FOLLOWUP_SCHEDULER_INTERVAL_MIN || "15", 10) || 15);
   const interval = mins * 60 * 1000;
   timer = setInterval(() => {
+    maybeRunPhaseDWeekly();
     runFollowupSweep().catch((err) => {
       log.warn("followup_scheduler_tick_failed", { err: err?.message || String(err) });
     });
