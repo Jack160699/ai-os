@@ -21,6 +21,7 @@ export const ENV = {
   WHATSAPP_TOKEN: pick(process.env.WHATSAPP_TOKEN),
   PHONE_NUMBER_ID: pick(process.env.PHONE_NUMBER_ID, process.env.WHATSAPP_PHONE_NUMBER_ID),
   OPENAI_API_KEY: pick(process.env.OPENAI_API_KEY),
+  AI_BOT_NAME: pick(process.env.AI_BOT_NAME, "Stratxcel AI Growth Partner"),
   SUPABASE_URL: pick(process.env.SUPABASE_URL),
   SUPABASE_KEY: pick(process.env.SUPABASE_KEY),
   RAZORPAY_LIVE_KEY_ID: pick(

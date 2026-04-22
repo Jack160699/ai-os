@@ -1,6 +1,6 @@
 import express from "express";
 import { detectMode } from "../utils/detectMode.js";
-import { buildPrompt } from "../services/aiControl.js";
+import { buildPrompt, detectUserLanguage, directIntentReply, routeStrategicIntent } from "../services/aiControl.js";
 import { buildMemoryContext } from "../services/conversationMemory.js";
 import { getAIResponse } from "../services/openai.js";
 import { executeCeoCommand, isOwnerNumber } from "../services/ceoBridge.js";
@@ -34,7 +34,8 @@ function extractSalesSignals(message) {
     replied: true,
     interested: /\b(need|interested|chahiye|karna|chahta)\b/.test(low),
     urgency: /\b(urgent|asap|jaldi|abhi|today)\b/.test(low),
-    ready_to_buy: /\b(start|pay|proceed|book|kar do)\b/.test(low),
+    ready_to_buy: /\b(start|pay|proceed|book|kar do|ready to start|payment|timeline|call)\b/.test(low),
+    payment_intent: /\b(payment|advance|invoice|upi|razorpay)\b/.test(low),
     budget,
     need: Boolean(service),
     timeline: /\b(today|tomorrow|week|jaldi|urgent)\b/.test(low),
@@ -125,6 +126,8 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
     await updateQualification(phone, signals);
 
     const mode = detectMode(message);
+    const intent = routeStrategicIntent(message);
+    const lang = detectUserLanguage(message);
 
     if (mode === "HUMAN_MODE") {
       await updateLead(phone, "human_requested");
@@ -134,6 +137,16 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       );
       if (!ok) {
         log.error("Human handoff reply failed to send", { phone });
+      }
+      return res.sendStatus(200);
+    }
+
+    const direct = directIntentReply(intent, lang);
+    if (direct) {
+      await saveMessage(phone, direct, "bot");
+      const sentDirect = await sendWhatsApp(phone, direct);
+      if (!sentDirect) {
+        log.error("Outbound direct reply failed to send after retries", { phone, waMessageId, intent });
       }
       return res.sendStatus(200);
     }
