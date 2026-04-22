@@ -1,7 +1,7 @@
 import express from "express";
 import { detectMode } from "../utils/detectMode.js";
 import { buildPrompt, detectUserLanguage, directIntentReply, routeStrategicIntent } from "../services/aiControl.js";
-import { buildMemoryContext } from "../services/conversationMemory.js";
+import { buildMemoryContext, refreshLeadMemoryAfterAiTurn } from "../services/conversationMemory.js";
 import { getAIResponse } from "../services/openai.js";
 import { executeCeoCommand, isOwnerNumber } from "../services/ceoBridge.js";
 import { updateQualification } from "../services/salesEngine.js";
@@ -156,6 +156,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
     const reply = await getAIResponse(prompt);
 
     await saveMessage(phone, reply, "bot");
+    await refreshLeadMemoryAfterAiTurn(phone);
 
     const sent = await sendWhatsApp(phone, reply);
     if (!sent) {

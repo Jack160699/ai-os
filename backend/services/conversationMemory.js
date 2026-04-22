@@ -1,6 +1,8 @@
 import {
   fetchRecentMessages,
   fetchLeadMemory,
+  getLeadMemory,
+  upsertLeadMemory,
   upsertLeadMemorySummary,
 } from "./supabase.js";
 import { summarizeConversationTranscript } from "./openai.js";
@@ -96,11 +98,19 @@ export async function buildMemoryContext(phone) {
 
   const trimmedCompact = compact.trim();
   const trimmedSummary = squash(summary).trim();
-  if (!trimmedCompact && !trimmedSummary) {
+  const leadRow = await getLeadMemory(phone);
+  const profileBlock = formatLeadMemoryProfileBlock(leadRow);
+
+  if (!trimmedCompact && !trimmedSummary && !profileBlock) {
     return { promptBlock: "", rowCount: rows.length };
   }
 
-  const promptBlock = buildPromptMemoryBlock(summary, compact);
+  let promptBlock = buildPromptMemoryBlock(summary, compact);
+  if (profileBlock) {
+    promptBlock = promptBlock.trim()
+      ? `${profileBlock}\n\n${promptBlock}`
+      : profileBlock;
+  }
   return { promptBlock, rowCount: rows.length };
 }
 
@@ -126,4 +136,61 @@ function buildPromptMemoryBlock(summary, compact) {
     recent || "—",
   ];
   return parts.join("\n\n");
+}
+
+function formatLeadMemoryProfileBlock(row) {
+  if (!row) return "";
+  const lines = [];
+  const push = (label, val) => {
+    if (val === null || val === undefined) return;
+    const s = String(val).trim();
+    if (!s) return;
+    lines.push(`${label}: ${s}`);
+  };
+  push("Name", row.name);
+  push("Business type", row.business_type);
+  push("City", row.city);
+  push("Budget range", row.budget_range);
+  push("Service interest", row.service_interest);
+  push("Stage", row.stage);
+  push("Buyer type", row.buyer_type);
+  const score = Number(row.intent_score);
+  if (Number.isFinite(score) && score > 0) {
+    push("Intent score", String(score));
+  }
+  push("Last summary", row.last_summary);
+  if (!lines.length) return "";
+  return ["LEAD PROFILE (structured memory; facts only, do not invent beyond this):", ...lines].join("\n");
+}
+
+/**
+ * After a bot AI reply is saved: bump contact time and refresh rolling `last_summary` for `lead_memory`.
+ * Skips extra OpenAI work when LEAD_MEMORY_SUMMARY_ENABLED=0 (still updates timestamps).
+ */
+export async function refreshLeadMemoryAfterAiTurn(phone) {
+  if (!phone) return;
+  const now = new Date().toISOString();
+  try {
+    let lastSummary = null;
+    if (process.env.LEAD_MEMORY_SUMMARY_ENABLED !== "0") {
+      const rows = await fetchRecentMessages(phone, historyLimit());
+      const compact = rowsToCompactTranscript(rows);
+      if (compact.trim()) {
+        const next = await summarizeConversationTranscript(compact);
+        if (next && String(next).trim()) {
+          lastSummary = String(next).trim().slice(0, 2000);
+        }
+      }
+    }
+    const patch = { last_contacted_at: now };
+    if (lastSummary) patch.last_summary = lastSummary;
+    await upsertLeadMemory(phone, patch);
+  } catch (err) {
+    log.warn("refreshLeadMemoryAfterAiTurn failed", { err: err?.message || String(err), phone });
+    try {
+      await upsertLeadMemory(phone, { last_contacted_at: now });
+    } catch (e2) {
+      log.warn("refreshLeadMemoryAfterAiTurn fallback upsert failed", { err: e2?.message || String(e2), phone });
+    }
+  }
 }

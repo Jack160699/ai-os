@@ -119,6 +119,104 @@ export async function fetchLeadMemory(phone) {
   }
 }
 
+const LEAD_MEMORY_PATCH_KEYS = new Set([
+  "name",
+  "business_type",
+  "city",
+  "budget_range",
+  "service_interest",
+  "stage",
+  "buyer_type",
+  "intent_score",
+  "last_summary",
+  "last_contacted_at",
+  "next_followup_at",
+]);
+
+function pickLeadMemoryPatch(data = {}) {
+  const out = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (!LEAD_MEMORY_PATCH_KEYS.has(k) || v === undefined) continue;
+    if (k === "intent_score") {
+      const n = Number.parseInt(String(v), 10);
+      out[k] = Number.isFinite(n) ? n : 0;
+      continue;
+    }
+    out[k] = v;
+  }
+  return out;
+}
+
+/**
+ * Phase A: structured profile row in `lead_memory` (keyed by WhatsApp phone).
+ */
+export async function getLeadMemory(phone) {
+  if (!supabase || !phone) return null;
+  try {
+    const { data, error } = await supabase.from("lead_memory").select("*").eq("phone", phone).maybeSingle();
+    if (error) throw error;
+    return data || null;
+  } catch (err) {
+    log.warn("getLeadMemory failed", { err: err?.message || String(err), phone });
+    return null;
+  }
+}
+
+export async function upsertLeadMemory(phone, data = {}) {
+  if (!supabase || !phone) return { ok: false, reason: "no_supabase_or_phone" };
+  const patch = pickLeadMemoryPatch(data);
+  const now = new Date().toISOString();
+  try {
+    const existing = await getLeadMemory(phone);
+    const defaults = {
+      phone,
+      name: null,
+      business_type: null,
+      city: null,
+      budget_range: null,
+      service_interest: null,
+      stage: "new",
+      buyer_type: null,
+      intent_score: 0,
+      last_summary: null,
+      last_contacted_at: null,
+      next_followup_at: null,
+    };
+    const row = {
+      ...defaults,
+      ...(existing || {}),
+      ...patch,
+      phone,
+      updated_at: now,
+    };
+    if (existing?.created_at) {
+      row.created_at = existing.created_at;
+    }
+    await withRetry(
+      async () => {
+        const { error } = await supabase.from("lead_memory").upsert([row], { onConflict: "phone" });
+        if (error) throw Object.assign(new Error(error.message), { supabaseError: error });
+      },
+      {
+        retries: Math.max(0, Number.parseInt(process.env.SUPABASE_RETRIES || "2", 10) || 2),
+        baseMs: 250,
+        maxMs: 5000,
+        label: "supabase.upsertLeadMemory",
+        isRetryable: isTransientSupabaseErr,
+      }
+    );
+    return { ok: true };
+  } catch (err) {
+    log.warn("upsertLeadMemory failed", { err: err?.message || String(err), phone });
+    return { ok: false, reason: err?.message || "upsert_failed" };
+  }
+}
+
+export async function updateLeadSummary(phone, summary) {
+  const trimmed = String(summary || "").trim().slice(0, 4000);
+  return upsertLeadMemory(phone, { last_summary: trimmed || null });
+}
+
 export async function upsertLeadMemorySummary(phone, summary, statusFallback = "active") {
   if (!supabase) return;
   const trimmed = String(summary || "").trim().slice(0, 4000);
