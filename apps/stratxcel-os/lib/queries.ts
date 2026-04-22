@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { coreGet } from "@/lib/revenue-core";
 import type {
   Activity,
   ConversationListItem,
@@ -20,6 +21,19 @@ async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
 }
 
 export async function getPipelineStages(resetBatchId: string): Promise<PipelineStage[]> {
+  const core = await coreGet<{ ok: boolean; pipeline: Array<{ stage: string }> }>("/api/sales/pipeline", {
+    ok: false,
+    pipeline: [],
+  });
+  if (core.ok && core.pipeline.length > 0) {
+    return core.pipeline.map((p, idx) => ({
+      id: p.stage,
+      reset_batch_id: resetBatchId,
+      stage_key: p.stage,
+      label: p.stage.replace(/_/g, " "),
+      sort_order: idx,
+    }));
+  }
   return safe(async () => {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -33,6 +47,29 @@ export async function getPipelineStages(resetBatchId: string): Promise<PipelineS
 }
 
 export async function getLeadsForBatch(resetBatchId: string): Promise<Lead[]> {
+  const core = await coreGet<{ ok: boolean; leads: Array<Record<string, unknown>> }>("/api/leads/list", { ok: false, leads: [] });
+  if (core.ok && core.leads.length > 0) {
+    return core.leads.map((l, idx) => {
+      const phone = String(l.phone ?? "");
+      const id = String(l.id ?? phone ?? `core-${idx}`);
+      const status = String(l.status ?? "new");
+      return {
+        id,
+        reset_batch_id: resetBatchId,
+        pipeline_stage_id: status,
+        full_name: String(l.name ?? l.full_name ?? phone ?? "Lead"),
+        phone: phone || null,
+        source: (l.source as string | null) ?? null,
+        ai_score: Number(l.ai_score ?? 0),
+        temperature: String(l.temperature ?? "warm") as Lead["temperature"],
+        estimated_value_cents: Math.round(Number(l.budget ?? 0) * 100),
+        has_unreplied: Boolean(l.has_unreplied ?? false),
+        archived: Boolean(l.archived ?? false),
+        created_at: String(l.created_at ?? new Date().toISOString()),
+        updated_at: String(l.updated_at ?? new Date().toISOString()),
+      } satisfies Lead;
+    });
+  }
   return safe(async () => {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -221,6 +258,20 @@ export async function computeDashboardKpis(resetBatchId: string, stages: Pipelin
 }
 
 export async function getProposalTemplates(resetBatchId: string): Promise<ProposalTemplate[]> {
+  const core = await coreGet<{ ok: boolean; proposals: Array<Record<string, unknown>> }>("/api/sales/proposals", {
+    ok: false,
+    proposals: [],
+  });
+  if (core.ok && core.proposals.length > 0) {
+    return core.proposals.map((p, idx) => ({
+      id: String(p.id ?? `proposal-${idx}`),
+      reset_batch_id: resetBatchId,
+      name: String(p.title ?? p.service ?? "Proposal"),
+      subject: String(p.service ?? ""),
+      body: String(p.scope ?? ""),
+      created_at: String(p.created_at ?? new Date().toISOString()),
+    }));
+  }
   return safe(async () => {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -234,6 +285,28 @@ export async function getProposalTemplates(resetBatchId: string): Promise<Propos
 }
 
 export async function getPaymentLinksForBatch(resetBatchId: string): Promise<PaymentLink[]> {
+  const core = await coreGet<{ ok: boolean; links: Array<Record<string, unknown>> }>("/api/payments/dashboard", {
+    ok: false,
+    links: [],
+  });
+  if (core.ok && core.links.length > 0) {
+    return core.links.map((p, idx) => ({
+      id: String(p.id ?? `plink-${idx}`),
+      reset_batch_id: resetBatchId,
+      lead_id: String(p.phone ?? ""),
+      conversation_id: null,
+      amount_minor: Number(p.amount_paise ?? 0),
+      currency: "INR",
+      status: (String(p.status || "pending") as PaymentLink["status"]),
+      provider: String(p.provider || "razorpay"),
+      provider_ref: String(p.provider_link_id || ""),
+      checkout_url: String(p.short_url || ""),
+      created_at: String(p.created_at || new Date().toISOString()),
+      paid_at: (p.paid_at as string | null) ?? null,
+      expires_at: null,
+      last_synced_at: null,
+    }));
+  }
   return safe(async () => {
     const supabase = await createClient();
     const { data, error } = await supabase

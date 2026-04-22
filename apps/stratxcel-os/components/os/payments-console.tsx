@@ -17,6 +17,12 @@ function formatMinor(link: PaymentLink) {
   }
 }
 
+function pendingAgeHours(link: PaymentLink) {
+  const created = new Date(link.created_at).getTime();
+  if (!Number.isFinite(created)) return 0;
+  return Math.max(0, Math.round((Date.now() - created) / (1000 * 60 * 60)));
+}
+
 export function PaymentsConsole({
   links,
   leads,
@@ -131,6 +137,11 @@ export function PaymentsConsole({
       </div>
 
       <div className="space-y-2">
+        {links.some((l) => l.status === "pending" && pendingAgeHours(l) > 24) ? (
+          <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            Payment pending alert: some links are over 24h old. Prioritize follow-up.
+          </div>
+        ) : null}
         {links.length === 0 ? <p className="text-sm text-slate-500">No payment links in this batch.</p> : null}
         {links.map((link) => (
           <div key={link.id} className="os-glass flex flex-col gap-2 rounded-xl p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
@@ -139,6 +150,9 @@ export function PaymentsConsole({
                 <Badge variant="secondary" className="capitalize">
                   {link.status}
                 </Badge>
+                {link.status === "pending" && pendingAgeHours(link) > 24 ? (
+                  <Badge variant="destructive">Pending {pendingAgeHours(link)}h</Badge>
+                ) : null}
                 <span className="text-slate-400">{formatMinor(link)}</span>
               </div>
               <a className="mt-1 block truncate text-xs text-sky-300 underline" href={link.checkout_url} target="_blank" rel="noreferrer">

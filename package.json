@@ -7,8 +7,9 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "dev:backend": "python backend/run.py",
-    "dev:stack": "concurrently -n ai-os,backend -c cyan,green \"turbo run dev --filter=@stratxcel/ai-os\" \"npm run dev:backend\""
+    "dev:admin": "turbo run dev --filter=@stratxcel/stratxcel-os",
+    "dev:backend": "npm run start --prefix backend",
+    "dev:stack": "concurrently -n admin,backend -c cyan,green \"npm run dev:admin\" \"npm run dev:backend\""
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

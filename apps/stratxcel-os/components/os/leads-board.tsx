@@ -63,9 +63,12 @@ export function LeadsBoard({ leads: initial }: { leads: Lead[] }) {
               <CardHeader className="space-y-2 pb-3">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base leading-tight">{lead.full_name}</CardTitle>
-                  <Badge variant={lead.temperature === "hot" ? "hot" : lead.temperature === "warm" ? "warm" : "cold"} className="shrink-0 capitalize">
-                    {lead.temperature}
-                  </Badge>
+                  <div className="flex shrink-0 items-center gap-1">
+                    {lead.temperature === "hot" ? <Badge variant="destructive">Priority</Badge> : null}
+                    <Badge variant={lead.temperature === "hot" ? "hot" : lead.temperature === "warm" ? "warm" : "cold"} className="capitalize">
+                      {lead.temperature}
+                    </Badge>
+                  </div>
                 </div>
                 <p className="text-xs text-slate-500">{lead.phone ?? "—"}</p>
               </CardHeader>
@@ -110,7 +113,7 @@ export function LeadsBoard({ leads: initial }: { leads: Lead[] }) {
                 </div>
                 <div className="flex justify-between gap-3">
                   <span className="text-slate-500">Unreplied</span>
-                  <span className="text-right text-slate-200">{active.has_unreplied ? "Yes" : "No"}</span>
+                  <span className="text-right text-slate-200">{active.has_unreplied ? "Yes (needs reply)" : "No"}</span>
                 </div>
               </div>
             </>

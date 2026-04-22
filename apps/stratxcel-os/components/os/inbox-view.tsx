@@ -215,6 +215,13 @@ export function InboxView({
     await loadMessages(selectedId);
   };
 
+  const quickProposal = async () => {
+    if (!selectedId || !templates[0]?.id) return;
+    setProposalTemplateId(templates[0].id);
+    await sendProposalTemplateAction(templates[0].id, selectedId);
+    await loadMessages(selectedId);
+  };
+
   const createPayment = async () => {
     if (!selected?.lead_id) return;
     const major = Number(paymentAmount);
@@ -380,6 +387,9 @@ export function InboxView({
               </Button>
               <Button type="button" size="sm" variant="outline" disabled={!selectedId || !templates.length} onClick={() => setProposalOpen(true)}>
                 Proposal
+              </Button>
+              <Button type="button" size="sm" variant="outline" disabled={!selectedId || !templates.length} onClick={() => void quickProposal()}>
+                One-click proposal
               </Button>
               <Button type="button" size="sm" variant="outline" disabled={!selectedId} onClick={() => setPaymentOpen(true)}>
                 Payment link

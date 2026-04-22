@@ -7,10 +7,18 @@ import { BATCH_COOKIE, getResetBatchId } from "@/lib/batch";
 import { createClient } from "@/lib/supabase/server";
 import type { Temperature } from "@/lib/models";
 import { renderProposalTemplate } from "@/lib/revenue/render-template";
-import { createRazorpayPaymentLink, fetchRazorpayPaymentLink, mapRazorpayLinkStatus } from "@/lib/revenue/razorpay";
+import { coreGet, corePost } from "@/lib/revenue-core";
 
 export async function moveLeadToStage(leadId: string, pipelineStageId: string) {
   const supabase = await createClient();
+  const { data: lead } = await supabase.from("leads").select("phone").eq("id", leadId).maybeSingle();
+  if (lead?.phone) {
+    await corePost(
+      "/api/sales/stage",
+      { phone: String(lead.phone), stage: pipelineStageId },
+      { ok: false },
+    );
+  }
   const { error } = await supabase.from("leads").update({ pipeline_stage_id: pipelineStageId }).eq("id", leadId);
   if (error) throw new Error(error.message);
   revalidatePath("/");
@@ -49,6 +57,30 @@ export async function setResetBatchCookie(formData: FormData) {
   jar.set(BATCH_COOKIE, raw, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax", httpOnly: true });
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+export async function saveCeoBridgeSettingsAction(formData: FormData) {
+  const ownerRaw = String(formData.get("owner_numbers") ?? "").trim();
+  const owner_numbers = ownerRaw
+    .split(/[,\n]/g)
+    .map((v) => v.replace(/\D/g, ""))
+    .filter(Boolean);
+  const permissions = formData
+    .getAll("permissions")
+    .map((v) => String(v).trim().toLowerCase())
+    .filter(Boolean);
+
+  await corePost(
+    "/api/aiops/ceo/settings",
+    {
+      owner_numbers,
+      permissions,
+    },
+    { ok: false },
+  );
+
+  revalidatePath("/more/settings");
+  redirect("/more/settings");
 }
 
 export async function appendOutboundMessage(conversationId: string, body: string) {
@@ -92,55 +124,17 @@ export async function createLead(formData: FormData) {
     redirect("/leads?error=missing_name");
   }
 
-  const batchId = await getResetBatchId();
-  const supabase = await createClient();
-
-  const { data: stage, error: sErr } = await supabase
-    .from("pipeline_stages")
-    .select("id")
-    .eq("reset_batch_id", batchId)
-    .eq("stage_key", "new")
-    .maybeSingle();
-  if (sErr) throw new Error(sErr.message);
-  if (!stage) {
-    throw new Error("Missing pipeline stage `new` for this batch. Run migrations / seed stages.");
-  }
-
-  const { data: lead, error: lErr } = await supabase
-    .from("leads")
-    .insert({
-      reset_batch_id: batchId,
-      pipeline_stage_id: stage.id,
-      full_name,
-      phone: phone || null,
-      source: source || null,
-      estimated_value_cents,
-      ai_score: 0,
-      temperature: "warm",
-      has_unreplied: false,
-      archived: false,
-    })
-    .select("id")
-    .single();
-  if (lErr) throw new Error(lErr.message);
-  if (!lead) throw new Error("Lead insert failed");
-
-  const { error: cErr } = await supabase.from("conversations").insert({
-    reset_batch_id: batchId,
-    lead_id: lead.id,
-    channel: "whatsapp",
-    last_message_at: null,
-  });
-  if (cErr) throw new Error(cErr.message);
-
-  const { error: aErr } = await supabase.from("activities").insert({
-    reset_batch_id: batchId,
-    lead_id: lead.id,
-    kind: "lead_created",
-    summary: `Lead created: ${full_name}`,
-    meta: {},
-  });
-  if (aErr) throw new Error(aErr.message);
+  await corePost(
+    "/api/leads/landing-submit",
+    {
+      name: full_name,
+      phone,
+      source,
+      budget: Math.round(estimated_value_cents / 100),
+      status: "new",
+    },
+    { ok: false },
+  );
 
   revalidatePath("/");
   revalidatePath("/leads");
@@ -168,6 +162,23 @@ export async function createProposalTemplate(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/inbox");
+  revalidatePath("/more/proposals");
+  redirect("/more/proposals");
+}
+
+export async function generateProposalForLead(formData: FormData) {
+  const phone = String(formData.get("phone") ?? "").trim();
+  const service = String(formData.get("service") ?? "").trim();
+  const scope = String(formData.get("scope") ?? "").trim();
+  const budget = Number(String(formData.get("budget") ?? "0"));
+  if (!phone) {
+    redirect("/more/proposals?error=missing_phone");
+  }
+  await corePost(
+    "/api/sales/proposal/generate",
+    { phone, service: service || null, scope: scope || null, budget: Number.isFinite(budget) ? budget : null },
+    { ok: false },
+  );
   revalidatePath("/more/proposals");
   redirect("/more/proposals");
 }
@@ -202,6 +213,18 @@ export async function sendProposalTemplateAction(templateId: string, conversatio
   const text = subject ? `${subject}\n\n${body}` : body;
 
   await appendOutboundMessage(conversationId, text);
+  if (lead.phone) {
+    await corePost(
+      "/api/sales/proposal/generate",
+      {
+        phone: String(lead.phone),
+        service: lead.source || "website",
+        scope: body,
+        budget: Math.round((lead.estimated_value_cents || 0) / 100),
+      },
+      { ok: false },
+    );
+  }
 
   const { error: aErr } = await supabase.from("activities").insert({
     reset_batch_id: batchId,
@@ -236,15 +259,25 @@ export async function createPaymentLinkAction(input: {
 
   const currency = (input.currency || "INR").toUpperCase();
   const amountMinor = Math.max(1, Math.round(Number(input.amountMajor) * 100));
-
-  const created = await createRazorpayPaymentLink({
-    amountMinor,
-    currency,
-    description: `Payment for ${lead.full_name}`.slice(0, 240),
-    customerName: String(lead.full_name ?? "Customer"),
-  });
-
-  const status = mapRazorpayLinkStatus(created.provider_status);
+  const core = await corePost<{
+    ok: boolean;
+    id?: string;
+    short_url?: string;
+    payment_link?: string;
+    amount_paise?: number;
+  }>(
+    "/api/payments/create-link",
+    {
+      amount: input.amountMajor,
+      phone: lead.phone,
+      name: lead.full_name,
+      description: `Payment for ${lead.full_name}`.slice(0, 240),
+    },
+    { ok: false },
+  );
+  if (!core.ok) throw new Error("Failed to create payment link");
+  const checkout = core.short_url || core.payment_link || "";
+  const providerRef = String(core.id || "");
 
   const { data: row, error: pErr } = await supabase
     .from("payment_links")
@@ -254,10 +287,10 @@ export async function createPaymentLinkAction(input: {
       conversation_id: input.conversationId,
       amount_minor: amountMinor,
       currency,
-      status,
+      status: "pending",
       provider: "razorpay",
-      provider_ref: created.provider_ref,
-      checkout_url: created.checkout_url,
+      provider_ref: providerRef,
+      checkout_url: checkout,
       last_synced_at: new Date().toISOString(),
     })
     .select("id")
@@ -265,13 +298,13 @@ export async function createPaymentLinkAction(input: {
   if (pErr) throw new Error(pErr.message);
 
   if (input.appendMessage && input.conversationId) {
-    await appendOutboundMessage(input.conversationId, `Here is your secure payment link: ${created.checkout_url}`);
+    await appendOutboundMessage(input.conversationId, `Here is your secure payment link: ${checkout}`);
   }
 
   revalidatePath("/more/payments");
   revalidatePath("/inbox");
   revalidatePath("/");
-  return { ok: true as const, id: row.id as string, url: created.checkout_url };
+  return { ok: true as const, id: row.id as string, url: checkout };
 }
 
 export async function syncPaymentLinkById(id: string) {
@@ -282,8 +315,12 @@ export async function syncPaymentLinkById(id: string) {
   if (!row || row.reset_batch_id !== batchId) throw new Error("Not found");
   if (!row.provider_ref) throw new Error("No provider ref");
 
-  const remote = await fetchRazorpayPaymentLink(row.provider_ref);
-  const mapped = mapRazorpayLinkStatus(remote.status);
+  const sync = await coreGet<{ ok: boolean; links?: Array<{ provider_link_id?: string; status?: string; paid_at?: string | null }> }>(
+    "/api/payments/dashboard",
+    { ok: false, links: [] },
+  );
+  const remote = (sync.links || []).find((l) => String(l.provider_link_id || "") === String(row.provider_ref || ""));
+  const mapped = String(remote?.status || row.status);
   const paid_at =
     mapped === "paid" ? new Date().toISOString() : mapped === "partially_paid" ? new Date().toISOString() : row.paid_at;
 
@@ -308,21 +345,7 @@ export async function syncPendingPaymentLinksAction() {
     .not("provider_ref", "is", null);
   if (error) throw new Error(error.message);
 
-  for (const row of rows ?? []) {
-    if (!row.provider_ref) continue;
-    try {
-      const remote = await fetchRazorpayPaymentLink(row.provider_ref);
-      const mapped = mapRazorpayLinkStatus(remote.status);
-      const paid_at =
-        mapped === "paid" ? new Date().toISOString() : mapped === "partially_paid" ? new Date().toISOString() : row.paid_at;
-      await supabase
-        .from("payment_links")
-        .update({ status: mapped, paid_at, last_synced_at: new Date().toISOString() })
-        .eq("id", row.id);
-    } catch {
-      /* ignore per-row sync failures */
-    }
-  }
+  await corePost("/api/payments/dashboard", {}, { ok: false });
 
   revalidatePath("/more/payments");
   revalidatePath("/");

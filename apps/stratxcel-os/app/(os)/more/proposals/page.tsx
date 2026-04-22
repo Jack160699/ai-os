@@ -1,4 +1,4 @@
-import { createProposalTemplate } from "@/app/(os)/actions";
+import { createProposalTemplate, generateProposalForLead } from "@/app/(os)/actions";
 import { getResetBatchId } from "@/lib/batch";
 import { getProposalTemplates } from "@/lib/queries";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,36 @@ export default async function ProposalsPage() {
               />
             </div>
             <Button type="submit">Save template</Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-xl">
+        <CardHeader>
+          <CardTitle className="text-base">One-click proposal send</CardTitle>
+          <CardDescription>Generate proposal directly via Revenue Core API using lead phone.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={generateProposalForLead} className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="phone">Lead phone</Label>
+              <Input id="phone" name="phone" required placeholder="919876543210" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="service">Service</Label>
+              <Input id="service" name="service" placeholder="website + automation" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="budget">Budget (INR)</Label>
+              <Input id="budget" name="budget" inputMode="numeric" placeholder="50000" />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="scope">Scope</Label>
+              <textarea id="scope" name="scope" rows={4} className="admin-control w-full rounded-md px-3 py-2 text-sm text-foreground" />
+            </div>
+            <Button type="submit" className="md:col-span-2">
+              Generate proposal now
+            </Button>
           </form>
         </CardContent>
       </Card>

@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   CreditCard,
+  ClipboardList,
   Home,
   Inbox,
   Kanban,
@@ -18,6 +19,7 @@ export const OS_MAIN_NAV: OsNavItem[] = [
   { href: "/leads", label: "Leads", icon: LayoutGrid, keywords: ["contacts", "crm"] },
   { href: "/pipeline", label: "Pipeline", icon: Kanban, keywords: ["board", "deals"] },
   { href: "/more/payments", label: "Payments", icon: CreditCard, keywords: ["links", "razorpay"] },
+  { href: "/more/delivery", label: "Delivery", icon: ClipboardList, keywords: ["tasks", "projects"] },
   { href: "/analytics", label: "Analytics", icon: LineChart, keywords: ["reports", "metrics"] },
   { href: "/more/ai-workspace", label: "AI Copilot", icon: Sparkles, keywords: ["ai", "prompts"] },
   { href: "/more/settings", label: "Settings", icon: Settings, keywords: ["account", "batch"] },
