@@ -71,9 +71,17 @@ function shouldRefreshSummary({ compact, rowCount, storedSummary, summaryUpdated
  * Builds a token-efficient MEMORY block for the main model.
  * Fetches last N messages, optionally refreshes rolling summary via a small side-call.
  */
-export async function buildMemoryContext(phone) {
+export function getMemoryHistoryLimit() {
+  return historyLimit();
+}
+
+/**
+ * @param {string} phone
+ * @param {{ recentRows?: Array<{ sender?: string; text?: string; created_at?: string; id?: unknown }> }} [opts]
+ */
+export async function buildMemoryContext(phone, opts = {}) {
   const limit = historyLimit();
-  const rows = await fetchRecentMessages(phone, limit);
+  const rows = Array.isArray(opts.recentRows) ? opts.recentRows : await fetchRecentMessages(phone, limit);
   const compact = rowsToCompactTranscript(rows);
   const lead = await fetchLeadMemory(phone);
   let summary = lead.memory_summary;
@@ -138,6 +146,19 @@ function buildPromptMemoryBlock(summary, compact) {
   return parts.join("\n\n");
 }
 
+function humanizeBuyerType(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  const map = {
+    fast_buyer: "fast buyer",
+    budget_buyer: "budget buyer",
+    ghosted_return_lead: "ghosted return lead",
+    explorer: "explorer",
+    skeptic: "skeptic",
+  };
+  return map[s] || s.replace(/_/g, " ");
+}
+
 function formatLeadMemoryProfileBlock(row) {
   if (!row) return "";
   const lines = [];
@@ -153,10 +174,13 @@ function formatLeadMemoryProfileBlock(row) {
   push("Budget range", row.budget_range);
   push("Service interest", row.service_interest);
   push("Stage", row.stage);
-  push("Buyer type", row.buyer_type);
+  if (row.buyer_type) push("Buyer type", humanizeBuyerType(row.buyer_type));
   const score = Number(row.intent_score);
-  if (Number.isFinite(score) && score > 0) {
-    push("Intent score", String(score));
+  if (Number.isFinite(score)) {
+    push("Intent score (0-100)", String(Math.round(score)));
+    if (score > 70) {
+      lines.push("Adaptive note: high intent — prioritize clarity, next step, and respectful close.");
+    }
   }
   push("Last summary", row.last_summary);
   if (!lines.length) return "";

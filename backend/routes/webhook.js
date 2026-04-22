@@ -1,12 +1,17 @@
 import express from "express";
 import { detectMode } from "../utils/detectMode.js";
 import { buildPrompt, detectUserLanguage, directIntentReply, routeStrategicIntent } from "../services/aiControl.js";
-import { buildMemoryContext, refreshLeadMemoryAfterAiTurn } from "../services/conversationMemory.js";
+import {
+  buildMemoryContext,
+  getMemoryHistoryLimit,
+  refreshLeadMemoryAfterAiTurn,
+} from "../services/conversationMemory.js";
+import { analyzeAdaptiveSalesBrain } from "../services/adaptiveSalesBrain.js";
 import { getAIResponse } from "../services/openai.js";
 import { executeCeoCommand, isOwnerNumber } from "../services/ceoBridge.js";
 import { updateQualification } from "../services/salesEngine.js";
 import { sendWhatsApp } from "../services/whatsapp.js";
-import { saveMessage, updateLead } from "../services/supabase.js";
+import { fetchRecentMessages, getLeadMemory, saveMessage, updateLead, upsertLeadMemory } from "../services/supabase.js";
 import { claimWaMessageId, releaseWaMessageId } from "../utils/webhookDedupe.js";
 import { assertMetaWebhookSignature } from "../utils/metaSignature.js";
 import { ENV } from "../config/env.js";
@@ -122,7 +127,20 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       await sendWhatsApp(phone, denied);
       return res.sendStatus(200);
     }
-    const signals = extractSalesSignals(message);
+
+    const recentRows = await fetchRecentMessages(phone, getMemoryHistoryLimit());
+    const leadMem = await getLeadMemory(phone);
+    const adaptive = analyzeAdaptiveSalesBrain({ message, recentRows, leadMemory: leadMem });
+    await upsertLeadMemory(phone, {
+      buyer_type: adaptive.buyer_type,
+      intent_score: adaptive.intent_score,
+    });
+
+    const signals = {
+      ...extractSalesSignals(message),
+      intent_score: adaptive.intent_score,
+      buyer_type: adaptive.buyer_type,
+    };
     await updateQualification(phone, signals);
 
     const mode = detectMode(message);
@@ -151,7 +169,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       return res.sendStatus(200);
     }
 
-    const { promptBlock } = await buildMemoryContext(phone);
+    const { promptBlock } = await buildMemoryContext(phone, { recentRows });
     const prompt = buildPrompt(mode, message, promptBlock);
     const reply = await getAIResponse(prompt);
 

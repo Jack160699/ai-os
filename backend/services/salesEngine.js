@@ -11,6 +11,8 @@ export function computeQualificationState(signals = {}) {
 }
 
 export function hotLead(signals = {}) {
+  const intent = Number(signals.intent_score);
+  if (Number.isFinite(intent) && intent > 70) return true;
   const budget = Number(signals.budget || 0);
   if (signals.ready_to_buy) return true;
   if (budget >= Number(process.env.HOT_LEAD_BUDGET_MIN || 30000)) return true;
@@ -35,19 +37,27 @@ export async function updateQualification(phone, incoming = {}) {
 
   const stage = stageMap[state] || "new";
   const isHot = hotLead(incoming);
+  const intentScore = Number(incoming.intent_score);
   const nextFollowupAt =
     state === "closed_won" || state === "closed_lost"
       ? null
       : new Date(Date.now() + (isHot ? 60 : 180) * 60 * 1000).toISOString();
 
-  await upsertLeadRecord({
+  const leadRow = {
     phone,
     status: stage,
     budget: incoming.budget ?? null,
     urgency: Boolean(incoming.urgency),
     service: incoming.service || null,
     updated_at: now,
-  });
+  };
+  if (isHot) {
+    leadRow.temperature = "hot";
+    if (Number.isFinite(intentScore)) {
+      leadRow.ai_score = Math.round(intentScore);
+    }
+  }
+  await upsertLeadRecord(leadRow);
 
   await upsertSalesOpportunity({
     phone,

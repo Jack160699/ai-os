@@ -14,6 +14,13 @@ alter table public.leads
 alter table public.leads
   add column if not exists memory_summary_at timestamptz;
 
+-- Hot lead surfacing (Phase B intent; used by sales_engine upsert)
+alter table public.leads
+  add column if not exists temperature text;
+
+alter table public.leads
+  add column if not exists ai_score int default 0;
+
 -- Payment webhook event trail (used by Node payment domain route)
 create table if not exists public.payment_events (
   id bigserial primary key,
