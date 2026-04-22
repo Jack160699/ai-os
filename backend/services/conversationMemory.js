@@ -6,6 +6,7 @@ import {
   upsertLeadMemorySummary,
 } from "./supabase.js";
 import { summarizeConversationTranscript } from "./openai.js";
+import { bumpLeadMemoryNextFollowupAfterBotReply } from "./revenueFollowupEngine.js";
 import { log } from "../utils/logger.js";
 
 const historyLimit = () =>
@@ -209,10 +210,12 @@ export async function refreshLeadMemoryAfterAiTurn(phone) {
     const patch = { last_contacted_at: now };
     if (lastSummary) patch.last_summary = lastSummary;
     await upsertLeadMemory(phone, patch);
+    await bumpLeadMemoryNextFollowupAfterBotReply(phone);
   } catch (err) {
     log.warn("refreshLeadMemoryAfterAiTurn failed", { err: err?.message || String(err), phone });
     try {
       await upsertLeadMemory(phone, { last_contacted_at: now });
+      await bumpLeadMemoryNextFollowupAfterBotReply(phone);
     } catch (e2) {
       log.warn("refreshLeadMemoryAfterAiTurn fallback upsert failed", { err: e2?.message || String(e2), phone });
     }

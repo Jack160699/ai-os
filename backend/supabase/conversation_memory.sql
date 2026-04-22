@@ -167,6 +167,7 @@ create table if not exists public.lead_memory (
   last_summary text,
   last_contacted_at timestamptz,
   next_followup_at timestamptz,
+  last_followup_sent_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -177,3 +178,6 @@ create index if not exists lead_memory_next_followup_idx
 
 create index if not exists lead_memory_updated_idx
   on public.lead_memory (updated_at desc);
+
+alter table public.lead_memory
+  add column if not exists last_followup_sent_at timestamptz;

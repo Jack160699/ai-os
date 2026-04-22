@@ -1,6 +1,7 @@
 import { dueFollowups, insertLeadEvent, saveMessage, upsertSalesOpportunity } from "./supabase.js";
 import { sendWhatsApp } from "./whatsapp.js";
 import { log } from "../utils/logger.js";
+import { runLeadMemoryRevenueFollowupSweep } from "./revenueFollowupEngine.js";
 
 function followupText(service) {
   const svc = service ? ` for ${service}` : "";
@@ -50,6 +51,12 @@ export function startFollowupScheduler() {
     runFollowupSweep().catch((err) => {
       log.warn("followup_scheduler_tick_failed", { err: err?.message || String(err) });
     });
+    if (process.env.PHASE_C_REVENUE_FOLLOWUP_ENABLED !== "0") {
+      const lim = Math.max(5, Number.parseInt(process.env.PHASE_C_FOLLOWUP_SWEEP_LIMIT || "20", 10) || 20);
+      runLeadMemoryRevenueFollowupSweep(lim).catch((err) => {
+        log.warn("phase_c_followup_scheduler_tick_failed", { err: err?.message || String(err) });
+      });
+    }
   }, interval);
   log.info("followup_scheduler_started", { every_minutes: mins });
 }

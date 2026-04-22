@@ -131,6 +131,7 @@ const LEAD_MEMORY_PATCH_KEYS = new Set([
   "last_summary",
   "last_contacted_at",
   "next_followup_at",
+  "last_followup_sent_at",
 ]);
 
 function pickLeadMemoryPatch(data = {}) {
@@ -159,6 +160,46 @@ export async function getLeadMemory(phone) {
   } catch (err) {
     log.warn("getLeadMemory failed", { err: err?.message || String(err), phone });
     return null;
+  }
+}
+
+/** Newest message row for phone (for follow-up / thread checks). */
+export async function fetchLatestMessageForPhone(phone) {
+  if (!supabase || !phone) return null;
+  const orderCol = messagesOrderColumn === "created_at" ? "created_at" : "id";
+  try {
+    const { data, error } = await supabase
+      .from("messages")
+      .select("sender,text,created_at,id")
+      .eq("phone", phone)
+      .order(orderCol, { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    return Array.isArray(data) && data[0] ? data[0] : null;
+  } catch (err) {
+    log.warn("fetchLatestMessageForPhone failed", { err: err?.message || String(err), phone });
+    return null;
+  }
+}
+
+/** `lead_memory` rows whose next_followup_at is due (Phase C engine). */
+export async function fetchLeadMemoryDueFollowups(limit = 25) {
+  if (!supabase) return [];
+  const now = new Date().toISOString();
+  try {
+    const { data, error } = await supabase
+      .from("lead_memory")
+      .select("*")
+      .lte("next_followup_at", now)
+      .not("next_followup_at", "is", null)
+      .not("last_contacted_at", "is", null)
+      .order("next_followup_at", { ascending: true })
+      .limit(limit);
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    log.warn("fetchLeadMemoryDueFollowups failed", { err: err?.message || String(err) });
+    return [];
   }
 }
 

@@ -6,6 +6,7 @@ import {
   getMemoryHistoryLimit,
   refreshLeadMemoryAfterAiTurn,
 } from "../services/conversationMemory.js";
+import { bumpLeadMemoryNextFollowupAfterBotReply } from "../services/revenueFollowupEngine.js";
 import { analyzeAdaptiveSalesBrain } from "../services/adaptiveSalesBrain.js";
 import { getAIResponse } from "../services/openai.js";
 import { executeCeoCommand, isOwnerNumber } from "../services/ceoBridge.js";
@@ -166,6 +167,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       if (!sentDirect) {
         log.error("Outbound direct reply failed to send after retries", { phone, waMessageId, intent });
       }
+      await bumpLeadMemoryNextFollowupAfterBotReply(phone);
       return res.sendStatus(200);
     }
 
