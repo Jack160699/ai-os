@@ -74,11 +74,18 @@ function getVerifyToken() {
 function extractInboundUserText(messageObj) {
   const t = messageObj?.text?.body;
   if (typeof t === "string" && t.trim()) return t.trim();
-  if (messageObj?.type === "interactive") {
-    const id = messageObj.interactive?.button_reply?.id || messageObj.interactive?.list_reply?.id;
-    if (id) return String(id).replace(/_/g, " ").trim();
-  }
+  const interactiveId = messageObj?.interactive?.button_reply?.id || messageObj?.interactive?.list_reply?.id;
+  if (interactiveId) return String(interactiveId).replace(/_/g, " ").trim();
   return "";
+}
+
+function detectInboundFounderSource(messageObj) {
+  if (messageObj?.type === "interactive") {
+    if (messageObj?.interactive?.button_reply?.id || messageObj?.interactive?.list_reply?.id) {
+      return "interactive";
+    }
+  }
+  return "typed";
 }
 
 function extractSalesSignals(message) {
@@ -153,7 +160,8 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
     }
     claimedId = waMessageId || null;
 
-    const message = messageObj.text?.body;
+    const message = extractInboundUserText(messageObj);
+    const founderSource = detectInboundFounderSource(messageObj);
     const phone = messageObj.from;
 
     if (!message || typeof message !== "string") {
@@ -170,7 +178,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
     await saveMessage(phone, message, "user");
     const owner = await isOwnerNumber(phone);
     if (owner) {
-      const out = await executeCeoCommand({ command: message, phone });
+      const out = await executeCeoCommand({ command: message, phone, source: founderSource });
       await saveMessage(phone, out.response, "bot");
       await sendFounderOutreach(phone, { text: out.response, interactive: out.interactive });
       return res.sendStatus(200);

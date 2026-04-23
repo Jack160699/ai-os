@@ -335,6 +335,32 @@ export function classifyFounderNaturalIntent(messageRaw) {
   return { kind: "unclear", confident: false };
 }
 
+export function isFounderGreeting(messageRaw) {
+  const low = String(messageRaw || "")
+    .trim()
+    .toLowerCase();
+  if (!low) return false;
+  return /^(hi|hello|hey|start|hii|yo)\b/.test(low);
+}
+
+export function buildFounderWelcomeMessage() {
+  const rows = [
+    { id: "morning_brief", title: "Morning brief" },
+    { id: "hot_leads", title: "Hot leads" },
+    { id: "today_stats", title: "Pipeline" },
+    { id: "weekly_optimization_report", title: "Growth plan" },
+  ];
+  const text = ["Ready.", "What do you want to run first?", formatChooseBlockFromRows(rows)]
+    .join("\n")
+    .trim()
+    .slice(0, CEO_MESSAGE_MAX);
+  return {
+    text,
+    interactive: { body: "Pick your first move:", rows },
+    payload: { founder_mode: true, natural_kind: "greeting" },
+  };
+}
+
 function buildClarifyFounderIntentMessage() {
   const rows = [
     { id: "daily_priorities", title: "Daily priorities" },

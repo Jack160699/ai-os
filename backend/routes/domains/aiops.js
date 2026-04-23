@@ -72,8 +72,9 @@ router.post("/ceo/command", async (req, res) => {
     }
   }
   const cmd = String(req.body?.command || "").trim().toLowerCase();
+  const source = String(req.body?.source || "typed").trim().toLowerCase() === "interactive" ? "interactive" : "typed";
   if (!cmd) return res.status(400).json({ ok: false, error: "command required" });
-  const out = await executeCeoCommand({ command: cmd, phone: sourcePhone || null });
+  const out = await executeCeoCommand({ command: cmd, phone: sourcePhone || null, source });
   return res.status(200).json(out);
 });
 

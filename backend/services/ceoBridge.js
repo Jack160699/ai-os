@@ -13,7 +13,9 @@ import { getDashboardCore } from "./dashboardMetrics.js";
 import {
   buildFounderNaturalOperatorMessage,
   buildFounderUnknownHelpMessage,
+  buildFounderWelcomeMessage,
   classifyFounderNaturalIntent,
+  isFounderGreeting,
   buildMorningBriefOperatorMessage,
   renderOperatorCeoMessage,
 } from "./operatorAi.js";
@@ -152,9 +154,14 @@ function waFormatFollowups(rows) {
   ].join("\n");
 }
 
-export async function executeCeoCommand({ command, phone }) {
+function normalizeFounderSource(source) {
+  return source === "interactive" ? "interactive" : "typed";
+}
+
+export async function executeCeoCommand({ command, phone, source }) {
   const raw = String(command || "").trim();
   const intent = detectIntent(raw);
+  const reqSource = normalizeFounderSource(source);
   const settings = await effectiveSettings();
   const allowed = settings.permissions.includes(intent);
   let response = "";
@@ -163,20 +170,28 @@ export async function executeCeoCommand({ command, phone }) {
   let payload = {};
 
   if (intent === "unknown") {
-    const natural = classifyFounderNaturalIntent(raw);
-    if (natural.confident) {
-      const out = await buildFounderNaturalOperatorMessage(natural.kind, raw, phone);
+    if (isFounderGreeting(raw)) {
+      const out = buildFounderWelcomeMessage();
       response = out.text;
       interactive = out.interactive || null;
       payload = out.payload || {};
       status = "ok";
     } else {
-      const out = await buildFounderNaturalOperatorMessage("unclear", raw, phone);
-      response = out.text;
-      interactive = out.interactive || null;
-      const dashboard = await getDashboardCore();
-      payload = { ...dashboard, ...(out.payload || {}), founder_raw: raw.slice(0, 220) };
-      status = "clarify";
+      const natural = classifyFounderNaturalIntent(raw);
+      if (natural.confident) {
+        const out = await buildFounderNaturalOperatorMessage(natural.kind, raw, phone);
+        response = out.text;
+        interactive = out.interactive || null;
+        payload = out.payload || {};
+        status = "ok";
+      } else {
+        const out = await buildFounderNaturalOperatorMessage("unclear", raw, phone);
+        response = out.text;
+        interactive = out.interactive || null;
+        const dashboard = await getDashboardCore();
+        payload = { ...dashboard, ...(out.payload || {}), founder_raw: raw.slice(0, 220) };
+        status = "clarify";
+      }
     }
   } else if (!allowed) {
     response = `Permission denied for command: ${intent}`;
@@ -299,15 +314,43 @@ export async function executeCeoCommand({ command, phone }) {
     recordFounderCommand(phone, memoryIntent, { hotCount });
   }
 
+  const auditPayload = {
+    ...payload,
+    founder_command_meta: {
+      command: raw,
+      source: reqSource,
+      ownerPhone: normPhone(phone) || null,
+      ts: new Date().toISOString(),
+    },
+  };
+
+  // Best-effort analytics/audit event (non-blocking semantics preserved).
+  try {
+    await insertLeadEvent({
+      phone: normPhone(phone) || "system",
+      event_type: "ceo_command_request",
+      event_value: intent,
+      payload: {
+        command: raw,
+        source: reqSource,
+        status,
+        owner_phone: normPhone(phone) || null,
+      },
+      created_at: new Date().toISOString(),
+    });
+  } catch {
+    // Keep CEO command flow resilient if analytics insert fails.
+  }
+
   await logCeoCommand({
     command: raw,
     intent,
     status,
     source_phone: normPhone(phone) || null,
     response_text: response,
-    payload,
+    payload: auditPayload,
     created_at: new Date().toISOString(),
   });
 
-  return { ok: status === "ok", intent, status, response, payload, interactive };
+  return { ok: status === "ok", intent, status, response, payload: auditPayload, interactive, source: reqSource };
 }
