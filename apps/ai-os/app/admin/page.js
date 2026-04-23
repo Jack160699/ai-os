@@ -61,6 +61,40 @@ function mergeRecentTableRows(data) {
   return rows.slice(0, 35);
 }
 
+function toFiniteNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function buildSummary(data) {
+  const raw = data?.summary && typeof data.summary === "object" ? data.summary : {};
+  const recentLeads = Array.isArray(data?.recent_leads) ? data.recent_leads : [];
+  const recentPipeline = Array.isArray(data?.recent_pipeline) ? data.recent_pipeline : [];
+  const paymentEvents = Array.isArray(data?.payment_events_recent) ? data.payment_events_recent : [];
+  const paidFromEvents = paymentEvents.reduce((sum, row) => {
+    const status = String(row?.status || "").toLowerCase();
+    if (!(status.includes("paid") || status.includes("captured"))) return sum;
+    return sum + toFiniteNumber(row?.amount_rupees, 0);
+  }, 0);
+
+  return {
+    ...raw,
+    new_leads: toFiniteNumber(
+      raw?.new_leads ?? raw?.new_leads_today ?? raw?.leads_today,
+      recentLeads.length
+    ),
+    active_leads: toFiniteNumber(
+      raw?.active_leads ?? raw?.pending_replies,
+      recentPipeline.length
+    ),
+    paid_revenue_rupees: toFiniteNumber(
+      raw?.paid_revenue_rupees ?? raw?.revenue_mtd,
+      paidFromEvents
+    ),
+    updated_at: raw?.updated_at || data?.updated_at || new Date().toISOString(),
+  };
+}
+
 export default async function AdminPage() {
   const { authed } = await getAdminAuthState();
 
@@ -100,7 +134,7 @@ export default async function AdminPage() {
     error = e instanceof Error ? e.message : "Failed to load dashboard data";
   }
 
-  const summary = data?.summary || {};
+  const summary = buildSummary(data || {});
   const hotLeads = Array.isArray(data?.hot_leads) ? data.hot_leads : [];
   const recentRows = data ? mergeRecentTableRows(data) : [];
   const paymentEvents = Array.isArray(data?.payment_events_recent) ? data.payment_events_recent : [];

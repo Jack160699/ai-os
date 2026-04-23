@@ -1,6 +1,7 @@
+import { adminApiHeaders, backendBase } from "@/app/admin/_lib/backendFetch";
+
 function backendDashboardUrl() {
-  const base = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
-  return `${base.replace(/\/+$/, "")}/dashboard.json`;
+  return `${backendBase()}/dashboard.json`;
 }
 
 export function getBackendDashboardUrl() {
@@ -9,11 +10,9 @@ export function getBackendDashboardUrl() {
 
 export async function getDashboardData() {
   const url = backendDashboardUrl();
-  const backendPassword =
-    process.env.BACKEND_DASHBOARD_PASSWORD || process.env.DASHBOARD_PASSWORD || "";
   const res = await fetch(url, {
     cache: "no-store",
-    headers: backendPassword ? { "X-Dashboard-Password": backendPassword } : undefined,
+    headers: adminApiHeaders(),
   });
   if (!res.ok) {
     throw new Error(`Dashboard API error (${res.status})`);

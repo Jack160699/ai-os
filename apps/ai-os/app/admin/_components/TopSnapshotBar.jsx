@@ -2,11 +2,11 @@ import { PremiumCounter } from "@/app/admin/_components/PremiumCounter";
 import { SurfaceCard } from "@/app/admin/_components/SurfaceCard";
 
 export function TopSnapshotBar({ summary, syncedAt }) {
-  const todayLeads = Number(summary?.daily_leads ?? 0);
-  const paidToday = Number(summary?.bookings_today ?? 0);
-  const revenueToday = Number(summary?.paid_revenue_rupees ?? 0);
+  const todayLeads = Number(summary?.new_leads ?? summary?.daily_leads ?? summary?.new_leads_today ?? 0);
+  const paidToday = Number(summary?.payments_count_30d ?? summary?.bookings_today ?? 0);
+  const revenueToday = Number(summary?.paid_revenue_rupees ?? summary?.revenue_mtd ?? 0);
   const conversion = Number(summary?.conversion_rate_pct ?? summary?.booking_rate ?? 0);
-  const pendingFollowups = Number(summary?.active_leads ?? 0);
+  const pendingFollowups = Number(summary?.active_leads ?? summary?.pending_replies ?? 0);
   const avgReply = Number(summary?.avg_time_to_reply_min ?? 0);
 
   const cards = [
