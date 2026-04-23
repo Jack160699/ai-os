@@ -8,11 +8,15 @@ import aiopsRoute from "./routes/domains/aiops.js";
 import { ENV, validateStartupConfig } from "./config/env.js";
 import { startFollowupScheduler } from "./services/followupScheduler.js";
 import {
+  fetchMessages,
   fetchLeads,
+  fetchLeadMemoryRows,
   fetchPaymentEvents,
   fetchPaymentLinks,
   fetchSalesPipeline,
+  fetchRecentMessages,
 } from "./services/supabase.js";
+import { sendWhatsApp } from "./services/whatsapp.js";
 import { log } from "./utils/logger.js";
 
 dotenv.config();
@@ -73,7 +77,8 @@ function assertDashboardAccess(req, res) {
 app.get("/dashboard.json", async (req, res) => {
   if (!assertDashboardAccess(req, res)) return;
   try {
-    const [leads, pipeline, paymentLinks, paymentEvents] = await Promise.all([
+    const [leadMemory, leads, pipeline, paymentLinks, paymentEvents] = await Promise.all([
+      fetchLeadMemoryRows(500),
       fetchLeads(250),
       fetchSalesPipeline(250),
       fetchPaymentLinks(250),
@@ -83,30 +88,31 @@ app.get("/dashboard.json", async (req, res) => {
     const nowIso = new Date().toISOString();
     const todayUtc = nowIso.slice(0, 10);
 
-    const recentLeads = (Array.isArray(leads) ? leads : [])
+    const memoryRows = Array.isArray(leadMemory) ? leadMemory : [];
+    const recentLeads = memoryRows
       .map((row) => ({
         phone: row.phone || "-",
         business_type: row.business_type || row.service_interest || "-",
-        pain_point: row.notes || row.memory_summary || row.status || "-",
-        intent: row.intent || "-",
-        intent_score: row.ai_score ?? row.intent_score ?? "-",
-        urgency: row.priority || "-",
-        summary: row.memory_summary || row.notes || row.status || "-",
+        pain_point: row.last_summary || row.stage || "-",
+        intent: row.buyer_type || "-",
+        intent_score: row.intent_score ?? "-",
+        urgency: row.next_followup_at ? "scheduled" : "-",
+        summary: row.last_summary || row.stage || "-",
         timestamp_utc: row.updated_at || row.created_at || nowIso,
       }))
       .sort((a, b) => parseIso(b.timestamp_utc) - parseIso(a.timestamp_utc))
       .slice(0, 35);
 
-    const recentPipeline = (Array.isArray(pipeline) ? pipeline : [])
+    const recentPipeline = (memoryRows.length ? memoryRows : (Array.isArray(pipeline) ? pipeline : []))
       .map((row) => ({
         phone: row.phone || "-",
         business_type: row.business_type || row.service_interest || "-",
-        pain_point: row.pain_point || row.notes || "-",
-        intent: row.intent || "-",
-        intent_score: row.intent_score ?? row.score ?? "-",
-        urgency: row.urgency || "-",
-        summary: row.summary || row.notes || row.stage || "-",
-        followup_stage: row.followup_stage ?? row.stage_order ?? "-",
+        pain_point: row.pain_point || row.last_summary || row.notes || "-",
+        intent: row.intent || row.buyer_type || "-",
+        intent_score: row.intent_score ?? row.score ?? row.ai_score ?? "-",
+        urgency: row.urgency || (row.next_followup_at ? "scheduled" : "-"),
+        summary: row.summary || row.last_summary || row.notes || row.stage || "-",
+        followup_stage: row.followup_stage ?? row.stage_order ?? row.stage ?? "-",
         status: row.stage || row.status || "active",
         last_reply_time: row.last_contacted_at || row.updated_at || row.created_at || nowIso,
         growth_score: row.intent_score ?? row.score ?? null,
@@ -117,7 +123,7 @@ app.get("/dashboard.json", async (req, res) => {
       .sort((a, b) => parseIso(b.last_reply_time) - parseIso(a.last_reply_time))
       .slice(0, 35);
 
-    const hotLeads = (Array.isArray(leads) ? leads : [])
+    const hotLeads = (memoryRows.length ? memoryRows : (Array.isArray(leads) ? leads : []))
       .filter((row) => {
         const isHot = String(row.temperature || "").toLowerCase() === "hot";
         const score = Number(row.ai_score ?? row.intent_score ?? 0);
@@ -150,8 +156,9 @@ app.get("/dashboard.json", async (req, res) => {
         ? sum + Number(row.amount_paise || 0) / 100
         : sum;
     }, 0);
-    const newLeadsToday = (Array.isArray(leads) ? leads : []).filter((row) =>
-      String(row.created_at || "").startsWith(todayUtc)
+    const leadSourceRows = memoryRows.length ? memoryRows : (Array.isArray(leads) ? leads : []);
+    const newLeadsToday = leadSourceRows.filter((row) =>
+      String(row.created_at || row.updated_at || "").startsWith(todayUtc)
     ).length;
     const activeLeads = recentPipeline.filter((row) => {
       const s = String(row.status || "").toLowerCase();
@@ -159,7 +166,7 @@ app.get("/dashboard.json", async (req, res) => {
     }).length;
 
     log.info("dashboard.json served", {
-      leads: recentLeads.length,
+      leads: leadSourceRows.length,
       pipeline: recentPipeline.length,
       payments: paymentEventsRecent.length,
     });
@@ -180,6 +187,114 @@ app.get("/dashboard.json", async (req, res) => {
   } catch (err) {
     log.error("dashboard.json failed", { err: err?.message || String(err) });
     return res.status(500).json({ ok: false, error: "dashboard_failed" });
+  }
+});
+
+app.get("/api/chats", async (req, res) => {
+  if (!assertDashboardAccess(req, res)) return;
+  try {
+    const q = String(req.query.q || "").trim().toLowerCase();
+    const temperature = String(req.query.temperature || "all").toLowerCase();
+    const unreadOnly = String(req.query.unread_only || "") === "1";
+    const [messages, memoryRows] = await Promise.all([fetchMessages(2500), fetchLeadMemoryRows(800)]);
+    const memByPhone = new Map((Array.isArray(memoryRows) ? memoryRows : []).map((r) => [String(r.phone || ""), r]));
+    const byPhone = new Map();
+    for (const row of Array.isArray(messages) ? messages : []) {
+      const phone = String(row.phone || "").replace(/\D/g, "");
+      if (!phone) continue;
+      if (!byPhone.has(phone)) byPhone.set(phone, []);
+      byPhone.get(phone).push(row);
+    }
+    let conversations = Array.from(byPhone.entries()).map(([phone, rows]) => {
+      const latest = rows[0] || {};
+      const mem = memByPhone.get(phone) || {};
+      const inferredTemp = Number(mem.intent_score || 0) >= 70 ? "hot" : Number(mem.intent_score || 0) >= 35 ? "warm" : "cold";
+      const unread = rows.filter((m) => String(m.sender || "").toLowerCase() === "user").length > 0 ? 1 : 0;
+      return {
+        phone,
+        name: mem.name || mem.profile_name || "Lead",
+        temperature: String(mem.temperature || inferredTemp || "warm").toLowerCase(),
+        unread,
+        last_message: latest.text || "",
+        last_time: latest.created_at || new Date().toISOString(),
+      };
+    });
+    if (q) {
+      conversations = conversations.filter((c) =>
+        String(c.phone).includes(q) || String(c.name || "").toLowerCase().includes(q) || String(c.last_message || "").toLowerCase().includes(q)
+      );
+    }
+    if (temperature && temperature !== "all") {
+      conversations = conversations.filter((c) => String(c.temperature || "").toLowerCase() === temperature);
+    }
+    if (unreadOnly) {
+      conversations = conversations.filter((c) => Number(c.unread || 0) > 0);
+    }
+    conversations.sort((a, b) => parseIso(b.last_time) - parseIso(a.last_time));
+    log.info("api.chats served", { count: conversations.length });
+    return res.status(200).json({ conversations, updated_at: new Date().toISOString() });
+  } catch (err) {
+    log.error("api.chats failed", { err: err?.message || String(err) });
+    return res.status(500).json({ error: "inbox_failed" });
+  }
+});
+
+app.get("/inbox/lead/:phone", async (req, res) => {
+  if (!assertDashboardAccess(req, res)) return;
+  const phone = String(req.params.phone || "").replace(/\D/g, "");
+  if (!phone) return res.status(400).json({ error: "invalid_phone" });
+  try {
+    const [memRows, transcriptRows] = await Promise.all([
+      fetchLeadMemoryRows(1000),
+      fetchRecentMessages(phone, 200),
+    ]);
+    const state = (Array.isArray(memRows) ? memRows : []).find((r) => String(r.phone || "").replace(/\D/g, "") === phone) || {};
+    const transcript = (Array.isArray(transcriptRows) ? transcriptRows : []).map((row) => ({
+      role: String(row.sender || "").toLowerCase() === "user" ? "user" : "assistant",
+      text: row.text || "",
+      timestamp_utc: row.created_at || new Date().toISOString(),
+    }));
+    return res.status(200).json({
+      phone,
+      state: {
+        profile_name: state.name || "Lead",
+        tags: Array.isArray(state.tags) ? state.tags : [],
+      },
+      transcript,
+      suggestions: [],
+    });
+  } catch (err) {
+    log.error("inbox.lead failed", { err: err?.message || String(err), phone });
+    return res.status(500).json({ error: "inbox_lead_failed" });
+  }
+});
+
+app.post("/inbox/mark-read", async (req, res) => {
+  if (!assertDashboardAccess(req, res)) return;
+  return res.status(200).json({ ok: true });
+});
+
+app.post("/inbox/suggest", async (req, res) => {
+  if (!assertDashboardAccess(req, res)) return;
+  return res.status(200).json({ suggestions: [] });
+});
+
+app.post("/inbox/action", async (req, res) => {
+  if (!assertDashboardAccess(req, res)) return;
+  return res.status(200).json({ ok: true });
+});
+
+app.post("/inbox/reply", async (req, res) => {
+  if (!assertDashboardAccess(req, res)) return;
+  const phone = String(req.body?.phone || "").replace(/\D/g, "");
+  const text = String(req.body?.text || "").trim();
+  if (!phone || !text) return res.status(400).json({ ok: false, error: "invalid_payload" });
+  try {
+    const ok = await sendWhatsApp(phone, text);
+    return res.status(ok ? 200 : 502).json({ ok });
+  } catch (err) {
+    log.error("inbox.reply failed", { err: err?.message || String(err), phone });
+    return res.status(500).json({ ok: false, error: "reply_failed" });
   }
 });
 

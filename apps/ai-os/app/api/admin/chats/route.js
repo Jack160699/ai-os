@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { assertAdminRequest } from "@/app/admin/_lib/adminApiGate";
 import { adminApiHeaders } from "@/app/admin/_lib/backendFetch";
-import { flaskBotBase } from "@/app/admin/_lib/flaskBotBase";
+import { backendBase } from "@/app/admin/_lib/backendFetch";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ export async function GET(request) {
   const temperature = searchParams.get("temperature") || "all";
   const unreadOnly = searchParams.get("unread_only") || "";
 
-  const url = new URL(`${flaskBotBase()}/api/chats`);
+  const url = new URL(`${backendBase()}/api/chats`);
   if (q) url.searchParams.set("q", q);
   if (temperature) url.searchParams.set("temperature", temperature);
   if (unreadOnly) url.searchParams.set("unread_only", unreadOnly);

@@ -158,6 +158,23 @@ function pickLeadMemoryPatch(data = {}) {
   return out;
 }
 
+export async function fetchMessages(limit = 1000) {
+  if (!supabase) return [];
+  const n = Math.min(5000, Math.max(1, Number.parseInt(String(limit), 10) || 1000));
+  try {
+    const { data, error } = await supabase
+      .from("messages")
+      .select("phone,text,sender,created_at,id")
+      .order(messagesOrderColumn, { ascending: false, nullsFirst: false })
+      .limit(n);
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    log.warn("Supabase fetchMessages failed", { err: err?.message || String(err) });
+    return [];
+  }
+}
+
 /**
  * Phase A: structured profile row in `lead_memory` (keyed by WhatsApp phone).
  */
@@ -500,6 +517,23 @@ export async function fetchLeadMemoryOperatorSnapshot(limit = 400) {
     return Array.isArray(data) ? data : [];
   } catch (err) {
     log.warn("fetchLeadMemoryOperatorSnapshot failed", { err: err?.message || String(err) });
+    return [];
+  }
+}
+
+export async function fetchLeadMemoryRows(limit = 400) {
+  if (!supabase) return [];
+  const n = Math.min(2000, Math.max(20, Number.parseInt(String(limit), 10) || 400));
+  try {
+    const { data, error } = await supabase
+      .from("lead_memory")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(n);
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    log.warn("fetchLeadMemoryRows failed", { err: err?.message || String(err) });
     return [];
   }
 }

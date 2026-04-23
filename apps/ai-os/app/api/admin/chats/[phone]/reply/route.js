@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { assertAdminRequest } from "@/app/admin/_lib/adminApiGate";
 import { adminApiHeaders } from "@/app/admin/_lib/backendFetch";
-import { flaskBotBase } from "@/app/admin/_lib/flaskBotBase";
+import { backendBase } from "@/app/admin/_lib/backendFetch";
 
 export async function POST(request, { params }) {
   const denied = assertAdminRequest(request);
@@ -21,7 +21,7 @@ export async function POST(request, { params }) {
   }
   const text = typeof body?.text === "string" ? body.text : "";
 
-  const res = await fetch(`${flaskBotBase()}/inbox/reply`, {
+  const res = await fetch(`${backendBase()}/inbox/reply`, {
     method: "POST",
     headers: adminApiHeaders(),
     body: JSON.stringify({ phone: digits, text }),

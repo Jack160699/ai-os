@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { assertAdminRequest } from "@/app/admin/_lib/adminApiGate";
 import { adminApiHeaders } from "@/app/admin/_lib/backendFetch";
-import { flaskBotBase } from "@/app/admin/_lib/flaskBotBase";
+import { backendBase } from "@/app/admin/_lib/backendFetch";
 
 export async function POST(request, { params }) {
   const denied = assertAdminRequest(request);
@@ -20,7 +20,7 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const res = await fetch(`${flaskBotBase()}/inbox/action`, {
+  const res = await fetch(`${backendBase()}/inbox/action`, {
     method: "POST",
     headers: adminApiHeaders(),
     body: JSON.stringify({
