@@ -943,6 +943,9 @@ Quality challenge detected.
 Do not explain previous output.
 Immediately rewrite with stronger, sharper output in same reply.
 No apology. No justification.
+Output order rule:
+1) First line = improved output
+2) Second line = brief explanation only if needed
 `
     : "";
   const strategyDecisionBlock = isStrategyAsk
