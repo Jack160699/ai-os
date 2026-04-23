@@ -9,15 +9,12 @@ import {
   saveCeoSettings,
   updateLead,
 } from "./supabase.js";
-import { getDashboardCore } from "./dashboardMetrics.js";
 import {
-  buildFounderNaturalOperatorMessage,
-  buildFounderUnknownHelpMessage,
   buildFounderWelcomeMessage,
-  classifyFounderNaturalIntent,
   isFounderGreeting,
   buildMorningBriefOperatorMessage,
   renderOperatorCeoMessage,
+  runFounderDecisionEngineV2,
 } from "./operatorAi.js";
 import {
   buildDraftsConfirmNoMessage,
@@ -177,21 +174,11 @@ export async function executeCeoCommand({ command, phone, source }) {
       payload = out.payload || {};
       status = "ok";
     } else {
-      const natural = classifyFounderNaturalIntent(raw);
-      if (natural.confident) {
-        const out = await buildFounderNaturalOperatorMessage(natural.kind, raw, phone);
-        response = out.text;
-        interactive = out.interactive || null;
-        payload = out.payload || {};
-        status = "ok";
-      } else {
-        const out = await buildFounderNaturalOperatorMessage("unclear", raw, phone);
-        response = out.text;
-        interactive = out.interactive || null;
-        const dashboard = await getDashboardCore();
-        payload = { ...dashboard, ...(out.payload || {}), founder_raw: raw.slice(0, 220) };
-        status = "clarify";
-      }
+      const out = await runFounderDecisionEngineV2({ ownerPhone: phone, message: raw, source: reqSource });
+      response = out.text;
+      interactive = out.interactive || null;
+      payload = out.payload || {};
+      status = payload?.natural_kind === "unclear" ? "clarify" : "ok";
     }
   } else if (!allowed) {
     response = `Permission denied for command: ${intent}`;
@@ -338,6 +325,22 @@ export async function executeCeoCommand({ command, phone, source }) {
       },
       created_at: new Date().toISOString(),
     });
+    if (auditPayload?.business_brain_v1?.decision?.action) {
+      await insertLeadEvent({
+        phone: normPhone(phone) || "system",
+        event_type: "founder_brain_suggestion",
+        event_value: String(auditPayload.business_brain_v1.decision.action).slice(0, 180),
+        payload: {
+          intent,
+          source: reqSource,
+          suggested_action: auditPayload.business_brain_v1.decision.action,
+          reasoning: auditPayload.business_brain_v1.decision.reasoning,
+          confidence: auditPayload.business_brain_v1.decision.confidence,
+          founder_response: raw.slice(0, 220),
+        },
+        created_at: new Date().toISOString(),
+      });
+    }
   } catch {
     // Keep CEO command flow resilient if analytics insert fails.
   }

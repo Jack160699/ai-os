@@ -15,6 +15,7 @@ export const PHASE_D_EVENT_TYPES = new Set([
   "payment_intent",
   "closed_won",
   "closed_lost",
+  "founder_decision_action",
 ]);
 
 function enabled() {
@@ -86,4 +87,25 @@ export async function trackPhaseDAnalytics({ phone, event_type, meta = {} }) {
   } catch (err) {
     log.warn("trackPhaseDAnalytics failed", { err: err?.message || String(err), event_type });
   }
+}
+
+export async function trackFounderDecisionAction({ phone, reflection }) {
+  if (!enabled()) return;
+  const r = reflection || {};
+  return trackPhaseDAnalytics({
+    phone,
+    event_type: "founder_decision_action",
+    meta: {
+      headline: String(r.problem_detected || "founder_decision_action"),
+      source: r.source || "typed",
+      extra: {
+        problem_detected: r.problem_detected || null,
+        secondary_problem: r.secondary_problem || null,
+        action_suggested: r.action_suggested || null,
+        backup_action: r.backup_action || null,
+        certainty: r.certainty ?? null,
+        founder_message: r.founder_message || null,
+      },
+    },
+  });
 }

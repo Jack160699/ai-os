@@ -221,3 +221,27 @@ export async function refreshLeadMemoryAfterAiTurn(phone) {
     }
   }
 }
+
+/**
+ * Founder decision reflection snapshot for operator loop tuning.
+ * V1 persistence: append concise action/problem trace into lead_memory.last_summary.
+ */
+export async function storeFounderDecisionReflection({ phone, reflection }) {
+  if (!phone || !reflection) return;
+  try {
+    const prev = await getLeadMemory(phone);
+    const oldSummary = String(prev?.last_summary || "").trim();
+    const nextLine = [
+      `Decision: ${String(reflection.problem_detected || "unknown")}`,
+      `Action: ${String(reflection.action_suggested || "n/a")}`,
+      `Certainty: ${reflection.certainty ?? "n/a"}`,
+    ].join(" | ");
+    const nextSummary = [oldSummary, nextLine].filter(Boolean).join(" || ").slice(-1800);
+    await upsertLeadMemory(phone, {
+      last_summary: nextSummary,
+      last_contacted_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    log.warn("storeFounderDecisionReflection failed", { err: err?.message || String(err), phone });
+  }
+}

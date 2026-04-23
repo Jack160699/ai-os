@@ -3,13 +3,29 @@
  */
 
 import { getDashboardCore } from "./dashboardMetrics.js";
-import { fetchLeadMemoryOperatorSnapshot, fetchLeads, fetchRevenueMetrics } from "./supabase.js";
+import {
+  fetchLeadEventsSince,
+  fetchLeadMemoryOperatorSnapshot,
+  fetchLeads,
+  fetchRecentMessages,
+  fetchRevenueMetrics,
+  getLeadMemory,
+} from "./supabase.js";
 import { loadWeeklyOptimizationAnalysis } from "./phaseDOptimizer.js";
 import {
   buildSalesExecutionActionBlock,
   cacheOwnerExecutionDrafts,
 } from "./salesExecutionEngine.js";
 import { getFounderPersonalizationLines } from "./founderOperatorMemory.js";
+import {
+  analyzeSituation,
+  diagnoseRootProblem,
+  findOpportunities,
+  generateFounderReply,
+  scoreActions,
+  selectBestMove,
+  storeDecisionReflection,
+} from "./decisionEngineV2.js";
 
 const MENU_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣"];
 const CEO_MESSAGE_MAX = 3900;
@@ -359,6 +375,326 @@ export function buildFounderWelcomeMessage() {
     interactive: { body: "Pick your first move:", rows },
     payload: { founder_mode: true, natural_kind: "greeting" },
   };
+}
+
+function normPhone(v) {
+  return String(v || "").replace(/\D/g, "");
+}
+
+function detectFounderLanguageMode(message, recent = []) {
+  const all = [message, ...recent.map((r) => r.text || "")].join(" ").toLowerCase();
+  const hinglishHits = (all.match(/\b(kya|karu|nahi|raha|bhai|toh|tera|mere|chahiye|kaise|bhejo|ping)\b/g) || []).length;
+  return hinglishHits >= 2 ? "hinglish" : "english";
+}
+
+function detectEmotionTone(message) {
+  const low = String(message || "").toLowerCase();
+  if (/\b(urgent|asap|abhi|jaldi|today)\b/.test(low)) return "urgency";
+  if (/\b(nahi ho raha|stuck|frustrat|pareshan|problem|issue)\b/.test(low)) return "frustration";
+  if (/\b(kya|kaise|samajh|confus|not sure)\b/.test(low)) return "confusion";
+  return "neutral";
+}
+
+function specificityLevel(message) {
+  const m = String(message || "").trim();
+  if (m.length >= 80) return "high";
+  if (m.length >= 30) return "medium";
+  return "low";
+}
+
+async function loadFounderRecentEvents(ownerPhone, days = 10) {
+  const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+  const rows = await fetchLeadEventsSince(since, 1200);
+  const owner = normPhone(ownerPhone);
+  return (rows || []).filter((r) => {
+    const p = normPhone(r?.phone);
+    const op = normPhone(r?.payload?.owner_phone || r?.payload?.ownerPhone);
+    return (owner && p === owner) || (owner && op === owner);
+  });
+}
+
+function inferFounderPreferences(recentRows, leadMemory) {
+  const lang = detectFounderLanguageMode(recentRows[recentRows.length - 1]?.text || "", recentRows);
+  const summaries = (recentRows || []).map((r) => String(r.text || "").toLowerCase()).join(" ");
+  const focus =
+    /\b(lead|growth|outreach|pipeline)\b/.test(summaries)
+      ? "leads"
+      : /\b(close|deal|follow[- ]?up|ghost)\b/.test(summaries)
+        ? "closing"
+        : /\b(ads|campaign|meta|google)\b/.test(summaries)
+          ? "ads"
+          : "mixed";
+  return {
+    tone: lang === "hinglish" ? "direct_hinglish" : "direct_english",
+    language: lang,
+    recent_focus: focus,
+    repeated_problems: String(leadMemory?.last_summary || ""),
+  };
+}
+
+function analyzeBusinessStateFromData({ crm, lmRows }) {
+  const total = Number(crm?.total_leads || 0);
+  const hot = Number(crm?.hot_leads || 0);
+  const qualified = Number(crm?.qualified_leads || 0);
+  const won = Number(crm?.won_leads || 0);
+  const lowContact = (lmRows || []).filter((x) => {
+    const ts = x?.last_contacted_at ? Date.parse(String(x.last_contacted_at)) : NaN;
+    return !Number.isFinite(ts) || Date.now() - ts > 48 * 3600000;
+  }).length;
+
+  let mainProblem = "mixed";
+  let urgency = "medium";
+  let leverage = "tighten daily operator cadence";
+
+  if (total < 8) {
+    mainProblem = "top funnel weak";
+    urgency = "high";
+    leverage = "consistent outreach volume";
+  } else if (qualified > 0 && hot <= Math.max(1, Math.floor(qualified * 0.2))) {
+    mainProblem = "mid funnel weak";
+    urgency = "high";
+    leverage = "faster follow-up + objection handling";
+  } else if (hot >= 2 && won === 0) {
+    mainProblem = "bottom funnel weak";
+    urgency = "high";
+    leverage = "close loop on hot threads";
+  } else if (lowContact >= 4) {
+    mainProblem = "activity low";
+    urgency = "medium";
+    leverage = "reactivate stale threads";
+  }
+
+  return {
+    main_problem: mainProblem,
+    urgency_level: urgency,
+    leverage_point: leverage,
+    snapshots: { total, hot, qualified, won, low_contact_threads: lowContact },
+  };
+}
+
+export async function buildFounderBrainContext(ownerPhone, userMessage) {
+  const phone = normPhone(ownerPhone);
+  const [recentMessages, leadMemory, founderEvents, dashboard, leads, lmRows, revenue] = await Promise.all([
+    fetchRecentMessages(phone, 10),
+    getLeadMemory(phone),
+    loadFounderRecentEvents(phone, 14),
+    getDashboardCore(),
+    fetchLeads(120),
+    fetchLeadMemoryOperatorSnapshot(220),
+    fetchRevenueMetrics(),
+  ]);
+
+  const crmState = {
+    total_leads: Number(dashboard?.funnel?.total_leads || 0),
+    qualified_leads: Number(dashboard?.funnel?.qualified_leads || 0),
+    won_leads: Number(dashboard?.funnel?.won_leads || 0),
+    hot_leads: (leads || []).filter((l) => String(l.temperature || "").toLowerCase() === "hot").length,
+    paid_count: Number(revenue?.paid_count || 0),
+    paid_amount_rupees: Number(revenue?.paid_amount_rupees || 0),
+  };
+
+  const preferences = inferFounderPreferences(recentMessages, leadMemory);
+  return {
+    user_message: String(userMessage || "").trim(),
+    recent_messages: recentMessages || [],
+    lead_memory: leadMemory || null,
+    founder_events: founderEvents || [],
+    crm_state: crmState,
+    lead_memory_snapshot: lmRows || [],
+    preferences,
+    goals: ["increase qualified leads", "improve close rate", "maintain daily execution"],
+  };
+}
+
+export function understandFounderProblem(message, context) {
+  const cls = classifyFounderNaturalIntent(message);
+  const tone = detectEmotionTone(message);
+  const spec = specificityLevel(message);
+  return {
+    intent: cls.confident ? cls.kind : "unclear",
+    emotional_tone: tone,
+    specificity_level: spec,
+    confident: cls.confident,
+    language: context?.preferences?.language || "english",
+  };
+}
+
+export function bestNextAction(context, analysis, understanding) {
+  const low = String(context?.user_message || "").toLowerCase();
+  const problem = analysis.main_problem;
+  const lang = understanding.language;
+
+  if (understanding.intent === "draft message") {
+    return {
+      action: lang === "hinglish" ? "Lead context do, main exact reply draft karta hu." : "Share lead context; I will draft the exact reply.",
+      reasoning: "Message drafting ask is explicit.",
+      confidence: 0.93,
+    };
+  }
+
+  if (understanding.intent === "growth advice" || /\blead\b/.test(low)) {
+    if (problem === "activity low" || problem === "top funnel weak") {
+      return {
+        action:
+          lang === "hinglish"
+            ? "Aaj 10-15 targeted outreach messages bhejo, fir 2 ghante me follow-up ping karo."
+            : "Send 10-15 targeted outreach messages today, then follow up in 2 hours.",
+        reasoning: "Fastest ROI is increasing outbound volume before paid spend.",
+        confidence: 0.89,
+      };
+    }
+  }
+
+  if (understanding.intent === "close leads" || understanding.intent === "revenue help") {
+    return {
+      action:
+        lang === "hinglish"
+          ? "Top 3 hot threads uthao: objection clear karo, deadline do, aur payment step close karo."
+          : "Take top 3 hot threads: clear objection, set deadline, and close payment step.",
+      reasoning: "Bottom-funnel execution has highest immediate revenue impact.",
+      confidence: 0.87,
+    };
+  }
+
+  if (understanding.intent === "daily priorities") {
+    return {
+      action:
+        lang === "hinglish"
+          ? "Aaj ka stack: 10 new outreach + 2 hot follow-ups + 1 payment nudge."
+          : "Today stack: 10 new outreach + 2 hot follow-ups + 1 payment nudge.",
+      reasoning: "Balanced operator cadence improves top and bottom funnel together.",
+      confidence: 0.84,
+    };
+  }
+
+  if (understanding.intent === "diagnose problem" || understanding.intent === "custom strategy") {
+    const step =
+      problem === "mid funnel weak"
+        ? lang === "hinglish"
+          ? "follow-up gap aur trust objection"
+          : "follow-up gap and trust objection"
+        : problem === "bottom funnel weak"
+          ? lang === "hinglish"
+            ? "closing script aur pricing clarity"
+            : "closing script and pricing clarity"
+          : lang === "hinglish"
+            ? "outreach consistency"
+            : "outreach consistency";
+    return {
+      action:
+        lang === "hinglish"
+          ? `Pehle ${step} diagnose karo, fir next 24h ka fix run karo.`
+          : `Diagnose ${step} first, then run a 24h correction sprint.`,
+      reasoning: "Root-cause first avoids generic advice loops.",
+      confidence: 0.8,
+    };
+  }
+
+  return {
+    action:
+      lang === "hinglish"
+        ? "Clarity ke liye batao: leads, closing, revenue ya draft me se kya solve karna hai?"
+        : "For clarity, tell me if we should solve leads, closing, revenue, or drafting first.",
+    reasoning: "Intent is unclear.",
+    confidence: 0.45,
+  };
+}
+
+function buildReasonedReply({ context, analysis, understanding, decision }) {
+  const hi = understanding.language === "hinglish";
+  if (understanding.intent === "unclear") {
+    const text = hi
+      ? "Quick clarify: leads, closing, revenue ya draft — abhi kis pe focus kare?"
+      : "Quick clarify: should we focus on leads, closing, revenue, or drafting right now?";
+    return { text, needs_options: true };
+  }
+
+  const intro = hi
+    ? `Problem clear hai — ${analysis.main_problem}.`
+    : `The issue is clear — ${analysis.main_problem}.`;
+  const reason = hi
+    ? `Reason: ${decision.reasoning}`
+    : `Reason: ${decision.reasoning}`;
+  const action = hi ? `Aaj ka next move:\n→ ${decision.action}` : `Next move:\n→ ${decision.action}`;
+  const close =
+    hi && understanding.intent !== "draft message"
+      ? "Chahe to main exact script bhi de dunga."
+      : !hi && understanding.intent !== "draft message"
+        ? "If you want, I can draft the exact script as well."
+        : "";
+  return {
+    text: [intro, "", reason, "", action, close].filter(Boolean).join("\n").slice(0, CEO_MESSAGE_MAX),
+    needs_options: false,
+  };
+}
+
+export async function runFounderDecisionEngineV2({ ownerPhone, message, source }) {
+  const intent = classifyFounderNaturalIntent(message);
+  const situation = await analyzeSituation({ ownerPhone, message });
+  const diagnosis = diagnoseRootProblem(situation, intent.kind || "unclear");
+  const opportunities = findOpportunities(situation);
+  const scoredActions = scoreActions({
+    situation: {
+      ...situation,
+      urgency_level: diagnosis.certainty > 0.75 ? "high" : diagnosis.certainty > 0.55 ? "medium" : "low",
+    },
+    diagnosis,
+    intent: intent.kind || "unclear",
+    opportunities,
+  });
+  const selection = selectBestMove({ scoredActions });
+  const text = generateFounderReply({
+    message,
+    intent: intent.kind || "unclear",
+    situation,
+    diagnosis,
+    selection,
+  });
+
+  await storeDecisionReflection({
+    ownerPhone,
+    message,
+    intent: intent.kind || "unclear",
+    diagnosis,
+    selection,
+    source,
+  });
+
+  const interactive =
+    intent.kind === "unclear"
+      ? {
+          body: text.slice(0, INTERACTIVE_BODY_MAX),
+          rows: [
+            { id: "daily_priorities", title: "Daily priorities" },
+            { id: "growth_advice", title: "Growth problem" },
+            { id: "close_leads", title: "Closing problem" },
+            { id: "revenue_help", title: "Revenue concern" },
+          ],
+        }
+      : null;
+
+  return {
+    text: String(text || "").slice(0, CEO_MESSAGE_MAX),
+    interactive,
+    payload: {
+      founder_mode: true,
+      natural_kind: intent.kind || "unclear",
+      decision_engine_v2: {
+        situation,
+        diagnosis,
+        opportunities,
+        scored_actions: scoredActions,
+        best_move: selection.best_move || null,
+        backup_move: selection.backup_move || null,
+        source: source === "interactive" ? "interactive" : "typed",
+      },
+    },
+  };
+}
+
+// Backward-compatible alias for older ceoBridge wiring.
+export async function runFounderBusinessBrainV1(input) {
+  return runFounderDecisionEngineV2(input);
 }
 
 function buildClarifyFounderIntentMessage() {
