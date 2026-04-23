@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const COMMAND_OPTIONS = [
+  "morning brief",
   "today stats",
   "hot leads",
   "revenue",
@@ -15,6 +16,10 @@ const COMMAND_OPTIONS = [
   "assign lead",
   "start ads",
   "weekly optimization report",
+  "drafts preview",
+  "drafts send all",
+  "drafts yes",
+  "drafts no",
 ];
 
 export default async function SettingsPage() {

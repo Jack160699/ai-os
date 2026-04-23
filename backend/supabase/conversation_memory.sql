@@ -172,7 +172,7 @@ insert into public.ceo_bridge_settings (id, owner_numbers, permissions)
 values (
   'default',
   '{}',
-  '{"today stats","hot leads","revenue","pending followups","create task","assign lead","start ads","weekly optimization report"}'
+  '{"today stats","hot leads","revenue","pending followups","create task","assign lead","start ads","weekly optimization report","morning brief","drafts send all","drafts yes","drafts no","drafts preview"}'
 )
 on conflict (id) do nothing;
 

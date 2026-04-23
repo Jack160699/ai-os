@@ -166,7 +166,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       return res.sendStatus(200);
     }
     if (
-      /^(today stats|hot leads|revenue|pending followups|create task|assign lead|start ads)\b/i.test(
+      /^(today stats|hot leads|revenue|pending followups|create task|assign lead|start ads|weekly optimization report|morning brief|drafts\b)/i.test(
         message.trim()
       )
     ) {

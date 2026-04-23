@@ -1,8 +1,6 @@
 import { ENV } from "../config/env.js";
 import {
   dueFollowups,
-  fetchFunnelMetrics,
-  fetchLeads,
   fetchRevenueMetrics,
   insertLeadEvent,
   listCeoCommandLogs,
@@ -12,7 +10,17 @@ import {
   updateLead,
 } from "./supabase.js";
 import { getDashboardCore } from "./dashboardMetrics.js";
-import { buildWeeklyOptimizationReportForFounder } from "./phaseDOptimizer.js";
+import {
+  buildMorningBriefOperatorMessage,
+  renderOperatorCeoMessage,
+} from "./operatorAi.js";
+import {
+  buildDraftsConfirmNoMessage,
+  buildDraftsConfirmYesMessage,
+  buildDraftsPreviewMessage,
+  buildDraftsSendAllGateMessage,
+  clearOwnerExecutionDrafts,
+} from "./salesExecutionEngine.js";
 
 function normPhone(v) {
   return String(v || "").replace(/\D/g, "");
@@ -37,6 +45,11 @@ function envPermissions() {
       "assign lead",
       "start ads",
       "weekly optimization report",
+      "morning brief",
+      "drafts send all",
+      "drafts yes",
+      "drafts no",
+      "drafts preview",
     ];
   }
   return raw.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
@@ -79,6 +92,14 @@ export async function isOwnerNumber(phone) {
 function detectIntent(commandRaw) {
   const cmd = String(commandRaw || "").trim().toLowerCase();
   if (!cmd) return "unknown";
+  if (cmd.includes("morning brief") || /^morning\s+brief\b/.test(cmd)) return "morning brief";
+  if (/^drafts\s+yes\b/i.test(cmd) || cmd === "yes send drafts") return "drafts yes";
+  if (/^drafts\s+no\b/i.test(cmd) || cmd === "no send drafts") return "drafts no";
+  if (cmd.includes("drafts send all") || /\bsend all drafts\b/.test(cmd)) return "drafts send all";
+  if (/^drafts\s+preview\b/i.test(cmd)) return "drafts preview";
+  if (cmd.includes("weekly optimization report") || (cmd.includes("weekly") && cmd.includes("optimization"))) {
+    return "weekly optimization report";
+  }
   if (cmd.includes("today")) return "today stats";
   if (cmd.includes("hot")) return "hot leads";
   if (cmd.includes("revenue")) return "revenue";
@@ -86,9 +107,6 @@ function detectIntent(commandRaw) {
   if (cmd.includes("create task") || cmd.startsWith("task ")) return "create task";
   if (cmd.includes("assign lead") || cmd.includes("assign")) return "assign lead";
   if (cmd.includes("start ads") || cmd.includes("ads start")) return "start ads";
-  if (cmd.includes("weekly optimization report") || (cmd.includes("weekly") && cmd.includes("optimization"))) {
-    return "weekly optimization report";
-  }
   return "unknown";
 }
 
@@ -105,26 +123,6 @@ function extractAssignee(text) {
 function formatList(items, empty = "None") {
   if (!items.length) return empty;
   return items.map((x) => `- ${x}`).join("\n");
-}
-
-function waFormatToday(stats) {
-  return [
-    "Today's Stats",
-    `Total leads: ${stats.total_leads}`,
-    `Qualified: ${stats.qualified}`,
-    `Won: ${stats.won}`,
-    `Conversion: ${stats.conversion_rate_pct}%`,
-  ].join("\n");
-}
-
-function waFormatHot(leads) {
-  return [
-    "Hot Leads",
-    formatList(
-      leads.map((l) => `${l.name || "Lead"} (${l.phone || "na"}) score ${l.score || 0}`),
-      "No hot leads right now."
-    ),
-  ].join("\n");
 }
 
 function waFormatRevenue(rev) {
@@ -152,7 +150,7 @@ export async function executeCeoCommand({ command, phone }) {
   const settings = await effectiveSettings();
   const allowed = settings.permissions.includes(intent);
   let response =
-    "Unknown command. Try: today stats, hot leads, revenue, pending followups, create task, assign lead, start ads, weekly optimization report.";
+    "Unknown command. Try: morning brief, today stats, hot leads, revenue, pending followups, weekly optimization report, drafts preview, create task, assign lead, start ads.";
   let status = "unknown";
   let payload = {};
 
@@ -162,26 +160,39 @@ export async function executeCeoCommand({ command, phone }) {
   } else if (!allowed) {
     response = `Permission denied for command: ${intent}`;
     status = "denied";
+  } else if (intent === "morning brief") {
+    response = await buildMorningBriefOperatorMessage();
+    payload = { operator: true, kind: "morning_brief" };
+    status = "ok";
+  } else if (intent === "drafts preview") {
+    const op = buildDraftsPreviewMessage(phone);
+    response = op.text;
+    payload = { operator: true, drafts_preview: true, execution_suggestions: op.suggestions };
+    status = "ok";
+  } else if (intent === "drafts send all") {
+    const op = buildDraftsSendAllGateMessage(phone);
+    response = op.text;
+    payload = { operator: true, drafts_send_all: true, execution_suggestions: op.suggestions };
+    status = "ok";
+  } else if (intent === "drafts yes") {
+    const op = buildDraftsConfirmYesMessage(phone);
+    response = op.text;
+    payload = { operator: true, drafts_confirmed: true, execution_suggestions: op.suggestions };
+    status = "ok";
+  } else if (intent === "drafts no") {
+    clearOwnerExecutionDrafts(phone);
+    response = buildDraftsConfirmNoMessage().text;
+    payload = { operator: true, drafts_cancelled: true };
+    status = "ok";
   } else if (intent === "today stats") {
-    const dashboard = await getDashboardCore();
-    const today = {
-      total_leads: dashboard.funnel.total_leads,
-      qualified: dashboard.funnel.qualified_leads,
-      won: dashboard.funnel.won_leads,
-      conversion_rate_pct: dashboard.funnel.conversion_rate_pct,
-    };
-    response = waFormatToday(today);
-    payload = today;
+    const op = await renderOperatorCeoMessage(intent, phone);
+    response = op.text;
+    payload = { operator: true, ...op.payload };
     status = "ok";
   } else if (intent === "hot leads") {
-    const leads = await fetchLeads(50);
-    const hot = leads
-      .filter((l) => String(l.temperature || "").toLowerCase() === "hot")
-      .sort((a, b) => Number(b.ai_score || 0) - Number(a.ai_score || 0))
-      .slice(0, 10)
-      .map((l) => ({ phone: l.phone, name: l.name || l.full_name || "Lead", score: l.ai_score || 0 }));
-    response = waFormatHot(hot);
-    payload = { hot_leads: hot };
+    const op = await renderOperatorCeoMessage(intent, phone);
+    response = op.text;
+    payload = { operator: true, ...op.payload };
     status = "ok";
   } else if (intent === "revenue") {
     const rev = await fetchRevenueMetrics();
@@ -237,8 +248,9 @@ export async function executeCeoCommand({ command, phone }) {
     payload = { queued: true };
     status = "ok";
   } else if (intent === "weekly optimization report") {
-    response = await buildWeeklyOptimizationReportForFounder();
-    payload = { kind: "phase_d_weekly_report" };
+    const op = await renderOperatorCeoMessage(intent, phone);
+    response = op.text;
+    payload = { operator: true, ...op.payload, kind: "phase_d_weekly_report" };
     status = "ok";
   }
 

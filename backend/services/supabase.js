@@ -474,6 +474,46 @@ export async function fetchPromptPerformanceSince(isoSince, limit = 4000) {
   }
 }
 
+/** Recent `lead_memory` rows for operator / CEO summaries (bounded). */
+export async function fetchLeadMemoryOperatorSnapshot(limit = 400) {
+  if (!supabase) return [];
+  const n = Math.min(800, Math.max(20, Number.parseInt(String(limit), 10) || 400));
+  try {
+    const { data, error } = await supabase
+      .from("lead_memory")
+      .select(
+        "phone,intent_score,buyer_type,stage,business_type,service_interest,last_contacted_at,next_followup_at,last_summary"
+      )
+      .order("updated_at", { ascending: false })
+      .limit(n);
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    log.warn("fetchLeadMemoryOperatorSnapshot failed", { err: err?.message || String(err) });
+    return [];
+  }
+}
+
+export async function fetchLeadMemoryForPhones(phones, limit = 20) {
+  if (!supabase || !phones?.length) return [];
+  const uniq = [...new Set(phones.map((p) => String(p || "").trim()).filter(Boolean))].slice(
+    0,
+    Math.min(40, Number.parseInt(String(limit), 10) || 20)
+  );
+  if (!uniq.length) return [];
+  try {
+    const { data, error } = await supabase
+      .from("lead_memory")
+      .select("*")
+      .in("phone", uniq);
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    log.warn("fetchLeadMemoryForPhones failed", { err: err?.message || String(err) });
+    return [];
+  }
+}
+
 export async function saveProposal(row) {
   if (!supabase) return { ok: false, reason: "no_supabase" };
   try {

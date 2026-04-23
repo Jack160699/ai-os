@@ -169,8 +169,8 @@ function formatFounderReport(analysis, periodDays) {
   return lines.join("\n").slice(0, 3900);
 }
 
-/** Live report for founder WhatsApp command (no persistence required). */
-export async function buildWeeklyOptimizationReportForFounder() {
+/** Raw bundle for CEO operator layer (lead_events + prompt_performance). */
+export async function loadWeeklyOptimizationAnalysis() {
   const days = Math.max(1, Number.parseInt(process.env.PHASE_D_REPORT_LOOKBACK_DAYS || "7", 10) || 7);
   const since = new Date(Date.now() - days * 86400000).toISOString();
   const [events, prompts] = await Promise.all([
@@ -178,7 +178,21 @@ export async function buildWeeklyOptimizationReportForFounder() {
     fetchPromptPerformanceSince(since, 6000),
   ]);
   const analysis = mergePhaseDAnalysis(events, prompts);
-  return formatFounderReport(analysis, days);
+  return {
+    days,
+    since,
+    events,
+    prompts,
+    analysis,
+    eventsCount: events.length,
+    promptsCount: prompts.length,
+  };
+}
+
+/** Legacy long-form report (kept for tests / tooling). Prefer operator output in CEO bridge. */
+export async function buildWeeklyOptimizationReportForFounder() {
+  const bundle = await loadWeeklyOptimizationAnalysis();
+  return formatFounderReport(bundle.analysis, bundle.days);
 }
 
 export async function runWeeklyOptimizationJob() {
