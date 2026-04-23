@@ -185,6 +185,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       return res.sendStatus(200);
     }
 
+    const leadMem = await getLeadMemory(phone);
     if (isPaymentConfirmationMessage(message)) {
       const paymentReply = await handlePaymentConfirmationMessage(phone);
       if (paymentReply?.text) {
@@ -223,7 +224,6 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
     }
 
     const recentRows = await fetchRecentMessages(phone, getMemoryHistoryLimit());
-    const leadMem = await getLeadMemory(phone);
     const adaptive = analyzeAdaptiveSalesBrain({ message, recentRows, leadMemory: leadMem });
     const profilePatch = extractLeadProfilePatch(message, leadMem || {});
     const needTag = parseNeedTag(message);
@@ -282,7 +282,20 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
     const isPaidLead = String(leadMem?.stage || "").toLowerCase() === "closed_won";
 
     if (isPaidLead) {
-      const paidSupportReply = "You're already onboarded. Share updates or blockers, and I'll move setup/support steps forward.";
+      const summary = String(leadMem?.last_summary || "");
+      const testimonialRequested = /\[testimonial_requested:1\]/.test(summary);
+      const positive = /\b(great|awesome|nice|good|working|love|perfect|thanks|thank you)\b/i.test(String(message || ""));
+      if (positive && !testimonialRequested) {
+        const testimonialReply =
+          "Great to hear that. If you're open, share a 1-2 line testimonial on your experience so far — it helps us a lot.";
+        const nextSummary = [summary.trim(), "[testimonial_requested:1]"].filter(Boolean).join(" ").trim();
+        await upsertLeadMemory(phone, { last_summary: nextSummary || null, last_contacted_at: new Date().toISOString() });
+        await saveMessage(phone, testimonialReply, "bot");
+        await sendWhatsApp(phone, testimonialReply);
+        return res.sendStatus(200);
+      }
+      const paidSupportReply =
+        "You're on the VIP client track. Share any update or blocker, and I'll move setup/support forward on priority.";
       await saveMessage(phone, paidSupportReply, "bot");
       await sendWhatsApp(phone, paidSupportReply);
       return res.sendStatus(200);

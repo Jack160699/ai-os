@@ -77,7 +77,7 @@ export async function handlePaymentConfirmationMessage(phone) {
     return {
       paid: true,
       text: [
-        "Payment confirmed. Great choice.",
+        "Payment confirmed. Welcome to the VIP client track.",
         "Onboarding starts now.",
         "",
         "Share these 3 details:",

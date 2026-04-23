@@ -45,14 +45,43 @@ function readMemoryTag(summary, tag) {
   return m?.[1] ? m[1].trim() : "";
 }
 
+function appendMemoryTag(base, tag, value) {
+  const head = String(base || "").trim();
+  const token = `[${String(tag)}:${String(value)}]`;
+  if (!token || head.includes(token)) return head;
+  return [head, token].filter(Boolean).join(" ").trim();
+}
+
+function lastContactAgeMs(lm) {
+  const ts = lm?.last_contacted_at ? Date.parse(String(lm.last_contacted_at)) : NaN;
+  if (!Number.isFinite(ts)) return Number.POSITIVE_INFINITY;
+  return Date.now() - ts;
+}
+
 export function buildPhaseCFollowupMessage(leadMemory) {
   const lm = leadMemory || {};
   const onboardingPending = readMemoryTag(lm.last_summary, "onboarding_pending") === "1";
+  const referralRequested = readMemoryTag(lm.last_summary, "referral_requested") === "1";
+  const closedWon = String(lm.stage || "").toLowerCase() === "closed_won";
+  const coldInactive14 = lastContactAgeMs(lm) >= 14 * DAY_MS;
+  if (closedWon && !onboardingPending && !referralRequested) {
+    return [
+      "Quick ask — if you know 1 business owner who needs similar growth support, feel free to refer them.",
+      "We'll give them priority onboarding and take great care of them.",
+    ].join("\n");
+  }
   if (onboardingPending) {
     return [
       "Quick onboarding reminder.",
       "Share your business name, assets link, and first 14-day goal.",
       "Once shared, setup moves immediately.",
+    ].join("\n");
+  }
+  if (coldInactive14) {
+    return [
+      "Quick check-in after a gap.",
+      "If growth is still a priority, I can restart this with a lean plan and fast setup.",
+      "Reply RESTART and I'll activate the next step.",
     ].join("\n");
   }
   const bt = String(lm.buyer_type || "explorer").toLowerCase();
@@ -124,7 +153,10 @@ export async function runLeadMemoryRevenueFollowupSweep(limit = 20) {
     const phone = String(lm?.phone || "");
     if (!phone) continue;
     const onboardingPending = readMemoryTag(lm.last_summary, "onboarding_pending") === "1";
-    if (isClosedStage(lm.stage) && !onboardingPending) continue;
+    const referralRequested = readMemoryTag(lm.last_summary, "referral_requested") === "1";
+    const closedWon = String(lm.stage || "").toLowerCase() === "closed_won";
+    const referralDue = closedWon && !onboardingPending && !referralRequested;
+    if (isClosedStage(lm.stage) && !onboardingPending && !referralDue) continue;
     if (await isOwnerNumber(phone)) continue;
 
     const lastSent = lm.last_followup_sent_at ? Date.parse(String(lm.last_followup_sent_at)) : NaN;
@@ -142,9 +174,14 @@ export async function runLeadMemoryRevenueFollowupSweep(limit = 20) {
     const nextAt = onboardingPending ? null : new Date(Date.now() + Math.max(delay, gap)).toISOString();
 
     await saveMessage(phone, msg, "bot");
-    const nextSummary = onboardingPending
-      ? String(lm.last_summary || "").replace(/\[onboarding_pending:1\]/g, "").trim() || null
-      : undefined;
+    let nextSummary;
+    if (onboardingPending) {
+      nextSummary = String(lm.last_summary || "").replace(/\[onboarding_pending:1\]/g, "").trim() || null;
+    } else if (referralDue) {
+      nextSummary = appendMemoryTag(String(lm.last_summary || ""), "referral_requested", "1") || null;
+    } else {
+      nextSummary = undefined;
+    }
     await upsertLeadMemory(phone, {
       last_followup_sent_at: now,
       next_followup_at: nextAt,
