@@ -779,7 +779,7 @@ function formatFounderResponse({ answer, reason, priority, directions }) {
     "",
     ...list.map((d, i) => `${i + 1}. ${String(d?.label || "").trim()}`),
     "",
-    "Tum kya fix karna chahte ho?",
+    "Next action lock:",
     ...list.map((d) => `→ ${String(d?.short || d?.label || "").trim()}`),
   ]
     .join("\n")
@@ -928,6 +928,11 @@ For sales/revenue slowdown input, produce:
 1) 10 ready-to-send outreach messages
 2) where to send them (source/channel/lead type)
 3) one approval line: "Approve karte hi main next batch bhejta hoon."
+
+Mandatory execution loop:
+- Start with 5 messages first
+- Ask for only one checkpoint: "Done likho, main next 5 bhej raha hoon."
+- After done, auto-generate next batch immediately
 `
     : "";
 
@@ -942,7 +947,7 @@ Hard rules:
 [Main Answer]
 
 Reason:
-<1 line>
+<max 1 line>
 
 Priority:
 <1 line>
@@ -953,10 +958,20 @@ Abhi <2-4> direction hai:
 2. <action>
 3. <action optional>
 
-Tum kya fix karna chahte ho?
+Next action lock:
 → <short option>
 → <short option>
 → <short option optional>
+
+- Never ask "tum kya karna chahte ho".
+- Keep reasoning maximum 1 line.
+- Include ICP in execution output (example: gym owners, D2C founders, clinic owners).
+- Include exact platform instructions:
+  - LinkedIn search query
+  - Instagram DM target type
+  - WhatsApp broadcast segment
+- Always include follow-up messages automatically (D+1 and D+3 variants).
+- Use initiative language: "Main kar raha hoon", "Main bhej raha hoon", "Main next batch ready kar raha hoon".
 
 - Only include directions if they are useful.
 - If user just gives progress (25%, 50%, done), respond with progress-aware execution coaching.
@@ -1037,7 +1052,7 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
         "",
         "Priority:\nMomentum mat todna.",
         "",
-        `Continuation:\n${buildExecutionPlan(state.active_focus || focus, { urgent, lowEnergy }).next}`,
+        `Continuation:\n${buildExecutionPlan(state.active_focus || focus, { urgent: false, lowEnergy: false }).next}`,
       ].join("\n");
     } else {
       try {
