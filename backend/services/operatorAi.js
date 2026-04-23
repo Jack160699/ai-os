@@ -903,6 +903,34 @@ function extractDirectionsForButtons(text) {
 }
 
 function buildFounderAiPrompt({ message, situation, state }) {
+  const msg = String(message || "").trim();
+  const isProblemInput = /\b(sales|revenue|lead|leads|close|closing|reply|pipeline|followup|follow-up|nahi|ni|kam|slow|stuck)\b/i.test(
+    msg
+  );
+  const problemExecutionBlock = isProblemInput
+    ? `
+Operator execution mode is ON for this message.
+
+Do not give only advice.
+Generate actual outputs immediately:
+- outreach messages (if top-funnel issue)
+- reply drafts (if closing/reply issue)
+- lead action list (prioritized)
+- follow-up scripts
+
+Speak like operator taking initiative:
+- "Main yeh kar raha hoon..."
+- "Yeh ready copy hai..."
+- "Main next batch bhi prepare kar raha hoon..."
+Avoid passive advisor tone like "tum karo" unless asking final approval.
+
+For sales/revenue slowdown input, produce:
+1) 10 ready-to-send outreach messages
+2) where to send them (source/channel/lead type)
+3) one approval line: "Approve karte hi main next batch bhejta hoon."
+`
+    : "";
+
   return `
 You are a founder's WhatsApp business operator. Reply in natural Hinglish (Roman Hindi + English).
 
@@ -933,6 +961,7 @@ Tum kya fix karna chahte ho?
 - Only include directions if they are useful.
 - If user just gives progress (25%, 50%, done), respond with progress-aware execution coaching.
 - Keep tone founder-friendly and direct.
+${problemExecutionBlock}
 
 Runtime state:
 ${JSON.stringify(compactFounderStateForPrompt(state), null, 2)}
@@ -941,7 +970,7 @@ Business metrics:
 ${JSON.stringify(compactSituationForPrompt(situation), null, 2)}
 
 Founder message:
-${String(message || "").trim()}
+${msg}
 `.trim();
 }
 
