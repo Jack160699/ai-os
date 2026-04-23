@@ -797,6 +797,22 @@ export async function fetchPaymentLinks(limit = 200) {
   }
 }
 
+export async function fetchPaymentEvents(limit = 200) {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from("payment_events")
+      .select("*")
+      .order("recorded_at_utc", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    log.warn("Supabase fetchPaymentEvents failed", { err: err?.message || String(err) });
+    return [];
+  }
+}
+
 export async function fetchLatestPaymentLinkByPhone(phone) {
   if (!supabase || !phone) return null;
   try {

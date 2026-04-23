@@ -35,6 +35,7 @@ export const ENV = {
   ),
   OWNER_WHATSAPP_NUMBERS: pick(process.env.OWNER_WHATSAPP_NUMBERS),
   CEO_COMMAND_PERMISSIONS: pick(process.env.CEO_COMMAND_PERMISSIONS),
+  DASHBOARD_PASSWORD: pick(process.env.DASHBOARD_PASSWORD, process.env.BACKEND_DASHBOARD_PASSWORD),
   /** Set to "0" to force plain-text menus for founder/CEO replies (no Cloud API interactives). */
   CEO_WHATSAPP_INTERACTIVE: pick(process.env.CEO_WHATSAPP_INTERACTIVE, "1"),
 };
