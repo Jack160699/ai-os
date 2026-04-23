@@ -3,27 +3,17 @@
  */
 
 import { getDashboardCore } from "./dashboardMetrics.js";
-import {
-  fetchLeadMemoryForPhones,
-  fetchLeadMemoryOperatorSnapshot,
-  fetchLeads,
-  fetchRevenueMetrics,
-} from "./supabase.js";
+import { fetchLeadMemoryOperatorSnapshot, fetchLeads, fetchRevenueMetrics } from "./supabase.js";
 import { loadWeeklyOptimizationAnalysis } from "./phaseDOptimizer.js";
 import {
   buildSalesExecutionActionBlock,
   cacheOwnerExecutionDrafts,
 } from "./salesExecutionEngine.js";
-
-const DEFAULT_ACTION_MENU = [
-  "Hot leads + drafts",
-  "Weekly plan",
-  "Pending follow-ups",
-  "Revenue snapshot",
-];
+import { getFounderPersonalizationLines } from "./founderOperatorMemory.js";
 
 const MENU_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣"];
 const CEO_MESSAGE_MAX = 3900;
+const INTERACTIVE_BODY_MAX = 1000;
 
 function combineOperatorAndExecution(baseText, executionText) {
   const base = String(baseText || "").trim();
@@ -34,12 +24,6 @@ function combineOperatorAndExecution(baseText, executionText) {
   if (maxExtra < 120) return base.slice(0, CEO_MESSAGE_MAX);
   const trimmed = extra.length > maxExtra ? `${extra.slice(0, maxExtra - 30)}\n…(drafts trimmed — open dashboard for full list)` : extra;
   return `${base}${sep}${trimmed}`.slice(0, CEO_MESSAGE_MAX);
-}
-
-function topStageProblem(stages) {
-  const entries = Object.entries(stages || {}).sort((a, b) => b[1] - a[1]);
-  if (!entries.length) return null;
-  return entries[0];
 }
 
 function aggregateLeadMemoryRows(rows) {
@@ -70,54 +54,368 @@ function aggregateLeadMemoryRows(rows) {
   };
 }
 
-/**
- * Build a single WhatsApp message from structured operator fields.
- * @param {object} data
- * @param {boolean} [data.insufficient]
- * @param {string[]} data.executiveSummary — 2–3 short lines
- * @param {string} data.biggestOpportunity
- * @param {string} data.biggestProblem
- * @param {string[]} data.recommendedActions — 1–2 imperative lines
- * @param {string[]} [data.actionMenu] — up to 4 labels (defaults provided)
- */
-export function buildOperatorResponse(data) {
-  const menu = Array.isArray(data.actionMenu) && data.actionMenu.length ? data.actionMenu : DEFAULT_ACTION_MENU;
-  const exec = Array.isArray(data.executiveSummary) ? data.executiveSummary.filter(Boolean) : [];
-  const actions = Array.isArray(data.recommendedActions) ? data.recommendedActions.filter(Boolean) : [];
+function pickQuickOptions(intent, hints, data) {
+  const h = hints || {};
+  if (intent === "today stats") {
+    if (h.pipe_empty || data.insufficient) {
+      return ["morning brief", "today stats", "weekly optimization report", "hot leads"];
+    }
+    if (h.conversion_soft) {
+      return ["weekly optimization report", "hot leads", "pending followups", "morning brief"];
+    }
+    if (h.high_intent) {
+      return ["hot leads", "today stats", "pending followups", "revenue"];
+    }
+    return ["hot leads", "morning brief", "today stats", "revenue"];
+  }
+  if (intent === "hot leads") {
+    if (h.has_hot) {
+      return ["drafts preview", "pending followups", "today stats", "morning brief"];
+    }
+    if (h.ghost_hot) {
+      return ["today stats", "weekly optimization report", "hot leads", "morning brief"];
+    }
+    return ["today stats", "weekly optimization report", "morning brief", "revenue"];
+  }
+  if (intent === "weekly optimization report") {
+    if (h.thin || data.insufficient) {
+      return ["today stats", "hot leads", "morning brief", "revenue"];
+    }
+    if (h.drop_hard) {
+      return ["today stats", "pending followups", "hot leads", "morning brief"];
+    }
+    if (h.mid_funnel) {
+      return ["hot leads", "pending followups", "today stats", "morning brief"];
+    }
+    return ["hot leads", "today stats", "revenue", "morning brief"];
+  }
+  return ["morning brief", "today stats", "hot leads", "revenue"];
+}
 
-  const lines = ["A. EXECUTIVE SUMMARY", ""];
+function buildConversationalBody(data, intent) {
+  const hints = data.hints || {};
+  const ts = data.payload?.today_stats;
+  const lines = [];
 
-  if (data.insufficient) {
-    lines.push(
-      exec[0] || "Not enough signal yet — don't optimize noise.",
-      exec[1] || "Get 10 real WhatsApp convos live this week, then hit me again."
-    );
-  } else {
-    lines.push(exec.slice(0, 3).join("\n") || "Quiet pipe — I'd force motion today, not more planning.");
+  if (intent === "today stats") {
+    if (hints.pipe_empty || data.insufficient) {
+      lines.push("Nothing in CRM yet.");
+      lines.push("Get a few real chats going on WhatsApp first.");
+      lines.push("Ping me once people are replying — I'll steer fast.");
+    } else {
+      const t = Number(ts?.total_leads) || 0;
+      const q = Number(ts?.qualified) || 0;
+      const w = Number(ts?.won) || 0;
+      lines.push(`${t} leads · ${q} in a good place · ${w} won.`);
+      if (hints.conversion_soft) {
+        lines.push("Looks like people stall before they're really qualified.");
+        lines.push("I'd tighten first replies before spending more.");
+      } else if (hints.high_intent) {
+        lines.push("A few threads look hot in memory — worth hitting today.");
+      } else {
+        lines.push("Main thing: pick 3 warm threads and move them to paid.");
+      }
+    }
+  } else if (intent === "hot leads") {
+    if (hints.has_hot) {
+      const n = Number(hints.hot_count) || 0;
+      lines.push(`${n} HOT in CRM right now.`);
+      lines.push("Scroll down — I wrote copy you can paste.");
+      lines.push("Speed beats perfect here.");
+    } else if (hints.ghost_hot) {
+      lines.push("No HOT tags in CRM.");
+      lines.push("Memory still shows heat — scoring or follow-up's off.");
+      lines.push("Call the warmest 5 manually today.");
+    } else {
+      lines.push("No hot list yet.");
+      lines.push("Either traffic's thin or the bot isn't pulling urgency out.");
+    }
+  } else if (intent === "weekly optimization report") {
+    if (hints.thin || data.insufficient) {
+      lines.push("Thin week data-wise.");
+      lines.push("Run ~10 real convos through WhatsApp, then ask again.");
+    } else if (hints.drop_hard) {
+      lines.push("People drop off early — first answer's probably the leak.");
+      lines.push("Fix that before throwing more money at reach.");
+    } else if (hints.mid_funnel) {
+      lines.push("Middle of the funnel's sticky.");
+      lines.push("More nudges + clearer next step usually fixes it.");
+    } else {
+      lines.push("Week looks busy enough to read patterns.");
+      lines.push("Double down on what's already working.");
+    }
   }
 
-  lines.push("", "B. BIGGEST OPPORTUNITY", "", data.biggestOpportunity || "Intent is perishable — strike while the thread is warm.");
-  lines.push("", "C. BIGGEST PROBLEM", "", data.biggestProblem || "Usually it's follow-up or offer clarity — fix one, revenue moves.");
+  while (lines.length > 5) lines.pop();
+  return lines;
+}
 
-  lines.push("", "D. RECOMMENDED ACTION", "");
-  const useActions = actions.length
-    ? actions.slice(0, 2)
-    : ["Block 45m today: calls + paste-ready replies only.", "Fix one script (pricing or proof) before spending more on ads."];
-  for (const a of useActions) {
-    lines.push(`→ ${a}`);
+function commandToSlug(cmd) {
+  return String(cmd || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+function titleForMenuCommand(cmd) {
+  const c = String(cmd || "")
+    .trim()
+    .toLowerCase();
+  const map = {
+    "morning brief": "Morning brief",
+    "today stats": "Pipeline",
+    "hot leads": "Hot leads",
+    revenue: "Revenue",
+    "weekly optimization report": "Growth plan",
+    "pending followups": "Follow-ups",
+    "drafts preview": "Send replies",
+    "drafts send all": "Queue all",
+    "drafts yes": "Confirm send",
+    "drafts no": "Cancel batch",
+  };
+  return map[c] || c;
+}
+
+function rowFromCommand(cmd) {
+  const c = String(cmd || "")
+    .trim()
+    .toLowerCase();
+  return { id: commandToSlug(c) || "action", title: titleForMenuCommand(c) };
+}
+
+/** One combined quick menu: operator routes + draft step when drafts exist (max 4). */
+function buildMergedMenuRows(intent, hints, data, hasExecDrafts) {
+  const base = pickQuickOptions(intent, hints, data);
+  const seen = new Set();
+  const rows = [];
+
+  if (hasExecDrafts) {
+    rows.push({ id: "drafts_preview", title: "Send replies" });
+    seen.add("drafts preview");
   }
 
-  lines.push("", "E. ACTION MENU", "");
-  menu.slice(0, 4).forEach((label, i) => {
-    lines.push(`${MENU_EMOJIS[i] || `${i + 1}.`} ${label}`);
+  for (const cmd of base) {
+    if (rows.length >= 4) break;
+    const c = String(cmd || "")
+      .trim()
+      .toLowerCase();
+    if (!c || seen.has(c)) continue;
+    if (c === "drafts preview") continue;
+    rows.push(rowFromCommand(c));
+    seen.add(c);
+  }
+
+  const pad = ["revenue", "morning brief", "today stats", "hot leads", "weekly optimization report", "pending followups"];
+  for (const c of pad) {
+    if (rows.length >= 4) break;
+    if (seen.has(c)) continue;
+    rows.push(rowFromCommand(c));
+    seen.add(c);
+  }
+
+  return rows.slice(0, 4);
+}
+
+function formatChooseBlockFromRows(rows) {
+  const list = (rows || []).slice(0, 4);
+  const out = ["", "Choose 👇"];
+  list.forEach((r, i) => {
+    const cmd = String(r.id || "").replace(/_/g, " ").trim() || String(r.title || "");
+    out.push(`${MENU_EMOJIS[i] || `${i + 1}.`} ${cmd}`);
   });
+  return out.join("\n");
+}
 
-  return lines
-    .filter((ln, idx, arr) => !(ln === "" && arr[idx - 1] === ""))
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
+function formatChooseBlock(options) {
+  const opts = (options || []).slice(0, 4);
+  const out = ["", "Choose 👇"];
+  opts.forEach((cmd, i) => {
+    out.push(`${MENU_EMOJIS[i] || `${i + 1}.`} ${cmd}`);
+  });
+  return out.join("\n");
+}
+
+/**
+ * WhatsApp-native operator copy: short, conversational, context options (no A–E).
+ */
+export function buildOperatorResponse(data, intent) {
+  const body = buildConversationalBody(data, intent);
+  const options = pickQuickOptions(intent, data.hints, data);
+  const text = `${body.join("\n")}${formatChooseBlock(options)}`;
+  return text.trim().slice(0, CEO_MESSAGE_MAX);
+}
+
+function buildOperatorBody(data, intent) {
+  return buildConversationalBody(data, intent).join("\n").trim();
+}
+
+/** Friendly reply when we don't recognise a command (owner). */
+export function buildFounderUnknownHelpMessage() {
+  const rows = [
+    { id: "morning_brief", title: "Morning brief" },
+    { id: "hot_leads", title: "Hot leads" },
+    { id: "today_stats", title: "Pipeline" },
+    { id: "weekly_optimization_report", title: "Growth plan" },
+  ];
+  const head = ["Didn't catch that.", "Use the list or paste a phrase below."];
+  const text = `${head.join("\n")}${formatChooseBlockFromRows(rows)}`.trim().slice(0, CEO_MESSAGE_MAX);
+  return {
+    text,
+    interactive: {
+      body: "Pick your next move:",
+      rows,
+    },
+  };
+}
+
+export function classifyFounderNaturalIntent(messageRaw) {
+  const text = String(messageRaw || "").trim();
+  const low = text.toLowerCase();
+  if (!low) return { kind: "unclear", confident: false };
+
+  // Draft/reply phrasing first: highly specific ask.
+  if (
+    /\b(draft|write reply|reply for this lead|message for lead|compose)\b/.test(low) ||
+    /\b(reply\s*kya\s*du|kya\s*reply\s*du|is(pe|lead)\s*kya\s*bolu)\b/.test(low)
+  ) {
+    return { kind: "draft message", confident: true };
+  }
+
+  // Daily focus / priority asks.
+  if (/\b(today|daily|priorit|what should i do|plan my day|focus)\b/.test(low)) {
+    return { kind: "daily priorities", confident: true };
+  }
+  if (/\b(kya\s*focus\s*karu|aaj\s*kya\s*karu|aaj\s*ka\s*focus|priority\s*kya)\b/.test(low)) {
+    return { kind: "daily priorities", confident: true };
+  }
+
+  // Growth / top-of-funnel asks.
+  if (
+    /\b(growth|more leads|scale|pipeline|get more leads)\b/.test(low) ||
+    /\b(lead\s*aa\s*nahi\s*rahe|leads?\s*nahi\s*aa\s*rahe|growth\s*kaise\s*kare|zyada\s*lead)\b/.test(low)
+  ) {
+    return { kind: "growth advice", confident: true };
+  }
+
+  // Closing / conversion asks.
+  if (
+    /\b(close|closing|hot lead|conversion|convert leads|deal)\b/.test(low) ||
+    /\b(close\s*nahi\s*ho\s*raha|deal\s*nahi\s*ban\s*raha|payment\s*kaise\s*close\s*karu)\b/.test(low)
+  ) {
+    return { kind: "close leads", confident: true };
+  }
+
+  // Revenue/downtrend asks.
+  if (
+    /\b(revenue|sales|cash|payment|collection|increase revenue)\b/.test(low) ||
+    /\b(sales\s*kam\s*hai|revenue\s*kam\s*hai|payment\s*nahi\s*aa\s*raha)\b/.test(low)
+  ) {
+    return { kind: "revenue help", confident: true };
+  }
+
+  // Diagnosis / stuck-state asks.
+  if (/\b(why am i not|diagnos|problem|bottleneck|what's wrong|stuck)\b/.test(low)) {
+    return { kind: "diagnose problem", confident: true };
+  }
+  if (
+    /\b(client\s*ghost\s*kar\s*raha|ghost\s*kar\s*raha|seen\s*karke\s*chod|reply\s*nahi\s*aa\s*raha)\b/.test(low)
+  ) {
+    return { kind: "diagnose problem", confident: true };
+  }
+
+  if (/\b(ads|adspend|facebook ads|meta ads|google ads|campaign)\b/.test(low)) {
+    return { kind: "ads help", confident: true };
+  }
+  if (/\b(strategy|playbook|positioning|go to market|gtm)\b/.test(low)) {
+    return { kind: "custom strategy", confident: true };
+  }
+  return { kind: "unclear", confident: false };
+}
+
+function buildClarifyFounderIntentMessage() {
+  const rows = [
+    { id: "daily_priorities", title: "Daily priorities" },
+    { id: "close_leads", title: "Close leads" },
+    { id: "growth_advice", title: "Growth advice" },
+    { id: "revenue_help", title: "Revenue help" },
+  ];
+  const text = `Want me to focus on priorities, closing, growth, or revenue?${formatChooseBlockFromRows(rows)}`
     .trim()
     .slice(0, CEO_MESSAGE_MAX);
+  return {
+    text,
+    interactive: { body: "Pick one focus area:", rows },
+    payload: { founder_mode: true, natural_kind: "clarify" },
+  };
+}
+
+export async function buildFounderNaturalOperatorMessage(kind, rawMessage, ownerPhone) {
+  const k = String(kind || "").toLowerCase();
+  const raw = String(rawMessage || "").trim();
+
+  if (!k || k === "unclear") {
+    return buildClarifyFounderIntentMessage();
+  }
+
+  if (k === "daily priorities") {
+    const morning = await buildMorningBriefOperatorMessage(ownerPhone);
+    return {
+      text: morning.text,
+      interactive: morning.interactive,
+      payload: { founder_mode: true, natural_kind: "daily priorities", kind: "morning_brief" },
+    };
+  }
+  if (k === "close leads") {
+    const op = await renderOperatorCeoMessage("hot leads", ownerPhone);
+    return {
+      text: op.text,
+      interactive: op.interactive || null,
+      payload: { founder_mode: true, natural_kind: "close leads", ...op.payload },
+    };
+  }
+  if (k === "growth advice" || k === "diagnose problem" || k === "custom strategy" || k === "ads help") {
+    const op = await renderOperatorCeoMessage("weekly optimization report", ownerPhone);
+    const lead = k === "ads help" ? "Let's fix channel economics before raising spend.\n\n" : "";
+    return {
+      text: `${lead}${op.text}`.slice(0, CEO_MESSAGE_MAX),
+      interactive: op.interactive || null,
+      payload: { founder_mode: true, natural_kind: k, ...op.payload },
+    };
+  }
+  if (k === "revenue help") {
+    const op = await renderOperatorCeoMessage("today stats", ownerPhone);
+    return {
+      text: op.text,
+      interactive: op.interactive || null,
+      payload: { founder_mode: true, natural_kind: "revenue help", ...op.payload },
+    };
+  }
+  if (k === "draft message") {
+    const rows = [
+      { id: "hot_leads", title: "Hot leads" },
+      { id: "drafts_preview", title: "Send replies" },
+      { id: "today_stats", title: "Pipeline" },
+      { id: "morning_brief", title: "Morning brief" },
+    ];
+    const text = [
+      "Share 1 lead context in one line: stage, last message, and objection.",
+      "I'll write a tight reply you can paste right away.",
+      formatChooseBlockFromRows(rows),
+    ]
+      .join("\n")
+      .trim()
+      .slice(0, CEO_MESSAGE_MAX);
+    return {
+      text,
+      interactive: { body: "Need draft from hot leads or custom context?", rows },
+      payload: { founder_mode: true, natural_kind: "draft message", source_text: raw.slice(0, 240) },
+    };
+  }
+
+  return buildClarifyFounderIntentMessage();
 }
 
 async function loadLeadMemoryAgg() {
@@ -132,67 +430,22 @@ export async function buildTodayStatsOperatorPayload() {
   const won = Number(dashboard.funnel.won_leads || 0);
   const pct = Number(dashboard.funnel.conversion_rate_pct || 0);
   const qualRatio = total > 0 ? qualified / total : 0;
-  const closeRatio = qualified > 0 ? won / qualified : 0;
 
   if (total === 0) {
     return {
       insufficient: true,
-      executiveSummary: [
-        "Not enough data yet — CRM shows zero active leads.",
-        "Fill the top of funnel: run one acquisition push and get 10 qualified conversations logged this week.",
-      ],
-      biggestOpportunity: "First wins come from volume + fast replies, not dashboards. Book outbound blocks on your calendar now.",
-      biggestProblem: "No pipeline visibility — you are flying blind on revenue.",
-      recommendedActions: [
-        "Turn on lead capture everywhere (WhatsApp + form) and route into this bot today.",
-        "Reply personally to the first 5 inbound threads within 10 minutes each.",
-      ],
-      actionMenu: DEFAULT_ACTION_MENU,
+      hints: { pipe_empty: true },
       payload: { funnel: dashboard.funnel, lead_memory_agg: agg, lead_memory_rows: rows.length },
     };
   }
 
-  const stageTop = topStageProblem(agg.stages);
-  const exec = [
-    `${total} leads live, ${qualified} qualified, ${won} closed-won — blended conversion ${pct}%.`,
-    qualRatio < 0.12
-      ? "Qualification is thin: most traffic is not being converted to real opportunities."
-      : "Qualification is holding — push hard on the late funnel.",
-    agg.high_intent_count > 0
-      ? `lead_memory flags ${agg.high_intent_count} high-intent threads (avg score ${agg.avg_intent}) — treat them as cash-in-waiting.`
-      : `Memory layer shows avg intent ${agg.avg_intent}; tighten prompts until you see 70+ scores spike.`,
-  ];
-
-  const biggestOpportunity =
-    won > 0
-      ? `Revenue is proving out (${won} wins). Double down: clone the last winning niche + CTA combo into the next 10 pitches.`
-      : qualified > 0
-        ? `You already have ${qualified} qualified — that is where this week's cash hides. Run tight closes, not more top-of-funnel.`
-        : `Top of funnel (${total}) is the asset — convert the warmest 20% into qualified today with one sharp script.`;
-
-  let biggestProblem = "Speed: slow follow-ups are silently killing deals after first reply.";
-  if (qualRatio < 0.1) biggestProblem = "Funnel break is early: leads stall before qualification — fix discovery + intent scoring.";
-  else if (closeRatio < 0.08 && qualified > 2) biggestProblem = "Funnel break is late: qualified leads are not closing — pricing, proof, or urgency is broken.";
-  if (stageTop && stageTop[0] === "new" && stageTop[1] >= Math.max(3, total * 0.4)) {
-    biggestProblem = `Stuck in "new": ${stageTop[1]} leads never graduate — your first-touch script is leaking money.`;
-  }
-
-  const recommendedActions = [
-    qualRatio < 0.15
-      ? "Rewrite the first 3 bot messages to force budget + timeline + service in one pass."
-      : "Pick the top 5 qualified leads and run a 20-minute closing call block today.",
-    agg.high_intent_count >= 3
-      ? "Assign owners to every lead_memory 70+ score within the hour — no batching."
-      : "Raise intent thresholds in copy: demand a number pick or calendar slot on first qualified reply.",
-  ];
-
   return {
     insufficient: false,
-    executiveSummary: exec,
-    biggestOpportunity,
-    biggestProblem,
-    recommendedActions,
-    actionMenu: DEFAULT_ACTION_MENU,
+    hints: {
+      pipe_empty: false,
+      conversion_soft: qualRatio < 0.12 && total > 0,
+      high_intent: (agg.high_intent_count || 0) >= 2,
+    },
     payload: {
       funnel: dashboard.funnel,
       today_stats: {
@@ -215,59 +468,26 @@ export async function buildHotLeadsOperatorPayload() {
     .slice(0, 10)
     .map((l) => ({ phone: l.phone, name: l.name || l.full_name || "Lead", score: l.ai_score || 0 }));
 
-  const phones = hot.map((h) => h.phone).filter(Boolean);
-  const memByPhone = new Map();
-  if (phones.length) {
-    const memRows = await fetchLeadMemoryForPhones(phones, 15);
-    for (const m of memRows) {
-      if (m?.phone) memByPhone.set(String(m.phone), m);
-    }
-  }
-
   const payload = { hot_leads: hot, lead_memory_agg: agg, lead_memory_sample: lmRows.length };
 
   if (!hot.length) {
     const memHigh = agg.high_intent_count || 0;
     return {
       insufficient: false,
-      executiveSummary: [
-        "Zero hot flags in CRM right now — that is unacceptable if you are serious about revenue this week.",
-        memHigh > 0
-          ? `Contradiction: lead_memory still shows ${memHigh} high-intent profiles. Your hot scoring or follow-up discipline is off.`
-          : "Memory also shows weak intent distribution — tighten qualification copy until hot leads appear.",
-      ],
-      biggestOpportunity: memHigh > 0
-        ? "Reconcile memory vs CRM: mine those high-intent phones and force human touch today — that is found money."
-        : "Turn one case study + one aggressive CTA into the bot; hot leads will pop within 48 hours if traffic is real.",
-      biggestProblem: "Hot pipeline is empty — you are not extracting urgency from interested buyers.",
-      recommendedActions: [
-        "Pull last 20 engaged leads and call them before EOD — tag the top 3 as hot manually.",
-        "Bump budget/timeline questions earlier in the WhatsApp flow.",
-      ],
-      actionMenu: DEFAULT_ACTION_MENU,
+      hints: {
+        has_hot: false,
+        ghost_hot: memHigh > 0,
+      },
       payload: { ...payload, hot_leads: [] },
     };
   }
 
-  const top = hot[0];
-  const mem = memByPhone.get(String(top.phone));
-  const memHint = mem?.last_summary ? String(mem.last_summary).slice(0, 120) : "";
-  const exec = [
-    `${hot.length} hot leads flagged — top target ${top.name} (score ${top.score}).`,
-    memHint ? `Context: "${memHint}${memHint.length >= 120 ? "…" : ""}"` : "No memory blurb on the top lead — still strike first while intent is live.",
-    "Rule: first human touch inside 15 minutes or you are donating deals to competitors.",
-  ];
-
   return {
     insufficient: false,
-    executiveSummary: exec,
-    biggestOpportunity: "These leads already signaled heat — assign a closer and push for payment intent or calendar lock today.",
-    biggestProblem: "Risk is operational: if hot leads sit in WhatsApp without ownership, you burn margin you already paid to acquire.",
-    recommendedActions: [
-      `Call ${top.name} now — confirm budget + decision date on the phone, then send payment link same thread.`,
-      "Stand up a daily 11am hot-lead standup until conversion stabilizes.",
-    ],
-    actionMenu: DEFAULT_ACTION_MENU,
+    hints: {
+      has_hot: true,
+      hot_count: hot.length,
+    },
     payload: { ...payload, hot_leads: hot },
   };
 }
@@ -280,8 +500,6 @@ export async function buildWeeklyOptimizationOperatorPayload() {
   const replied = Number(analysis.replied || tc.replied || 0);
   const qualified = Number(tc.qualified || 0);
   const hot = Number(tc.hot_lead || 0);
-  const won = Number(tc.closed_won || 0);
-  const lost = Number(tc.closed_lost || 0);
   const fu = Number(tc.followup_sent || 0);
 
   const thin =
@@ -290,66 +508,24 @@ export async function buildWeeklyOptimizationOperatorPayload() {
   if (thin) {
     return {
       insufficient: true,
-      executiveSummary: [
-        "Not enough data yet — the bot has not seen enough structured events or prompt rows this window.",
-        `Window: last ${days}d. Push ~10 real prospect conversations through WhatsApp so I can run hard recommendations.`,
-      ],
-      biggestOpportunity: "Volume + logging: every inbound should hit lead_events with rich payloads — that is what trains the operator layer.",
-      biggestProblem: "Signal starvation — you are trying to optimize noise.",
-      recommendedActions: [
-        "Keep Phase D analytics on and run normal traffic for one week — no shortcuts.",
-        "Force one follow-up cadence for all engaged leads so followup_sent events pile up.",
-      ],
-      actionMenu: DEFAULT_ACTION_MENU,
+      hints: { thin: true },
       payload: { kind: "weekly_operator", days, eventsCount, promptsCount, lead_memory_rows: lmRows.length },
     };
   }
 
   const dropPct =
     inbound > 0 ? Math.round((1 - Math.min(replied, inbound) / inbound) * 100) : null;
-  const exec = [
-    `Last ${days}d: ${inbound} inbound → ${replied} bot replies → ${qualified} qualified → ${hot} hot → ${won} won (${lost} lost).`,
-    dropPct != null
-      ? `Reply coverage gap ~${dropPct}% (inbound→replied) — that is either traffic quality or bot uptime.`
-      : "Reply coverage still building — prioritize first-response completeness.",
-    `lead_memory sample: ${lmRows.length} rows, avg intent ${agg.avg_intent}, ${agg.high_intent_count} high-intent profiles.`,
-  ];
-
-  let biggestOpportunity = `Best monetization path: scale what already wins — top niches look like: ${analysis.top_niches || "diversify"}.`;
-  if (String(analysis.top_ctas || "").includes("quick_call")) {
-    biggestOpportunity =
-      "Call CTAs are showing up strong — push calendar-first closes; money follows conversations, not PDFs.";
-  } else if (won > 0 && hot > won) {
-    biggestOpportunity = "You are manufacturing heat faster than closes — harvest hot_lead events into invoices this week.";
-  }
-
-  let biggestProblem =
-    dropPct != null && dropPct > 35
-      ? `Funnel break at first response (~${dropPct}% inbound without solid reply metadata). Fix bot coverage or shorten first reply.`
-      : qualified > 0 && hot < Math.max(1, Math.floor(qualified * 0.15))
-        ? "Mid-funnel stall: qualified is not converting to hot — tighten proof + urgency in the second touch."
-        : lost > won && lost > 0
-          ? "You are losing more than you win in this window — inspect closed_lost reasons and kill the weak offer."
-          : "Follow-up density may be low relative to engaged leads — tighten Phase C + scheduler discipline.";
-
-  if (fu < qualified * 0.2 && qualified > 2) {
-    biggestProblem = "Follow-ups are under-fired vs qualified stock — you are leaving money on the table after qualification.";
-  }
-
-  const recommendedActions = [
-    `Ship one A/B: double down on CTA style "${String(analysis.top_ctas || "").split(",")[0] || "question_close"}" vs your runner-up for 48h.`,
-    agg.high_intent_count > 5
-      ? "Route all lead_memory 70+ scores to human same-day — automation already did its job."
-      : "Increase intent scoring aggressiveness in adaptive brain until hot_lead events rise.",
-  ];
+  const midFunnel =
+    qualified > 0 && hot < Math.max(1, Math.floor(qualified * 0.15));
+  const followGap = fu < qualified * 0.2 && qualified > 2;
 
   return {
     insufficient: false,
-    executiveSummary: exec,
-    biggestOpportunity,
-    biggestProblem,
-    recommendedActions,
-    actionMenu: DEFAULT_ACTION_MENU,
+    hints: {
+      thin: false,
+      drop_hard: dropPct != null && dropPct > 30,
+      mid_funnel: midFunnel || followGap,
+    },
     payload: {
       kind: "weekly_operator",
       days,
@@ -369,37 +545,67 @@ export async function buildWeeklyOptimizationOperatorPayload() {
 export async function renderOperatorCeoMessage(intent, ownerPhone) {
   if (intent === "today stats") {
     const data = await buildTodayStatsOperatorPayload();
-    const base = buildOperatorResponse(data);
-    const exec = await buildSalesExecutionActionBlock(intent);
+    const pers = ownerPhone ? getFounderPersonalizationLines(ownerPhone, { kind: "operator" }) : [];
+    const convo = buildOperatorBody(data, intent);
+    const bodyText = [...pers, convo].filter(Boolean).join("\n\n");
+    const exec = await buildSalesExecutionActionBlock(intent, { includeMenu: false });
     if (exec.suggestions?.length && ownerPhone) {
       cacheOwnerExecutionDrafts(ownerPhone, exec.suggestions, intent);
     }
+    const menuRows = buildMergedMenuRows(intent, data.hints, data, Boolean(exec.suggestions?.length));
+    const core = combineOperatorAndExecution(bodyText, exec.text).trim();
+    const text = `${core}${formatChooseBlockFromRows(menuRows)}`.trim().slice(0, CEO_MESSAGE_MAX);
+    const interactive =
+      menuRows.length > 0
+        ? { body: core.slice(0, INTERACTIVE_BODY_MAX), rows: menuRows }
+        : null;
     return {
-      text: combineOperatorAndExecution(base, exec.text),
+      text,
+      interactive,
       payload: { ...data.payload, execution_suggestions: exec.suggestions },
     };
   }
   if (intent === "hot leads") {
     const data = await buildHotLeadsOperatorPayload();
-    const base = buildOperatorResponse(data);
-    const exec = await buildSalesExecutionActionBlock(intent);
+    const pers = ownerPhone ? getFounderPersonalizationLines(ownerPhone, { kind: "operator" }) : [];
+    const convo = buildOperatorBody(data, intent);
+    const bodyText = [...pers, convo].filter(Boolean).join("\n\n");
+    const exec = await buildSalesExecutionActionBlock(intent, { includeMenu: false });
     if (exec.suggestions?.length && ownerPhone) {
       cacheOwnerExecutionDrafts(ownerPhone, exec.suggestions, intent);
     }
+    const menuRows = buildMergedMenuRows(intent, data.hints, data, Boolean(exec.suggestions?.length));
+    const core = combineOperatorAndExecution(bodyText, exec.text).trim();
+    const text = `${core}${formatChooseBlockFromRows(menuRows)}`.trim().slice(0, CEO_MESSAGE_MAX);
+    const interactive =
+      menuRows.length > 0
+        ? { body: core.slice(0, INTERACTIVE_BODY_MAX), rows: menuRows }
+        : null;
     return {
-      text: combineOperatorAndExecution(base, exec.text),
+      text,
+      interactive,
       payload: { ...data.payload, execution_suggestions: exec.suggestions },
     };
   }
   if (intent === "weekly optimization report") {
     const data = await buildWeeklyOptimizationOperatorPayload();
-    const base = buildOperatorResponse(data);
-    const exec = await buildSalesExecutionActionBlock(intent);
+    const pers = ownerPhone ? getFounderPersonalizationLines(ownerPhone, { kind: "operator" }) : [];
+    const convo = buildOperatorBody(data, intent);
+    const bodyText = [...pers, convo].filter(Boolean).join("\n\n");
+    const exec = await buildSalesExecutionActionBlock(intent, { includeMenu: false });
     if (exec.suggestions?.length && ownerPhone) {
       cacheOwnerExecutionDrafts(ownerPhone, exec.suggestions, intent);
     }
+    const menuRows = buildMergedMenuRows(intent, data.hints, data, Boolean(exec.suggestions?.length));
+    const core = combineOperatorAndExecution(bodyText, exec.text).trim();
+    const text = `${core}${formatChooseBlockFromRows(menuRows)}`.trim().slice(0, CEO_MESSAGE_MAX);
+    const interactive =
+      menuRows.length > 0
+        ? { body: core.slice(0, INTERACTIVE_BODY_MAX), rows: menuRows }
+        : null;
     return {
-      text: combineOperatorAndExecution(base, exec.text),
+      text,
+      interactive,
       payload: { ...data.payload, execution_suggestions: exec.suggestions },
     };
   }
@@ -421,7 +627,7 @@ function countWarmAgingLeads(lmRows) {
 }
 
 /** Founder daily entry — compact, actionable, routes to other commands. */
-export async function buildMorningBriefOperatorMessage() {
+export async function buildMorningBriefOperatorMessage(ownerPhone) {
   const [dashboard, leads, lmSnap, rev] = await Promise.all([
     getDashboardCore(),
     fetchLeads(80),
@@ -436,40 +642,37 @@ export async function buildMorningBriefOperatorMessage() {
   const low = Math.max(12000, Math.round(base * 0.3));
   const high = Math.max(low + 8000, Math.round(base * 0.75));
 
-  const priority =
+  const line1 =
     hotN >= 2
-      ? `Close ${Math.min(2, hotN)} hot lead${Math.min(2, hotN) > 1 ? "s" : ""} first — rest waits.`
+      ? `You've got ${hotN} HOT — close ${Math.min(2, hotN)} before lunch if you can.`
       : hotN === 1
-        ? "One HOT lead — hit it before noon. Momentum > meetings."
+        ? "One HOT sitting there — I'd ping them before noon."
         : total > 0
-          ? "No HOT flags yet — I'd fix first-touch + follow-up before buying more reach."
-          : "Pipe's empty — fill it before we tune copy.";
+          ? "No HOT tags yet — tighten replies + follow-ups before spending more on reach."
+          : "Quiet CRM this morning — get a few chats going first.";
 
-  const risk =
+  const line2 =
     warmAging >= 3
-      ? `${warmAging} warm leads aging (quiet > ~36h on intent 35–74).`
+      ? `${warmAging} warm threads look stale — quick nudge saves them.`
       : warmAging > 0
-        ? `${warmAging} warm thread(s) drifting — nudge today.`
-        : "Silent threads after 48h = dead money. Watch your inbox.";
+        ? `${warmAging} warm thread(s) drifting — worth a poke today.`
+        : "Watch anything silent 48h+ — that's where deals die.";
 
-  return [
-    "Good morning.",
-    "",
-    "Today's priority:",
-    priority,
-    "",
-    "Revenue opportunity (rough band):",
-    `₹${low.toLocaleString("en-IN")}–₹${high.toLocaleString("en-IN")} (heuristic from paid + pipe — not a quote).`,
-    "",
-    "Risk:",
-    risk,
-    "",
-    "Choose:",
-    "1️⃣ Show Hot Leads → `hot leads`",
-    "2️⃣ Growth Plan → `weekly optimization report`",
-    "3️⃣ Follow-up Now → `pending followups`",
-    "4️⃣ Revenue Moves → `revenue`",
-  ]
-    .join("\n")
-    .slice(0, CEO_MESSAGE_MAX);
+  const band = `Rough ₹ band today: ${low.toLocaleString("en-IN")}–${high.toLocaleString("en-IN")} (not a quote).`;
+
+  const pers = ownerPhone ? getFounderPersonalizationLines(ownerPhone, { kind: "morning_brief", hotCountToday: hotN }) : [];
+  const body = ["Morning.", ...pers, line1, line2, band].filter(Boolean);
+  const opts =
+    hotN > 0
+      ? ["hot leads", "drafts preview", "revenue", "weekly optimization report"]
+      : ["today stats", "hot leads", "weekly optimization report", "revenue"];
+  const menuRows = opts.map((c) => rowFromCommand(c));
+  const core = body.join("\n").trim();
+  const text = `${core}${formatChooseBlockFromRows(menuRows)}`.trim().slice(0, CEO_MESSAGE_MAX);
+  const interactive =
+    menuRows.length > 0
+      ? { body: core.slice(0, INTERACTIVE_BODY_MAX), rows: menuRows }
+      : null;
+
+  return { text, interactive, morningHotCount: hotN };
 }

@@ -293,16 +293,13 @@ export async function gatherExecutionSuggestionsForIntent(intent) {
 
 function smartDraftMenuLines() {
   return [
-    "Choose:",
-    "1️⃣ Send All",
-    "2️⃣ Preview",
-    "3️⃣ Edit Replies",
-    "4️⃣ Cancel",
+    "Choose 👇",
+    "1️⃣ drafts preview",
+    "2️⃣ drafts send all",
+    "3️⃣ drafts yes",
+    "4️⃣ drafts no",
     "",
-    "Next step (no auto-send):",
-    "• `drafts preview` — compact list",
-    "• `drafts send all` — confirm gate",
-    "StratXcel never messages leads from here without you pasting.",
+    "Still you pasting — nothing fires alone.",
   ];
 }
 
@@ -390,7 +387,8 @@ export function buildDraftsConfirmNoMessage() {
   };
 }
 
-export async function buildSalesExecutionActionBlock(intent) {
+export async function buildSalesExecutionActionBlock(intent, opts = {}) {
+  const includeMenu = opts.includeMenu !== false;
   const suggestions = await gatherExecutionSuggestionsForIntent(intent);
   if (!suggestions.length) {
     return { text: "", suggestions: [] };
@@ -398,7 +396,7 @@ export async function buildSalesExecutionActionBlock(intent) {
 
   const staleAny = suggestions.some((s) => s.stale_hot);
   const hotCount = suggestions.filter((s) => s.action_type === "hot_close").length;
-  const lines = ["────────", "⚡ MOVES READY (copy only)", "────────"];
+  const lines = ["Drafts you can paste 👇", ""];
 
   if (staleAny) {
     lines.push(
@@ -434,7 +432,9 @@ export async function buildSalesExecutionActionBlock(intent) {
     i += 1;
   }
 
-  lines.push(...smartDraftMenuLines());
+  if (includeMenu) {
+    lines.push(...smartDraftMenuLines());
+  }
 
   return { text: lines.join("\n").trim(), suggestions };
 }

@@ -17,7 +17,7 @@ import { analyzeAdaptiveSalesBrain } from "../services/adaptiveSalesBrain.js";
 import { getAIResponse } from "../services/openai.js";
 import { executeCeoCommand, isOwnerNumber } from "../services/ceoBridge.js";
 import { updateQualification } from "../services/salesEngine.js";
-import { sendWhatsApp } from "../services/whatsapp.js";
+import { sendFounderOutreach, sendWhatsApp } from "../services/whatsapp.js";
 import { fetchRecentMessages, getLeadMemory, saveMessage, updateLead, upsertLeadMemory } from "../services/supabase.js";
 import { claimWaMessageId, releaseWaMessageId } from "../utils/webhookDedupe.js";
 import { assertMetaWebhookSignature } from "../utils/metaSignature.js";
@@ -69,6 +69,16 @@ async function recordPhaseDBotTurn({ phone, replyText, source, adaptive, niche, 
 
 function getVerifyToken() {
   return ENV.WHATSAPP_VERIFY_TOKEN || "";
+}
+
+function extractInboundUserText(messageObj) {
+  const t = messageObj?.text?.body;
+  if (typeof t === "string" && t.trim()) return t.trim();
+  if (messageObj?.type === "interactive") {
+    const id = messageObj.interactive?.button_reply?.id || messageObj.interactive?.list_reply?.id;
+    if (id) return String(id).replace(/_/g, " ").trim();
+  }
+  return "";
 }
 
 function extractSalesSignals(message) {
@@ -162,7 +172,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
     if (owner) {
       const out = await executeCeoCommand({ command: message, phone });
       await saveMessage(phone, out.response, "bot");
-      await sendWhatsApp(phone, out.response);
+      await sendFounderOutreach(phone, { text: out.response, interactive: out.interactive });
       return res.sendStatus(200);
     }
     if (

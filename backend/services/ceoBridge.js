@@ -11,6 +11,9 @@ import {
 } from "./supabase.js";
 import { getDashboardCore } from "./dashboardMetrics.js";
 import {
+  buildFounderNaturalOperatorMessage,
+  buildFounderUnknownHelpMessage,
+  classifyFounderNaturalIntent,
   buildMorningBriefOperatorMessage,
   renderOperatorCeoMessage,
 } from "./operatorAi.js";
@@ -21,6 +24,7 @@ import {
   buildDraftsSendAllGateMessage,
   clearOwnerExecutionDrafts,
 } from "./salesExecutionEngine.js";
+import { recordFounderCommand } from "./founderOperatorMemory.js";
 
 function normPhone(v) {
   return String(v || "").replace(/\D/g, "");
@@ -90,7 +94,11 @@ export async function isOwnerNumber(phone) {
 }
 
 function detectIntent(commandRaw) {
-  const cmd = String(commandRaw || "").trim().toLowerCase();
+  const cmd = String(commandRaw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ");
   if (!cmd) return "unknown";
   if (cmd.includes("morning brief") || /^morning\s+brief\b/.test(cmd)) return "morning brief";
   if (/^drafts\s+yes\b/i.test(cmd) || cmd === "yes send drafts") return "drafts yes";
@@ -149,59 +157,83 @@ export async function executeCeoCommand({ command, phone }) {
   const intent = detectIntent(raw);
   const settings = await effectiveSettings();
   const allowed = settings.permissions.includes(intent);
-  let response =
-    "Unknown command. Try: morning brief, today stats, hot leads, revenue, pending followups, weekly optimization report, drafts preview, create task, assign lead, start ads.";
+  let response = "";
+  let interactive = null;
   let status = "unknown";
   let payload = {};
 
   if (intent === "unknown") {
-    const dashboard = await getDashboardCore();
-    payload = { funnel: dashboard.funnel, revenue: dashboard.revenue };
+    const natural = classifyFounderNaturalIntent(raw);
+    if (natural.confident) {
+      const out = await buildFounderNaturalOperatorMessage(natural.kind, raw, phone);
+      response = out.text;
+      interactive = out.interactive || null;
+      payload = out.payload || {};
+      status = "ok";
+    } else {
+      const out = await buildFounderNaturalOperatorMessage("unclear", raw, phone);
+      response = out.text;
+      interactive = out.interactive || null;
+      const dashboard = await getDashboardCore();
+      payload = { ...dashboard, ...(out.payload || {}), founder_raw: raw.slice(0, 220) };
+      status = "clarify";
+    }
   } else if (!allowed) {
     response = `Permission denied for command: ${intent}`;
+    interactive = null;
     status = "denied";
   } else if (intent === "morning brief") {
-    response = await buildMorningBriefOperatorMessage();
-    payload = { operator: true, kind: "morning_brief" };
+    const morning = await buildMorningBriefOperatorMessage(phone);
+    response = morning.text;
+    interactive = morning.interactive;
+    payload = { operator: true, kind: "morning_brief", morning_hot_count: morning.morningHotCount };
     status = "ok";
   } else if (intent === "drafts preview") {
     const op = buildDraftsPreviewMessage(phone);
     response = op.text;
+    interactive = null;
     payload = { operator: true, drafts_preview: true, execution_suggestions: op.suggestions };
     status = "ok";
   } else if (intent === "drafts send all") {
     const op = buildDraftsSendAllGateMessage(phone);
     response = op.text;
+    interactive = null;
     payload = { operator: true, drafts_send_all: true, execution_suggestions: op.suggestions };
     status = "ok";
   } else if (intent === "drafts yes") {
     const op = buildDraftsConfirmYesMessage(phone);
     response = op.text;
+    interactive = null;
     payload = { operator: true, drafts_confirmed: true, execution_suggestions: op.suggestions };
     status = "ok";
   } else if (intent === "drafts no") {
     clearOwnerExecutionDrafts(phone);
     response = buildDraftsConfirmNoMessage().text;
+    interactive = null;
     payload = { operator: true, drafts_cancelled: true };
     status = "ok";
   } else if (intent === "today stats") {
     const op = await renderOperatorCeoMessage(intent, phone);
     response = op.text;
+    interactive = op.interactive || null;
     payload = { operator: true, ...op.payload };
     status = "ok";
   } else if (intent === "hot leads") {
     const op = await renderOperatorCeoMessage(intent, phone);
     response = op.text;
+    interactive = op.interactive || null;
     payload = { operator: true, ...op.payload };
     status = "ok";
   } else if (intent === "revenue") {
     const rev = await fetchRevenueMetrics();
     response = waFormatRevenue(rev);
+    interactive = null;
     payload = rev;
     status = "ok";
   } else if (intent === "pending followups") {
     const rows = await dueFollowups(20);
     response = waFormatFollowups(rows);
+    interactive = null;
     payload = { pending_followups: rows };
     status = "ok";
   } else if (intent === "create task") {
@@ -215,6 +247,7 @@ export async function executeCeoCommand({ command, phone }) {
       created_at: new Date().toISOString(),
     });
     response = `Task created ✅\nTask: ${summary}\nLead: ${targetPhone || "general queue"}`;
+    interactive = null;
     payload = { task: summary, phone: targetPhone || null };
     status = "ok";
   } else if (intent === "assign lead") {
@@ -222,6 +255,7 @@ export async function executeCeoCommand({ command, phone }) {
     const assignee = extractAssignee(raw);
     if (!targetPhone || !assignee) {
       response = "Usage: assign lead <phone> to <owner>";
+      interactive = null;
       status = "invalid";
     } else {
       await updateLead(targetPhone, `assigned:${assignee}`);
@@ -233,6 +267,7 @@ export async function executeCeoCommand({ command, phone }) {
         created_at: new Date().toISOString(),
       });
       response = `Lead assigned ✅\nLead: ${targetPhone}\nOwner: ${assignee}`;
+      interactive = null;
       payload = { phone: targetPhone, owner: assignee };
       status = "ok";
     }
@@ -245,13 +280,23 @@ export async function executeCeoCommand({ command, phone }) {
       created_at: new Date().toISOString(),
     });
     response = "Ads kickoff queued ✅\nMedia team notified.\nCheck dashboard in 15 mins.";
+    interactive = null;
     payload = { queued: true };
     status = "ok";
   } else if (intent === "weekly optimization report") {
     const op = await renderOperatorCeoMessage(intent, phone);
     response = op.text;
+    interactive = op.interactive || null;
     payload = { operator: true, ...op.payload, kind: "phase_d_weekly_report" };
     status = "ok";
+  }
+
+  if ((status === "ok" || status === "clarify") && normPhone(phone)) {
+    let hotCount = null;
+    if (intent === "morning brief") hotCount = payload.morning_hot_count ?? null;
+    else if (Array.isArray(payload.hot_leads)) hotCount = payload.hot_leads.length;
+    const memoryIntent = intent === "unknown" ? `natural:${payload.natural_kind || "clarify"}` : intent;
+    recordFounderCommand(phone, memoryIntent, { hotCount });
   }
 
   await logCeoCommand({
@@ -264,5 +309,5 @@ export async function executeCeoCommand({ command, phone }) {
     created_at: new Date().toISOString(),
   });
 
-  return { ok: status === "ok", intent, status, response, payload };
+  return { ok: status === "ok", intent, status, response, payload, interactive };
 }
