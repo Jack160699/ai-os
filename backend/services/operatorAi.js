@@ -365,7 +365,7 @@ export function isFounderGreeting(messageRaw) {
 }
 
 export function buildFounderWelcomeMessage() {
-  const text = "Hey 👋\nKya chal raha hai aaj?";
+  const text = "Hey 👋\n\nWhat are you trying to improve right now — more leads, better conversions, or something else?";
   return {
     text,
     interactive: null,

@@ -218,58 +218,33 @@ export function buildBundleRecommendationReply({
 }) {
   const bundle = getIndustryBundle({ industry, requestedService });
   const price = `₹${Number(bundle.priceInr || 0).toLocaleString("en-IN")}`;
-  const roiLine = bundle.roiOutcomes.slice(0, 3).map((x) => `• ${x}`).join("\n");
+  const roiLine = bundle.roiOutcomes.slice(0, 2).join(", ");
   const authorityLine = INDUSTRY_AUTHORITY_LINES[industry] || INDUSTRY_AUTHORITY_LINES.general;
   const resumeLine = previousNeed
     ? `Continuing your earlier need: ${String(previousNeed).replace(/_/g, " ")}.`
     : "";
-  const trustLine = `Live in ${bundle.timeline}. Done-for-you setup. Fast onboarding.`;
-  const urgencyLine =
-    language === "hinglish" || language === "hindi"
-      ? "I can reserve one setup slot this week."
-      : "I can reserve one setup slot this week.";
+  const trustLine = `Done-for-you setup, live in ${bundle.timeline}, with fast onboarding.`;
+  const urgencyLine = "I'm onboarding a few setups this week, so timing is good if you're planning this.";
   const upsellLine = bundle.upsell
-    ? language === "hinglish" || language === "hindi"
-      ? `Relevant upsell: ${bundle.upsell.packageName} (${`₹${Number(bundle.upsell.priceInr || 0).toLocaleString("en-IN")}`}) — ${bundle.upsell.reason}.`
-      : `Relevant upsell: ${bundle.upsell.packageName} (${`₹${Number(bundle.upsell.priceInr || 0).toLocaleString("en-IN")}`}) — ${bundle.upsell.reason}.`
+    ? `If this performs as expected, the smart add-on is ${bundle.upsell.packageName} (${`₹${Number(bundle.upsell.priceInr || 0).toLocaleString("en-IN")}`}) for compounding ROI.`
     : "";
   const returningUpsellLine =
     returningClient && bundle.upsell
-      ? `Returning client advantage: add ${bundle.upsell.packageName} now for stronger compounding ROI.`
+      ? `Since you're returning, I would add ${bundle.upsell.packageName} early for faster gains.`
       : "";
 
-  if (language === "hinglish" || language === "hindi") {
-    return [
-      authorityLine,
-      `Recommended for your business: ${bundle.packageName}`,
-      resumeLine,
-      "ROI outcomes:",
-      roiLine,
-      `Investment: ${price}`,
-      trustLine,
-      humanStyleVariant(`${industry}:${requestedService}:${previousNeed}`),
-      urgencyLine,
-      upsellLine,
-      returningUpsellLine,
-      "Next step: demo ya payment link?",
-    ]
-      .filter(Boolean)
-      .join("\n");
-  }
-
   return [
+    `Got it — ${industry.replace(/_/g, " ")} context makes sense.`,
     authorityLine,
-    `Recommended for your business: ${bundle.packageName}`,
+    `Recommended for your business: ${bundle.packageName} at ${price}.`,
     resumeLine,
-    "ROI outcomes:",
-    roiLine,
-    `Investment: ${price}`,
+    `This works because ${roiLine}.`,
     trustLine,
     humanStyleVariant(`${industry}:${requestedService}:${previousNeed}`),
     urgencyLine,
     upsellLine,
     returningUpsellLine,
-    "Next step: demo or payment link?",
+    "Should I get this started for you?",
   ]
     .filter(Boolean)
     .join("\n");
@@ -297,7 +272,7 @@ export function buildObjectionReply({
   const industryLine = INDUSTRY_LINES[industry] || INDUSTRY_LINES.general;
   const authorityLine = "We run this playbook daily across Indian SMBs with measurable conversion lift.";
   const trustSignals = "Timeline locked, dedicated support, revisions included, and milestone-based delivery.";
-  const urgencyLine = "This week's capacity is limited; locking now secures an earlier start window.";
+  const urgencyLine = "Better to start early — these systems compound over time.";
 
   const objectionMap = {
     expensive: `Anchor is ${anchorPrice}; your optimized execution investment is ${price} for ${pkg.packageName} so ROI starts faster without wasted spend.`,
@@ -307,28 +282,14 @@ export function buildObjectionReply({
   };
   const core = objectionMap[objectionType] || objectionMap.expensive;
 
-  if (language === "hinglish" || language === "hindi") {
-    return [
-      core,
-      authorityLine,
-      industryLine,
-      `Delivery: ${pkg.timeline}.`,
-      trustSignals,
-      "Support: dedicated WhatsApp support + priority handling; revisions included.",
-      urgencyLine,
-      "Main onboarding slot abhi lock kar raha hoon — approval pe execution start.",
-    ].join("\n");
-  }
-
   return [
+    "Understood. Most businesses at your stage face this.",
     core,
-    authorityLine,
     industryLine,
-    `Delivery timeline: ${pkg.timeline}.`,
-    trustSignals,
-    "Support: dedicated WhatsApp support with priority response, revisions included.",
+    authorityLine,
+    `Delivery stays clear: ${pkg.timeline}, with done-for-you support and revisions.`,
     urgencyLine,
-    "I will lock your onboarding slot immediately on approval.",
+    "Want me to set this up for you?",
   ].join("\n");
 }
 
@@ -344,41 +305,44 @@ export function buildIntentRoutedReply({
   const anchorPrice = `₹${Number(Math.round((bundle.priceInr || 0) * 1.4)).toLocaleString("en-IN")}`;
   const authorityLine = INDUSTRY_AUTHORITY_LINES[industry] || INDUSTRY_AUTHORITY_LINES.general;
   const trustSignals = "Done-for-you setup. Proven for service businesses. Minimal effort from your side.";
-  const urgencyLine = "Best next step: start setup today.";
+  const urgencyLine = "I'm onboarding a few setups this week, so timing is good if you're planning this.";
 
   if (intentBand === "hot") {
     return [
+      "Got it — this is a high-intent stage.",
       authorityLine,
-      `Best option is: ${bundle.packageName}`,
-      `Here's what works:\n• ${bundle.roiOutcomes.slice(0, 3).join("\n• ")}`,
-      `Price anchor: ${anchorPrice}\nYour investment: ${price}`,
-      `Launch window: ${bundle.timeline}`,
+      `Best option is: ${bundle.packageName} (${price}).`,
+      `This works because ${bundle.roiOutcomes.slice(0, 2).join(", ")}.`,
+      `Anchor is ${anchorPrice}, current execution plan is ${price}.`,
+      `Live in ${bundle.timeline}.`,
       trustSignals,
       urgencyLine,
-      "Next step: payment link.",
+      "Should I get this started for you?",
     ].join("\n");
   }
 
   if (intentBand === "warm") {
     return [
+      "Got it — this is common and fixable.",
       authorityLine,
-      `Recommended for your business: ${bundle.packageName}`,
-      `Fastest route:\n• ${bundle.roiOutcomes.slice(0, 2).join("\n• ")}`,
-      `Price anchor: ${anchorPrice}\nYour investment: ${price}`,
-      `Launch in ${bundle.timeline}`,
+      `Recommended for your business: ${bundle.packageName} (${price}).`,
+      `Fastest route: ${bundle.roiOutcomes.slice(0, 2).join(", ")}.`,
+      `Anchor is ${anchorPrice}, your plan is ${price}.`,
+      `Live in ${bundle.timeline}.`,
       trustSignals,
       urgencyLine,
-      "Next step: demo or payment link?",
+      "Want me to set this up for you?",
     ].join("\n");
   }
 
   return [
+    "Understood. Most businesses at your stage face this.",
     authorityLine,
-    `I'd start with: ${bundle.packageName}`,
-    `Primary outcome:\n• ${bundle.roiOutcomes[0]}`,
+    `I'd start with: ${bundle.packageName} (${price}).`,
+    `Primary outcome: ${bundle.roiOutcomes[0]}.`,
     previousNeed ? `Resume context: continuing your earlier need on ${String(previousNeed).replace(/_/g, " ")}.` : "",
     trustSignals,
-    "Next step: WhatsApp audit or demo?",
+    "Should I get this started for you?",
   ].join("\n");
 }
 
@@ -401,8 +365,8 @@ export function buildCloseModeReply({
   const cta = paymentLink
     ? `Perfect 👍\n\nSecure payment link:\n${paymentLink}\n\nAfter payment:\n1. Onboarding form\n2. Assets collection\n3. Setup starts immediately`
     : requiresEmail
-      ? "Next step: share billing email to generate your live payment link now."
-      : "Next step: I am generating your live Razorpay payment link now.";
+      ? "Before I generate the payment link, share billing email once."
+      : "Perfect — generating your live Razorpay payment link now.";
 
   if (language === "hinglish" || language === "hindi") {
     return [
@@ -471,51 +435,38 @@ export function directIntentReply(intent, language = "english") {
   }
 
   if (intent === "pricing") {
-    if (language === "english") {
-      return [
-        "Top recommendation: Website Growth Launch.",
-        "ROI: stronger conversion and lead quality in 5-7 days.",
-        "Price anchor ₹27,999; current execution plan ₹19,999.",
-        "Timeline, support, and revisions are included.",
-        "Approve and I will lock your onboarding slot.",
-      ].join("\n");
-    }
     return [
-      "Top recommendation: Website Growth Launch.",
-      "ROI: conversion aur lead quality 5-7 din me improve hoti hai.",
-      "Price anchor ₹27,999; current execution plan ₹19,999.",
-      "Timeline, support, aur revisions included hain.",
-      "Approve karo, main onboarding slot lock karta hoon.",
+      "Got it — pricing clarity first.",
+      "Best option is Website Growth Launch at ₹19,999.",
+      "Anchor is ₹27,999, so current plan is value-optimized for this stage.",
+      "Want me to set this up for you?",
     ].join("\n");
   }
 
   if (intent === "website_interest") {
     return [
-      "Great choice 👌",
-      "Recommendation: conversion-first website rollout start karte hain.",
-      "Timeline 5-7 days, support + revisions included, and faster go-live slot available this week.",
-      "Share approval and I will move to payment step.",
+      "Got it — website + conversion focus, makes sense.",
+      "Best fix is a conversion-first rollout so traffic turns into enquiries faster.",
+      "Live in 5-7 days with done-for-you setup, support, and revisions.",
+      "Should I get this started for you?",
     ].join("\n");
   }
 
   if (intent === "leads_issue") {
     return [
-      "Samajh gaya 👍 Usually issue hota hai:",
-      "",
-      "1. weak ads targeting",
-      "2. no funnel",
-      "3. slow follow-up",
-      "",
-      "Isko improve kiya ja sakta hai.",
+      "Got it — leads issue, understood.",
+      "Usually this happens due to weak targeting, funnel gaps, or slow follow-up.",
+      "Fastest route is fixing response flow first, then scaling traffic.",
+      "Want me to set this up for you?",
     ].join("\n");
   }
 
   if (intent === "interested") {
     return [
-      "Great 👍",
-      "Recommendation locked: best-fit ROI bundle for your goal.",
-      "I will handle execution with committed timeline, support, and revisions.",
-      "Confirm to proceed and I will trigger the payment step now.",
+      "Great — understood.",
+      "Recommended for your business: the best-fit ROI bundle for your stage.",
+      "Execution is done-for-you with clear onboarding and fast launch.",
+      "Should I get this started for you?",
     ].join("\n");
   }
   return "";
