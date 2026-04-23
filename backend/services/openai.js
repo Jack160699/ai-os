@@ -45,7 +45,6 @@ export async function summarizeConversationTranscript(compactTranscript) {
           ],
           max_tokens: summaryMaxOut(),
           temperature: 0.25,
-          timeout: summaryTimeoutMs(),
         });
         return response.choices[0]?.message?.content ?? "";
       },
@@ -79,7 +78,6 @@ export async function getAIResponse(prompt) {
         const response = await openai.chat.completions.create({
           model: process.env.OPENAI_MODEL || "gpt-4o-mini",
           messages: [{ role: "user", content: prompt }],
-          timeout: timeoutMs(),
         });
         return response.choices[0]?.message?.content ?? "";
       },

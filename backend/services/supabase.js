@@ -24,6 +24,11 @@ function isTransientSupabaseErr(err) {
   );
 }
 
+function fallbackConversationIdFromPhone(phone) {
+  const normalized = String(phone || "").replace(/\D/g, "");
+  return normalized || String(phone || "").trim() || "unknown-thread";
+}
+
 export async function saveMessage(phone, text, sender) {
   if (!supabase) {
     log.debug("Supabase not configured; skip saveMessage");
@@ -33,7 +38,12 @@ export async function saveMessage(phone, text, sender) {
     await withRetry(
       async () => {
         const { error } = await supabase.from("messages").insert([
-          { phone, text, sender },
+          {
+            phone,
+            text,
+            sender,
+            conversation_id: fallbackConversationIdFromPhone(phone),
+          },
         ]);
         if (error) throw Object.assign(new Error(error.message), { supabaseError: error });
       },
