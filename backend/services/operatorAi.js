@@ -29,6 +29,7 @@ import {
   selectBestMove,
   storeDecisionReflection,
 } from "./decisionEngineV2.js";
+import { getAIResponse } from "./openai.js";
 
 const MENU_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣"];
 const CEO_MESSAGE_MAX = 3900;
@@ -862,6 +863,88 @@ function buildNotificationLine({ situation, state }) {
   return "";
 }
 
+function compactFounderStateForPrompt(state) {
+  return {
+    active_focus: state?.active_focus || null,
+    selected_direction: state?.selected_direction || null,
+    progress_percent: Number(state?.progress_percent || 0),
+    waiting_for_update: Boolean(state?.waiting_for_update),
+    plan_tasks: Array.isArray(state?.plan?.tasks) ? state.plan.tasks : [],
+    preferred_language: state?.meta?.preferred_language || "hinglish",
+    last_issue: state?.meta?.last_issue || null,
+    repeated_bottlenecks: Array.isArray(state?.meta?.repeated_bottlenecks) ? state.meta.repeated_bottlenecks : [],
+  };
+}
+
+function compactSituationForPrompt(situation) {
+  return {
+    leads_count: Number(situation?.leads_today || 0),
+    hot_leads: Number(situation?.hot_leads || 0),
+    ghosted_hot_leads: Number(situation?.ghosted_hot_leads || 0),
+    no_reply_threads: Number(situation?.no_reply_threads || 0),
+    pending_payments: Number(situation?.pending_payments || 0),
+    close_trend: String(situation?.close_trend || "unknown"),
+    growth_trend: String(situation?.growth_trend || "unknown"),
+    crm: situation?.crm || {},
+  };
+}
+
+function extractDirectionsForButtons(text) {
+  const lines = String(text || "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const out = [];
+  for (const line of lines) {
+    const m = line.match(/^\d+\.\s+(.+)$/);
+    if (m && m[1]) out.push(m[1].trim());
+  }
+  return out.slice(0, 3);
+}
+
+function buildFounderAiPrompt({ message, situation, state }) {
+  return `
+You are a founder's WhatsApp business operator. Reply in natural Hinglish (Roman Hindi + English).
+
+Hard rules:
+- Do not sound robotic or menu-first.
+- Short lines. No long paragraphs.
+- For business/problem messages, use this exact structure:
+
+[Main Answer]
+
+Reason:
+<1 line>
+
+Priority:
+<1 line>
+
+Abhi <2-4> direction hai:
+
+1. <action>
+2. <action>
+3. <action optional>
+
+Tum kya fix karna chahte ho?
+→ <short option>
+→ <short option>
+→ <short option optional>
+
+- Only include directions if they are useful.
+- If user just gives progress (25%, 50%, done), respond with progress-aware execution coaching.
+- Keep tone founder-friendly and direct.
+
+Runtime state:
+${JSON.stringify(compactFounderStateForPrompt(state), null, 2)}
+
+Business metrics:
+${JSON.stringify(compactSituationForPrompt(situation), null, 2)}
+
+Founder message:
+${String(message || "").trim()}
+`.trim();
+}
+
 export async function runFounderDecisionEngineV2({ ownerPhone, message, source }) {
   const intent = classifyFounderNaturalIntent(message);
   const situation = await analyzeSituation({ ownerPhone, message });
@@ -880,40 +963,34 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
   const persisted = await loadFounderExecutionState(ownerPhone);
   const state = stateFromDb(persisted);
   const msg = String(message || "").trim();
-  const lowMsg = normalizeFreeText(msg);
   const lowToken = normalizeActionToken(msg);
-  const forcedIntent =
-    lowToken === "focus_leads"
-      ? "growth advice"
-      : lowToken === "focus_closing"
-        ? "close leads"
-        : intent.kind || "unclear";
-  const focus = inferPrimaryFocus({ understanding: { intent: forcedIntent }, diagnosis, situation, message: msg });
-  const dirs = dynamicDirections({ focus, situation });
+  const focus = inferPrimaryFocus({ understanding: { intent: intent.kind || "unclear" }, diagnosis, situation, message: msg });
   const progress = parseProgressPct(msg);
-  const lowEnergy = msg.length <= 18 || /\b(thak|later|kal|short|quick)\b/.test(lowMsg);
-  const urgent = /\b(urgent|asap|abhi|jaldi|now)\b/.test(lowMsg) || diagnosis.certainty > 0.78;
   let text = "";
   let interactive = null;
   const nowIso = new Date().toISOString();
 
-  if (forcedIntent === "unclear") {
-    text = formatFounderResponse({
-      answer: "Issue clear karte hain.",
-      reason: "Message me exact bottleneck clear nahi hai.",
-      priority: "Ek focus lock karo taaki aaj execution start ho.",
-      directions: [
-        { label: "Leads issue fix karo", short: "Leads" },
-        { label: "Closing issue fix karo", short: "Closing" },
-      ],
-    });
-    interactive = {
-      body: "Ek choose karo:",
-      rows: [
-        { id: "focus_leads", title: "Leads issue" },
-        { id: "focus_closing", title: "Closing issue" },
-      ],
-    };
+  if (lowToken === "focus_leads" || lowToken === "focus_closing" || /^dir_\d$/.test(lowToken)) {
+    const dirs = dynamicDirections({ focus, situation });
+    const selected = /^dir_\d$/.test(lowToken) ? dirs[Math.max(0, Number(lowToken.replace("dir_", "")) - 1)] : dirs[0];
+    const plan = buildExecutionPlan(focus, { urgent: diagnosis.certainty > 0.78, lowEnergy: false });
+    try {
+      await saveFounderExecutionState(ownerPhone, {
+        active_focus: focus,
+        selected_direction: selected || focus,
+        plan: { tasks: plan.tasks, asset: plan.asset, next: plan.next },
+        progress_percent: 0,
+        waiting_for_update: true,
+        last_action_at: nowIso,
+        next_reminder_at: new Date(Date.now() + INACTIVITY_MS).toISOString(),
+        meta: {
+          preferred_language: "hinglish",
+          last_issue: intent.kind || "unclear",
+          repeated_bottlenecks: [diagnosis.root_problem, diagnosis.secondary_problem].filter(Boolean),
+        },
+      });
+    } catch {}
+    text = buildExecutionMessage({ focus: focus[0].toUpperCase() + focus.slice(1), plan });
   } else if (progress != null && state?.waiting_for_update) {
     try {
       await updateFounderProgress(ownerPhone, progress);
@@ -946,121 +1023,37 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
         // Keep founder response path resilient.
       }
       text = [
-        `Noted: ${progress}%`,
+        `${progress}% noted.`,
         "",
-        "Priority:\nAaj ka selected sprint close karo.",
+        "Priority:\nAaj ka selected sprint complete karo.",
         "",
         "Kitna hua?",
         "25 / 50 / done",
       ].join("\n");
     }
   } else {
-    const selected = parseDirectionSelection(msg, dirs);
-    if (selected) {
-      const plan = buildExecutionPlan(focus, { urgent, lowEnergy });
-      const nextReminderAt = new Date(Date.now() + INACTIVITY_MS).toISOString();
+    const aiPrompt = buildFounderAiPrompt({ message: msg, situation, state });
+    text = await getAIResponse(aiPrompt);
+    const dirLabels = extractDirectionsForButtons(text);
+    if (dirLabels.length >= 2 && /\b(Tum kya fix karna chahte ho|direction)\b/i.test(text)) {
+      interactive = {
+        body: "Ek direction choose karo:",
+        rows: dirLabels.map((d, i) => ({ id: `dir_${i + 1}`, title: titleForMenuCommand(d.slice(0, 24)) })).slice(0, 3),
+      };
       try {
         await saveFounderExecutionState(ownerPhone, {
+          ...state,
           active_focus: focus,
-          selected_direction: selected,
-          plan: { tasks: plan.tasks, asset: plan.asset, next: plan.next },
-          progress_percent: 0,
-          waiting_for_update: true,
           last_action_at: nowIso,
-          next_reminder_at: nextReminderAt,
           meta: {
-            direction_choices: dirs,
-            urgent,
-            low_energy: lowEnergy,
+            ...(state.meta || {}),
             preferred_language: "hinglish",
-            last_issue: forcedIntent,
+            last_issue: intent.kind || "general",
             repeated_bottlenecks: [diagnosis.root_problem, diagnosis.secondary_problem].filter(Boolean),
+            ai_suggested_directions: dirLabels,
           },
         });
-      } catch {
-        // Keep founder response path resilient.
-      }
-      text = buildExecutionMessage({ focus: focus[0].toUpperCase() + focus.slice(1), plan });
-    } else {
-      if (forcedIntent === "draft message") {
-        text = formatFounderResponse({
-          answer: "Reply ready karte hain.",
-          reason: "Lead context ke bina strong reply miss ho sakta hai.",
-          priority: "Ek line context do: last msg + objection + stage.",
-          directions: [
-            { label: "Lead ka last message bhejo", short: "Last msg" },
-            { label: "Objection batao (price/trust/time)", short: "Objection" },
-            { label: "Stage batao (new/warm/hot)", short: "Stage" },
-          ],
-        });
-        interactive = null;
-      } else if (forcedIntent === "daily priorities") {
-        text = formatFounderResponse({
-          answer: "Aaj ka focus clear hai.",
-          reason: "Pipeline tab grow karti hai jab outreach + follow-up + close parallel chale.",
-          priority: "Pehle revenue-impact wala block execute karo.",
-          directions: [
-            { label: "Leads push karo (fresh conversations)", short: "Leads" },
-            { label: "Closing push karo (hot threads)", short: "Closing" },
-            { label: "Offer tighten karo (conversion bump)", short: "Offer" },
-          ],
-        });
-        interactive = {
-          body: "Aaj kis pe execute karna hai?",
-          rows: [
-            { id: "dir_1", title: "Leads push" },
-            { id: "dir_2", title: "Closing push" },
-            { id: "dir_3", title: "Offer tighten" },
-          ],
-        };
-      } else {
-      if (forcedIntent === "revenue help") {
-        const rev = buildRevenueIssueFramework(situation);
-        text = rev.text;
-        interactive = {
-          body: "Revenue diagnose ke liye ek direction choose karo:",
-          rows: [
-            { id: "dir_1", title: "Leads check" },
-            { id: "dir_2", title: "Closing check" },
-            { id: "dir_3", title: "Offer check" },
-          ],
-        };
-      } else {
-      const reasons = rootCausesFromDiagnosis(diagnosis, analyzeBusinessStateFromData({ crm: situation.crm, lmRows: situation.lead_events_7d || [] }));
-      const answer = selection?.best_move?.move || "Aaj direct execution sprint chalayenge.";
-      const currentState =
-        focus === "closing"
-          ? "Closing slow chal rahi hai."
-          : focus === "revenue"
-            ? "Revenue pickup abhi slow hai."
-            : focus === "offer"
-              ? "Offer clear nahi lag raha."
-              : "Leads slow chal rahe hain.";
-      const priority =
-        focus === "closing"
-          ? "Abhi sabse pehle warm leads ko close push do."
-          : focus === "revenue"
-            ? "Abhi sabse pehle payment conversion nikaalo."
-            : focus === "offer"
-              ? "Abhi sabse pehle offer clarity fix karo."
-              : "Abhi sabse pehle naye conversations chahiye.";
-      const reasonLine = reasons
-        .map((r) => String(r).replace(/top funnel weak/gi, "Top funnel weak hai").replace(/slow follow-up on warm\/hot leads/gi, "Warm leads pe follow-up slow hai"))
-        .filter(Boolean)
-        .slice(0, 2)
-        .join(" ");
-      text = formatFounderResponse({
-        answer: `${answer}\n${currentState}`,
-        reason: reasonLine || "Funnel me ek execution leak aa raha hai.",
-        priority,
-        directions: dirs.map((d) => ({ label: d, short: d.split(" ")[0] || d })),
-      });
-      interactive = {
-        body: "Direction choose karo:",
-        rows: dirs.map((d, i) => ({ id: `dir_${i + 1}`, title: titleForMenuCommand(d.slice(0, 24)) })).slice(0, 3),
-      };
-      }
-      }
+      } catch {}
     }
   }
 
