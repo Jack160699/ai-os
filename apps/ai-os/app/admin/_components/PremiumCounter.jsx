@@ -3,17 +3,23 @@
 import { useEffect, useMemo, useState } from "react";
 
 function formatValue(value, format) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "—";
   if (format === "currency") return `₹${Number(value || 0).toLocaleString("en-IN")}`;
   if (format === "percent") return `${Number(value || 0).toFixed(1)}%`;
   if (format === "time") return `${Number(value || 0).toFixed(1)} min`;
   return Number(value || 0).toLocaleString("en-IN");
 }
 
-export function PremiumCounter({ value = 0, format = "number", durationMs = 700 }) {
-  const target = useMemo(() => Number(value || 0), [value]);
+export function PremiumCounter({ value = null, format = "number", durationMs = 700 }) {
+  const hasValue = value !== null && value !== undefined && Number.isFinite(Number(value));
+  const target = useMemo(() => (hasValue ? Number(value) : 0), [hasValue, value]);
   const [display, setDisplay] = useState(target);
 
   useEffect(() => {
+    if (!hasValue) {
+      setDisplay(0);
+      return;
+    }
     let frame = 0;
     let raf = 0;
     const totalFrames = Math.max(10, Math.floor(durationMs / 16));
@@ -29,8 +35,8 @@ export function PremiumCounter({ value = 0, format = "number", durationMs = 700 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target]);
+  }, [hasValue, target]);
 
-  return <span>{formatValue(display, format)}</span>;
+  return <span>{formatValue(hasValue ? display : null, format)}</span>;
 }
 

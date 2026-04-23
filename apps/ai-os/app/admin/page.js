@@ -61,9 +61,14 @@ function mergeRecentTableRows(data) {
   return rows.slice(0, 35);
 }
 
-function toFiniteNumber(value, fallback = 0) {
+function toFiniteNumber(value, fallback = null) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function countWhere(rows, predicate) {
+  if (!Array.isArray(rows)) return 0;
+  return rows.filter(predicate).length;
 }
 
 function buildSummary(data) {
@@ -76,6 +81,24 @@ function buildSummary(data) {
     if (!(status.includes("paid") || status.includes("captured"))) return sum;
     return sum + toFiniteNumber(row?.amount_rupees, 0);
   }, 0);
+  const failedPayments = countWhere(
+    paymentEvents,
+    (row) => String(row?.status || "").toLowerCase().includes("fail")
+  );
+  const paidPayments = countWhere(paymentEvents, (row) => {
+    const s = String(row?.status || "").toLowerCase();
+    return s.includes("paid") || s.includes("captured");
+  });
+  const totalPaymentSignals = failedPayments + paidPayments;
+  const inferredConversionPct =
+    recentLeads.length + recentPipeline.length > 0
+      ? Number(
+          (
+            (recentLeads.length / Math.max(1, recentLeads.length + recentPipeline.length)) *
+            100
+          ).toFixed(1)
+        )
+      : null;
 
   return {
     ...raw,
@@ -89,8 +112,19 @@ function buildSummary(data) {
     ),
     paid_revenue_rupees: toFiniteNumber(
       raw?.paid_revenue_rupees ?? raw?.revenue_mtd,
-      paidFromEvents
+      paidFromEvents > 0 ? paidFromEvents : null
     ),
+    payments_count_30d: toFiniteNumber(
+      raw?.payments_count_30d ?? raw?.bookings_today,
+      paidPayments > 0 ? paidPayments : null
+    ),
+    failed_payments_recent: toFiniteNumber(raw?.failed_payments_recent, failedPayments),
+    conversion_rate_pct: toFiniteNumber(
+      raw?.conversion_rate_pct ?? raw?.booking_rate,
+      inferredConversionPct
+    ),
+    pending_replies: toFiniteNumber(raw?.pending_replies, recentPipeline.length || null),
+    total_payment_signals: totalPaymentSignals || null,
     updated_at: raw?.updated_at || data?.updated_at || new Date().toISOString(),
   };
 }
@@ -138,13 +172,18 @@ export default async function AdminPage() {
   const hotLeads = Array.isArray(data?.hot_leads) ? data.hot_leads : [];
   const recentRows = data ? mergeRecentTableRows(data) : [];
   const paymentEvents = Array.isArray(data?.payment_events_recent) ? data.payment_events_recent : [];
-  const newLeads = Number(summary?.new_leads ?? summary?.new_leads_today ?? summary?.leads_today ?? 0);
-  const activeLive = Number(summary?.active_leads ?? summary?.pending_replies ?? 0);
-  const revenueMtd = Number(summary?.paid_revenue_rupees ?? summary?.revenue_mtd ?? 0);
-  const abandonedPayments = Math.max(0, Math.round(activeLive * 0.18));
+  const newLeads = toFiniteNumber(summary?.new_leads ?? summary?.new_leads_today ?? summary?.leads_today);
+  const activeLive = toFiniteNumber(summary?.active_leads ?? summary?.pending_replies);
+  const revenueMtd = toFiniteNumber(summary?.paid_revenue_rupees ?? summary?.revenue_mtd);
   const paymentFailures = paymentEvents.filter((row) => String(row?.status || "").toLowerCase().includes("fail"));
-  const openTasks = Number(summary?.open_tasks ?? 0) || paymentFailures.length + Math.min(hotLeads.length, 5);
+  const pendingPayments = toFiniteNumber(summary?.failed_payments_recent, paymentFailures.length || null);
+  const openTasks = toFiniteNumber(summary?.open_tasks, paymentFailures.length + Math.min(hotLeads.length, 5));
   const inboxPreviewRows = recentRows.slice(0, 6);
+  const kpiValue = (value, { currency = false } = {}) => {
+    if (!Number.isFinite(Number(value))) return "—";
+    const n = Number(value);
+    return currency ? `₹${n.toLocaleString("en-IN")}` : n.toLocaleString("en-IN");
+  };
 
   return (
     <AdminShell
@@ -166,10 +205,10 @@ export default async function AdminPage() {
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "New Leads", value: newLeads },
-          { label: "Pending Replies", value: activeLive },
-          { label: "Revenue MTD", value: `₹${revenueMtd.toLocaleString("en-IN")}` },
-          { label: "Open Tasks", value: openTasks },
+          { label: "New Leads", value: kpiValue(newLeads) },
+          { label: "Pending Replies", value: kpiValue(activeLive) },
+          { label: "Revenue MTD", value: kpiValue(revenueMtd, { currency: true }) },
+          { label: "Open Tasks", value: kpiValue(openTasks) },
         ].map((kpi) => (
           <SurfaceCard key={kpi.label} className="p-4 sm:p-5">
             <p className="text-[11px] uppercase tracking-[0.12em] text-slate-500">{kpi.label}</p>
@@ -197,7 +236,7 @@ export default async function AdminPage() {
         </SurfaceCard>
         <SurfaceCard className="p-5 sm:p-6" href="/admin/payments">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Payments Pending</p>
-          <p className="mt-2 text-3xl font-semibold tracking-tight text-amber-100">{abandonedPayments}</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-amber-100">{kpiValue(pendingPayments)}</p>
           <p className="mt-1 text-[12px] text-slate-400">{paymentFailures.length} recent payment failures need follow-up.</p>
         </SurfaceCard>
       </section>
