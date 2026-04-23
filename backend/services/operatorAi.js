@@ -25,7 +25,6 @@ import {
   analyzeSituation,
   diagnoseRootProblem,
   findOpportunities,
-  generateFounderReply,
   scoreActions,
   selectBestMove,
   storeDecisionReflection,
@@ -596,34 +595,6 @@ export function bestNextAction(context, analysis, understanding) {
   };
 }
 
-function buildReasonedReply({ context, analysis, understanding, decision }) {
-  const hi = understanding.language === "hinglish";
-  if (understanding.intent === "unclear") {
-    const text = hi
-      ? "Quick clarify: leads, closing, revenue ya draft — abhi kis pe focus kare?"
-      : "Quick clarify: should we focus on leads, closing, revenue, or drafting right now?";
-    return { text, needs_options: true };
-  }
-
-  const intro = hi
-    ? `Problem clear hai — ${analysis.main_problem}.`
-    : `The issue is clear — ${analysis.main_problem}.`;
-  const reason = hi
-    ? `Reason: ${decision.reasoning}`
-    : `Reason: ${decision.reasoning}`;
-  const action = hi ? `Aaj ka next move:\n→ ${decision.action}` : `Next move:\n→ ${decision.action}`;
-  const close =
-    hi && understanding.intent !== "draft message"
-      ? "Chahe to main exact script bhi de dunga."
-      : !hi && understanding.intent !== "draft message"
-        ? "If you want, I can draft the exact script as well."
-        : "";
-  return {
-    text: [intro, "", reason, "", action, close].filter(Boolean).join("\n").slice(0, CEO_MESSAGE_MAX),
-    needs_options: false,
-  };
-}
-
 function normalizeFreeText(v) {
   return String(v || "")
     .trim()
@@ -790,25 +761,6 @@ function stateFromDb(row) {
     next_reminder_at: row?.next_reminder_at ? String(row.next_reminder_at) : null,
     meta: row?.meta && typeof row.meta === "object" ? row.meta : {},
   };
-}
-
-function buildFrameworkMessage({ answer, currentState, reasons, priority, directions }) {
-  return [
-    answer,
-    "",
-    "Reason:",
-    reasons.map((r) => `- ${r}`).join("\n"),
-    "",
-    `Priority:\n${priority}`,
-    "",
-    "Abhi X direction hai:",
-    ...directions.map((d, i) => `${i + 1}. ${d}`),
-    "",
-    "Tum kya fix karna chahte ho?",
-    ...directions.map((d) => `→ ${d}`),
-  ]
-    .join("\n")
-    .slice(0, CEO_MESSAGE_MAX);
 }
 
 function formatFounderResponse({ answer, reason, priority, directions }) {

@@ -99,19 +99,28 @@ function detectIntent(commandRaw) {
     .replace(/_/g, " ")
     .replace(/\s+/g, " ");
   if (!cmd) return "unknown";
+
+  const exactMap = new Map([
+    ["morning brief", "morning brief"],
+    ["today stats", "today stats"],
+    ["hot leads", "hot leads"],
+    ["revenue", "revenue"],
+    ["revenue report", "revenue"],
+    ["pending followups", "pending followups"],
+    ["weekly optimization report", "weekly optimization report"],
+    ["drafts preview", "drafts preview"],
+    ["drafts send all", "drafts send all"],
+    ["drafts yes", "drafts yes"],
+    ["drafts no", "drafts no"],
+    ["yes send drafts", "drafts yes"],
+    ["no send drafts", "drafts no"],
+  ]);
+  if (exactMap.has(cmd)) return exactMap.get(cmd);
+
   if (isProblemStatement(cmd)) return "unknown";
-  if (cmd === "morning brief") return "morning brief";
-  if (/^drafts\s+yes\b/i.test(cmd) || cmd === "yes send drafts") return "drafts yes";
-  if (/^drafts\s+no\b/i.test(cmd) || cmd === "no send drafts") return "drafts no";
-  if (cmd.includes("drafts send all") || /\bsend all drafts\b/.test(cmd)) return "drafts send all";
-  if (/^drafts\s+preview\b/i.test(cmd)) return "drafts preview";
-  if (cmd === "weekly optimization report") {
-    return "weekly optimization report";
-  }
-  if (cmd === "today stats") return "today stats";
-  if (cmd === "hot leads") return "hot leads";
-  if (cmd === "revenue" || cmd === "revenue report") return "revenue";
-  if (cmd === "pending followups") return "pending followups";
+
+  if (/\bsend all drafts\b/.test(cmd)) return "drafts send all";
+  if (/^drafts\s+preview\b/.test(cmd)) return "drafts preview";
   if (cmd.includes("create task") || cmd.startsWith("task ")) return "create task";
   if (cmd.includes("assign lead") || cmd.includes("assign")) return "assign lead";
   if (cmd.includes("start ads") || cmd.includes("ads start")) return "start ads";
