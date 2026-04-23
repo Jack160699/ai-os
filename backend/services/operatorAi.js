@@ -4,12 +4,16 @@
 
 import { getDashboardCore } from "./dashboardMetrics.js";
 import {
+  clearFounderExecutionState,
   fetchLeadEventsSince,
   fetchLeadMemoryOperatorSnapshot,
   fetchLeads,
   fetchRecentMessages,
   fetchRevenueMetrics,
   getLeadMemory,
+  loadFounderExecutionState,
+  saveFounderExecutionState,
+  updateFounderProgress,
 } from "./supabase.js";
 import { loadWeeklyOptimizationAnalysis } from "./phaseDOptimizer.js";
 import {
@@ -30,6 +34,7 @@ import {
 const MENU_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣"];
 const CEO_MESSAGE_MAX = 3900;
 const INTERACTIVE_BODY_MAX = 1000;
+const INACTIVITY_MS = 12 * 60 * 60 * 1000;
 
 function combineOperatorAndExecution(baseText, executionText) {
   const base = String(baseText || "").trim();
@@ -619,6 +624,219 @@ function buildReasonedReply({ context, analysis, understanding, decision }) {
   };
 }
 
+function normalizeFreeText(v) {
+  return String(v || "")
+    .trim()
+    .toLowerCase();
+}
+
+function rootCausesFromDiagnosis(diagnosis, analysis) {
+  const list = [];
+  if (diagnosis?.root_problem) list.push(diagnosis.root_problem);
+  if (diagnosis?.secondary_problem && diagnosis.secondary_problem !== diagnosis.root_problem) {
+    list.push(diagnosis.secondary_problem);
+  }
+  if (list.length < 2 && analysis?.leverage_point) list.push(analysis.leverage_point);
+  return list.slice(0, 2);
+}
+
+function inferPrimaryFocus({ understanding, diagnosis, situation, message }) {
+  const low = normalizeFreeText(message);
+  if (understanding.intent === "revenue help" || /revenue|sales|payment|cash/.test(low)) return "revenue";
+  if (understanding.intent === "close leads" || /close|closing|deal|follow/.test(low)) return "closing";
+  if (understanding.intent === "growth advice" || /lead|growth|outbound|ads/.test(low)) return "leads";
+  if (/offer|pricing|proposal/.test(low)) return "offer";
+  if (String(diagnosis?.root_problem || "").includes("top funnel")) return "leads";
+  if (String(diagnosis?.root_problem || "").includes("payment")) return "revenue";
+  if (situation?.hot_leads > 0 && situation?.crm?.revenue_paid_count === 0) return "closing";
+  return "leads";
+}
+
+function dynamicDirections({ focus, situation }) {
+  if (focus === "revenue") {
+    return [
+      "Top 3 hot threads pe payment deadline close karo",
+      "Pending payment intents pe 2-step reminder bhejo",
+      "Price objection ke liye proof-based close script chalao",
+    ];
+  }
+  if (focus === "closing") {
+    return [
+      "Ghosted hot leads ko 30-word reactivation bhejo",
+      "Objection-to-close follow-up stack run karo",
+      "Call-to-payment bridge message aaj test karo",
+    ];
+  }
+  if (focus === "offer") {
+    return [
+      "Offer ko outcome + timeline format me rewrite karo",
+      "Pricing anchor + guarantee line add karke resend karo",
+      "Top objection ke against 3 rebuttal snippets deploy karo",
+    ];
+  }
+  const outboundHeavy = Number(situation?.leads_today || 0) < 5;
+  if (outboundHeavy) {
+    return [
+      "Aaj 15 targeted outbound messages bhejo",
+      "Warm replies pe same-day follow-up sprint run karo",
+      "Best performing niche pe micro-offer push karo",
+    ];
+  }
+  return [
+    "Ad response se qualified leads extract script tighten karo",
+    "Inbound replies ke liye 2-minute response SLA lagao",
+    "High-intent threads ko closing queue me push karo",
+  ];
+}
+
+function parseDirectionSelection(message, dirs) {
+  const low = normalizeFreeText(message);
+  const dirId = low.match(/^dir_(\d)$/);
+  if (dirId) {
+    const idx = Number(dirId[1]) - 1;
+    return dirs[idx] || "";
+  }
+  const num = low.match(/\b([1-3])\b/);
+  if (num) {
+    const idx = Number(num[1]) - 1;
+    return dirs[idx] || "";
+  }
+  return dirs.find((d) => {
+    const tokens = normalizeFreeText(d).split(/\s+/).slice(0, 3);
+    return tokens.some((t) => t.length >= 4 && low.includes(t));
+  }) || "";
+}
+
+function buildExecutionPlan(focus, { urgent = false, lowEnergy = false } = {}) {
+  const maxTasks = lowEnergy ? 2 : 3;
+  if (focus === "revenue") {
+    return {
+      tasks: [
+        "Top 3 hot leads ko payment deadline ke saath ping karo",
+        "Pending payment walon ko proof + CTA bhejo",
+        "Reply aaye to same chat me payment link close karo",
+      ].slice(0, maxTasks),
+      asset:
+        "Copy paste: `Aaj slot hold karna hai to payment step complete kar do. Proof attached hai. Ready ho to abhi link bhej du?`",
+      next: urgent ? "Yeh close hote hi next hot lead pe shift karte hain." : "Iske baad next close batch uthayenge.",
+    };
+  }
+  if (focus === "closing") {
+    return {
+      tasks: [
+        "Top ghosted hot leads ki 5-list nikalo",
+        "Har lead ko short reactivation message bhejo",
+        "Interested replies ko objection-clear + deadline pe shift karo",
+      ].slice(0, maxTasks),
+      asset:
+        "Copy paste: `Quick check — abhi bhi result chahiye? Agar haan, main 2-step plan abhi bhejta hu.`",
+      next: urgent ? "Jo reply kare usko turant call slot do." : "Reply aate hi close script run karenge.",
+    };
+  }
+  if (focus === "offer") {
+    return {
+      tasks: [
+        "Current offer ko outcome-first line me rewrite karo",
+        "Pricing ko 3-tier anchor me convert karke bhejo",
+        "Last 5 objection chats me revised offer resend karo",
+      ].slice(0, maxTasks),
+      asset:
+        "Copy paste: `30 din ka outcome: <result>. Start step: <step>. Investment: <price>. Agar aligned ho to onboarding aaj start kare?`",
+      next: "Response dekhke offer v2 tighten karenge.",
+    };
+  }
+  return {
+    tasks: [
+      "Aaj 10 targeted outbound messages bhejo",
+      "2 ghante baad unanswered threads pe follow-up ping karo",
+      "Jo warm reply aaye usko qualification script pe lao",
+    ].slice(0, maxTasks),
+    asset:
+      "Copy paste: `Quick idea hai aapke business ke liye. 2 practical steps bheju jo is week leads la sakte hain?`",
+    next: "Replies aate hi warm leads ko closing queue me dalenge.",
+  };
+}
+
+function parseProgressPct(message) {
+  const low = normalizeFreeText(message);
+  const pctMatch = low.match(/(\d{1,3})\s*%/);
+  if (pctMatch) return Math.max(0, Math.min(100, Number(pctMatch[1])));
+  const plain = low.match(/\b(25|50|75|100)\b/);
+  if (plain) return Number(plain[1]);
+  if (/\b(done|complete|completed|ho gaya|ho gya|finished)\b/.test(low)) return 100;
+  if (/\b(started|shuru|working)\b/.test(low)) return 25;
+  if (/\bhalf|50\b/.test(low)) return 50;
+  return null;
+}
+
+function stateFromDb(row) {
+  return {
+    active_focus: String(row?.active_focus || ""),
+    selected_direction: String(row?.selected_direction || ""),
+    plan: row?.plan && typeof row.plan === "object" ? row.plan : null,
+    progress_percent: Number(row?.progress_percent || 0),
+    waiting_for_update: Boolean(row?.waiting_for_update),
+    last_action_at: row?.last_action_at ? String(row.last_action_at) : null,
+    next_reminder_at: row?.next_reminder_at ? String(row.next_reminder_at) : null,
+    meta: row?.meta && typeof row.meta === "object" ? row.meta : {},
+  };
+}
+
+function buildFrameworkMessage({ answer, currentState, reasons, priority, directions }) {
+  return [
+    answer,
+    "",
+    "Kyun:",
+    reasons.map((r) => `- ${r}`).join("\n"),
+    "",
+    `Abhi priority:\n${priority}`,
+    "",
+    "Abhi X direction hai:",
+    ...directions.map((d, i) => `${i + 1}. ${d}`),
+    "",
+    "Tum kya fix karna chahte ho?",
+    ...directions.map((d) => `→ ${d}`),
+  ]
+    .join("\n")
+    .slice(0, CEO_MESSAGE_MAX);
+}
+
+function buildExecutionMessage({ focus, plan }) {
+  return [
+    `Focus: ${focus}`,
+    "",
+    "Seedhi baat:",
+    `Abhi ${focus.toLowerCase()} pe execution push chahiye.`,
+    "",
+    "Aaj ka plan:",
+    ...plan.tasks.map((t, i) => `${i + 1}. ${t}`),
+    "",
+    `Ready copy:\n${plan.asset}`,
+    "",
+    "Kitna hua?",
+    "25 / 50 / done",
+    "",
+    `Next step:\n${plan.next}`,
+  ]
+    .join("\n")
+    .slice(0, CEO_MESSAGE_MAX);
+}
+
+function buildNotificationLine({ situation, state }) {
+  const now = Date.now();
+  const nextReminderAt = state?.next_reminder_at ? Date.parse(state.next_reminder_at) : NaN;
+  const shouldRemind = state?.waiting_for_update && (!Number.isFinite(nextReminderAt) || nextReminderAt <= now);
+  if (shouldRemind) {
+    return "Reminder:\nLast action complete nahi hua.\nAaj ka focus pending hai:\n→ Leads / Closing / Offer\nContinue karein?";
+  }
+  const revenueZero = Number(situation?.crm?.revenue_paid_count || 0) === 0;
+  const highUrgency = String(situation?.close_trend || "").toLowerCase() === "weak" || Number(situation?.hot_leads || 0) >= 2;
+  if (revenueZero && highUrgency) {
+    return "Alert:\n2 din se revenue zero hai.\nImmediate action needed:\n→ Leads push\n→ Closing focus\nStart now?";
+  }
+  return "";
+}
+
 export async function runFounderDecisionEngineV2({ ownerPhone, message, source }) {
   const intent = classifyFounderNaturalIntent(message);
   const situation = await analyzeSituation({ ownerPhone, message });
@@ -634,13 +852,119 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
     opportunities,
   });
   const selection = selectBestMove({ scoredActions });
-  const text = generateFounderReply({
-    message,
-    intent: intent.kind || "unclear",
-    situation,
-    diagnosis,
-    selection,
-  });
+  const persisted = await loadFounderExecutionState(ownerPhone);
+  const state = stateFromDb(persisted);
+  const msg = String(message || "").trim();
+  const lowMsg = normalizeFreeText(msg);
+  const forcedIntent =
+    lowMsg === "focus_leads" ? "growth advice" : lowMsg === "focus_closing" ? "close leads" : intent.kind || "unclear";
+  const focus = inferPrimaryFocus({ understanding: { intent: forcedIntent }, diagnosis, situation, message: msg });
+  const dirs = dynamicDirections({ focus, situation });
+  const progress = parseProgressPct(msg);
+  const lowEnergy = msg.length <= 18 || /\b(thak|later|kal|short|quick)\b/.test(lowMsg);
+  const urgent = /\b(urgent|asap|abhi|jaldi|now)\b/.test(lowMsg) || diagnosis.certainty > 0.78;
+  let text = "";
+  let interactive = null;
+  const nowIso = new Date().toISOString();
+
+  if (forcedIntent === "unclear") {
+    text =
+      "Seedha bolo:\nLeads issue fix karna hai ya closing issue?";
+    interactive = {
+      body: "Ek choose karo:",
+      rows: [
+        { id: "focus_leads", title: "Leads issue" },
+        { id: "focus_closing", title: "Closing issue" },
+      ],
+    };
+  } else if (progress != null && state?.waiting_for_update) {
+    await updateFounderProgress(ownerPhone, progress);
+    if (progress >= 100) {
+      await clearFounderExecutionState(ownerPhone);
+      text = [
+        "Solid. Yeh sprint complete ho gaya.",
+        "",
+        "Priority:\nMomentum mat todna.",
+        "",
+        `Continuation:\n${buildExecutionPlan(state.active_focus || focus, { urgent, lowEnergy }).next}`,
+      ].join("\n");
+    } else {
+      await saveFounderExecutionState(ownerPhone, {
+        ...state,
+        progress_percent: progress,
+        waiting_for_update: true,
+        last_action_at: nowIso,
+        next_reminder_at: new Date(Date.now() + INACTIVITY_MS).toISOString(),
+      });
+      text = [
+        `Noted: ${progress}%`,
+        "",
+        "Priority:\nAaj ka selected sprint close karo.",
+        "",
+        "Kitna hua?",
+        "25 / 50 / done",
+      ].join("\n");
+    }
+  } else {
+    const selected = parseDirectionSelection(msg, dirs);
+    if (selected) {
+      const plan = buildExecutionPlan(focus, { urgent, lowEnergy });
+      const nextReminderAt = new Date(Date.now() + INACTIVITY_MS).toISOString();
+      await saveFounderExecutionState(ownerPhone, {
+        active_focus: focus,
+        selected_direction: selected,
+        plan: { tasks: plan.tasks, asset: plan.asset, next: plan.next },
+        progress_percent: 0,
+        waiting_for_update: true,
+        last_action_at: nowIso,
+        next_reminder_at: nextReminderAt,
+        meta: { direction_choices: dirs, urgent, low_energy: lowEnergy },
+      });
+      text = buildExecutionMessage({ focus: focus[0].toUpperCase() + focus.slice(1), plan });
+    } else {
+      const reasons = rootCausesFromDiagnosis(diagnosis, analyzeBusinessStateFromData({ crm: situation.crm, lmRows: situation.lead_events_7d || [] }));
+      const answer = `Main answer: ${selection?.best_move?.move || "Aaj direct execution sprint chalayenge."}`;
+      const currentState =
+        focus === "closing"
+          ? "Closing slow chal rahi hai."
+          : focus === "revenue"
+            ? "Revenue pickup abhi slow hai."
+            : focus === "offer"
+              ? "Offer clear nahi lag raha."
+              : "Leads slow chal rahe hain.";
+      const priority =
+        focus === "closing"
+          ? "Abhi sabse pehle warm leads ko close push do."
+          : focus === "revenue"
+            ? "Abhi sabse pehle payment conversion nikaalo."
+            : focus === "offer"
+              ? "Abhi sabse pehle offer clarity fix karo."
+              : "Abhi sabse pehle naye conversations chahiye.";
+      text = buildFrameworkMessage({
+        answer: `${answer}\n${currentState}`,
+        currentState,
+        reasons: reasons.map((r) => String(r).replace(/top funnel weak/gi, "Top funnel weak hai").replace(/slow follow-up on warm\/hot leads/gi, "Warm leads pe follow-up slow hai")),
+        priority,
+        directions: dirs,
+      });
+      interactive = {
+        body: "Direction choose karo:",
+        rows: dirs.map((d, i) => ({ id: `dir_${i + 1}`, title: titleForMenuCommand(d.slice(0, 24)) })).slice(0, 3),
+      };
+    }
+  }
+
+  const notif = buildNotificationLine({ situation, state });
+  if (notif) {
+    text = `${notif}\n\n---\n\n${text}`.slice(0, CEO_MESSAGE_MAX);
+    if (state.waiting_for_update) {
+      await saveFounderExecutionState(ownerPhone, {
+        ...state,
+        last_action_at: nowIso,
+        next_reminder_at: new Date(Date.now() + INACTIVITY_MS).toISOString(),
+      });
+    }
+  }
 
   await storeDecisionReflection({
     ownerPhone,
@@ -650,19 +974,6 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
     selection,
     source,
   });
-
-  const interactive =
-    intent.kind === "unclear"
-      ? {
-          body: text.slice(0, INTERACTIVE_BODY_MAX),
-          rows: [
-            { id: "daily_priorities", title: "Daily priorities" },
-            { id: "growth_advice", title: "Growth problem" },
-            { id: "close_leads", title: "Closing problem" },
-            { id: "revenue_help", title: "Revenue concern" },
-          ],
-        }
-      : null;
 
   return {
     text: String(text || "").slice(0, CEO_MESSAGE_MAX),

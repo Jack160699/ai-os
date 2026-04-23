@@ -885,3 +885,94 @@ export async function listCeoCommandLogs(limit = 100) {
     return [];
   }
 }
+
+export async function loadFounderExecutionState(ownerPhone) {
+  const phone = String(ownerPhone || "").replace(/\D/g, "");
+  if (!supabase || !phone) return null;
+  try {
+    const { data, error } = await supabase
+      .from("founder_execution_state")
+      .select("*")
+      .eq("owner_phone", phone)
+      .maybeSingle();
+    if (error) throw error;
+    return data || null;
+  } catch (err) {
+    log.warn("Supabase loadFounderExecutionState failed", { err: err?.message || String(err), ownerPhone: phone });
+    return null;
+  }
+}
+
+export async function saveFounderExecutionState(ownerPhone, data = {}) {
+  const phone = String(ownerPhone || "").replace(/\D/g, "");
+  if (!supabase || !phone) return { ok: false, reason: "no_supabase_or_phone" };
+  const nowIso = new Date().toISOString();
+  const row = {
+    owner_phone: phone,
+    active_focus: data.active_focus ?? null,
+    selected_direction: data.selected_direction ?? null,
+    plan: data.plan ?? null,
+    progress_percent: Number.isFinite(Number(data.progress_percent)) ? Math.max(0, Math.min(100, Number(data.progress_percent))) : 0,
+    waiting_for_update: Boolean(data.waiting_for_update),
+    last_action_at: data.last_action_at || nowIso,
+    next_reminder_at: data.next_reminder_at || null,
+    meta: data.meta && typeof data.meta === "object" ? data.meta : {},
+    updated_at: nowIso,
+  };
+  if (data.created_at) row.created_at = data.created_at;
+
+  try {
+    const { error } = await supabase
+      .from("founder_execution_state")
+      .upsert([row], { onConflict: "owner_phone" });
+    if (error) throw error;
+    return { ok: true };
+  } catch (err) {
+    log.warn("Supabase saveFounderExecutionState failed", { err: err?.message || String(err), ownerPhone: phone });
+    return { ok: false, reason: err?.message || "save_failed" };
+  }
+}
+
+export async function updateFounderProgress(ownerPhone, pct) {
+  const phone = String(ownerPhone || "").replace(/\D/g, "");
+  if (!supabase || !phone) return { ok: false, reason: "no_supabase_or_phone" };
+  const progress = Math.max(0, Math.min(100, Number(pct) || 0));
+  const done = progress >= 100;
+  try {
+    const { error } = await supabase
+      .from("founder_execution_state")
+      .update({
+        progress_percent: progress,
+        waiting_for_update: done ? false : true,
+        last_action_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("owner_phone", phone);
+    if (error) throw error;
+    return { ok: true };
+  } catch (err) {
+    log.warn("Supabase updateFounderProgress failed", { err: err?.message || String(err), ownerPhone: phone, pct: progress });
+    return { ok: false, reason: err?.message || "update_failed" };
+  }
+}
+
+export async function clearFounderExecutionState(ownerPhone) {
+  const phone = String(ownerPhone || "").replace(/\D/g, "");
+  if (!supabase || !phone) return { ok: false, reason: "no_supabase_or_phone" };
+  try {
+    const { error } = await supabase
+      .from("founder_execution_state")
+      .update({
+        waiting_for_update: false,
+        progress_percent: 100,
+        next_reminder_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("owner_phone", phone);
+    if (error) throw error;
+    return { ok: true };
+  } catch (err) {
+    log.warn("Supabase clearFounderExecutionState failed", { err: err?.message || String(err), ownerPhone: phone });
+    return { ok: false, reason: err?.message || "clear_failed" };
+  }
+}
