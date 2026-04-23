@@ -786,10 +786,10 @@ function buildFrameworkMessage({ answer, currentState, reasons, priority, direct
   return [
     answer,
     "",
-    "Kyun:",
+    "Reason:",
     reasons.map((r) => `- ${r}`).join("\n"),
     "",
-    `Abhi priority:\n${priority}`,
+    `Priority:\n${priority}`,
     "",
     "Abhi X direction hai:",
     ...directions.map((d, i) => `${i + 1}. ${d}`),
@@ -799,6 +799,61 @@ function buildFrameworkMessage({ answer, currentState, reasons, priority, direct
   ]
     .join("\n")
     .slice(0, CEO_MESSAGE_MAX);
+}
+
+function buildRevenueIssueFramework(situation) {
+  const leads = Number(situation?.leads_today || 0);
+  const hot = Number(situation?.hot_leads || 0);
+  const repliesGap = Number(situation?.no_reply_threads || 0);
+  const won = Number(situation?.crm?.won || 0);
+
+  let reason =
+    "Ya toh leads kam aa rahe hain ya closing weak hai.";
+  let priority = "Abhi root cause identify karna hai.";
+  if (leads <= 0) {
+    reason = "Leads flow low hai, isliye revenue hold pe hai.";
+    priority = "Sabse pehle top funnel activate karna hai.";
+  } else if (leads > 0 && hot <= 0) {
+    reason = "Leads aa rahe hain, par hot stage me convert nahi ho rahe.";
+    priority = "Qualification + follow-up tighten karna hai.";
+  } else if (hot > 0 && won <= 0) {
+    reason = "Hot leads hain, par close step weak chal raha hai.";
+    priority = "Closing push se payment unlock karna hai.";
+  } else if (repliesGap >= 3) {
+    reason = "Replies slow hain, isliye funnel me momentum break ho raha hai.";
+    priority = "Fast reply cadence lagani hai.";
+  }
+
+  const directions = [
+    "Leads check karo",
+    "Closing check karo",
+    "Offer check karo",
+  ];
+
+  return {
+    text: [
+      "Revenue slow hai.",
+      "",
+      "Reason:",
+      reason,
+      "",
+      "Priority:",
+      priority,
+      "",
+      "Abhi 3 direction hai:",
+      "1. Leads check karo",
+      "2. Closing check karo",
+      "3. Offer check karo",
+      "",
+      "Tum kya fix karna chahte ho?",
+      "→ Leads",
+      "→ Closing",
+      "→ Offer",
+    ]
+      .join("\n")
+      .slice(0, CEO_MESSAGE_MAX),
+    directions,
+  };
 }
 
 function buildExecutionMessage({ focus, plan }) {
@@ -922,6 +977,18 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
       });
       text = buildExecutionMessage({ focus: focus[0].toUpperCase() + focus.slice(1), plan });
     } else {
+      if (forcedIntent === "revenue help") {
+        const rev = buildRevenueIssueFramework(situation);
+        text = rev.text;
+        interactive = {
+          body: "Revenue diagnose ke liye ek direction choose karo:",
+          rows: [
+            { id: "dir_1", title: "Leads check" },
+            { id: "dir_2", title: "Closing check" },
+            { id: "dir_3", title: "Offer check" },
+          ],
+        };
+      } else {
       const reasons = rootCausesFromDiagnosis(diagnosis, analyzeBusinessStateFromData({ crm: situation.crm, lmRows: situation.lead_events_7d || [] }));
       const answer = `Main answer: ${selection?.best_move?.move || "Aaj direct execution sprint chalayenge."}`;
       const currentState =
@@ -951,6 +1018,7 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
         body: "Direction choose karo:",
         rows: dirs.map((d, i) => ({ id: `dir_${i + 1}`, title: titleForMenuCommand(d.slice(0, 24)) })).slice(0, 3),
       };
+      }
     }
   }
 

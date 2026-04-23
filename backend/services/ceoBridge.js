@@ -99,6 +99,7 @@ function detectIntent(commandRaw) {
     .replace(/_/g, " ")
     .replace(/\s+/g, " ");
   if (!cmd) return "unknown";
+  if (isProblemStatement(cmd)) return "unknown";
   if (cmd.includes("morning brief") || /^morning\s+brief\b/.test(cmd)) return "morning brief";
   if (/^drafts\s+yes\b/i.test(cmd) || cmd === "yes send drafts") return "drafts yes";
   if (/^drafts\s+no\b/i.test(cmd) || cmd === "no send drafts") return "drafts no";
@@ -109,12 +110,17 @@ function detectIntent(commandRaw) {
   }
   if (cmd.includes("today")) return "today stats";
   if (cmd.includes("hot")) return "hot leads";
-  if (cmd.includes("revenue")) return "revenue";
+  if (cmd === "revenue" || cmd === "revenue report") return "revenue";
   if (cmd.includes("follow")) return "pending followups";
   if (cmd.includes("create task") || cmd.startsWith("task ")) return "create task";
   if (cmd.includes("assign lead") || cmd.includes("assign")) return "assign lead";
   if (cmd.includes("start ads") || cmd.includes("ads start")) return "start ads";
   return "unknown";
+}
+
+function isProblemStatement(message) {
+  const text = String(message || "").toLowerCase();
+  return /nahi|ni|kam|issue|problem|aa rha|aa raha|nahi ho raha/i.test(text);
 }
 
 function extractPhone(text) {
