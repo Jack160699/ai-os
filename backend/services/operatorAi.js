@@ -907,6 +907,8 @@ function buildFounderAiPrompt({ message, situation, state }) {
   const isProblemInput = /\b(sales|revenue|lead|leads|close|closing|reply|pipeline|followup|follow-up|nahi|ni|kam|slow|stuck)\b/i.test(
     msg
   );
+  const isQualityChallenge = /\b(too simple|simple hai|weak|bekaar|not good|better do|improve|aur strong)\b/i.test(msg);
+  const isStrategyAsk = /\b(roi|strategy|best option|which one|kya best|rank|priority)\b/i.test(msg);
   const problemExecutionBlock = isProblemInput
     ? `
 Operator execution mode is ON for this message.
@@ -933,6 +935,28 @@ Mandatory execution loop:
 - Start with 5 messages first
 - Ask for only one checkpoint: "Done likho, main next 5 bhej raha hoon."
 - After done, auto-generate next batch immediately
+`
+    : "";
+  const qualityRewriteBlock = isQualityChallenge
+    ? `
+Quality challenge detected.
+Do not explain previous output.
+Immediately rewrite with stronger, sharper output in same reply.
+No apology. No justification.
+`
+    : "";
+  const strategyDecisionBlock = isStrategyAsk
+    ? `
+Strategy question detected.
+Return direct decision format:
+Decision: <one clear recommendation>
+Ranked options:
+1) <option> - <expected ROI/time>
+2) <option> - <expected ROI/time>
+3) <option> - <expected ROI/time>
+
+No vague language.
+No "depends" without ranking.
 `
     : "";
 
@@ -970,13 +994,22 @@ Next action lock:
   - LinkedIn search query
   - Instagram DM target type
   - WhatsApp broadcast segment
+- Outreach copy must include:
+  - scarcity (limited slot/window)
+  - relevance (role/business-specific)
+  - personalization hook (recent context or niche trigger)
 - Always include follow-up messages automatically (D+1 and D+3 variants).
-- Use initiative language: "Main kar raha hoon", "Main bhej raha hoon", "Main next batch ready kar raha hoon".
+- Remove planning language like:
+  - "karna hai"
+  - "kar raha hoon"
+Use direct commands + ready outputs only.
 
 - Only include directions if they are useful.
 - If user just gives progress (25%, 50%, done), respond with progress-aware execution coaching.
 - Keep tone founder-friendly and direct.
 ${problemExecutionBlock}
+${qualityRewriteBlock}
+${strategyDecisionBlock}
 
 Runtime state:
 ${JSON.stringify(compactFounderStateForPrompt(state), null, 2)}
