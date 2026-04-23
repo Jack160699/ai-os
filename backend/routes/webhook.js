@@ -35,7 +35,7 @@ import {
   updateLead,
   upsertLeadMemory,
 } from "../services/supabase.js";
-import { sendInstantPaymentFlow } from "../services/paymentFlow.js";
+import { handlePaymentConfirmationMessage, isPaymentConfirmationMessage, sendInstantPaymentFlow } from "../services/paymentFlow.js";
 import { recordPhaseDBotTurn } from "../services/replyEngine.js";
 import {
   appendMemoryTag,
@@ -185,6 +185,36 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       return res.sendStatus(200);
     }
 
+    if (isPaymentConfirmationMessage(message)) {
+      const paymentReply = await handlePaymentConfirmationMessage(phone);
+      if (paymentReply?.text) {
+        if (paymentReply.paid) {
+          await updateLead(phone, "payment:captured");
+          await upsertLeadMemory(phone, {
+            stage: "closed_won",
+            next_followup_at: null,
+            last_contacted_at: new Date().toISOString(),
+          });
+          const owners = String(ENV.OWNER_WHATSAPP_NUMBERS || "")
+            .split(",")
+            .map((n) => String(n || "").replace(/\D/g, ""))
+            .filter(Boolean);
+          for (const ownerPhone of owners) {
+            await sendWhatsApp(
+              ownerPhone,
+              `Payment confirmed for ${phone}.\nStatus: paid\nAction: onboarding started.`
+            );
+          }
+        }
+        await saveMessage(phone, paymentReply.text, "bot");
+        const sentPay = await sendWhatsApp(phone, paymentReply.text);
+        if (!sentPay) {
+          log.error("Outbound payment confirmation reply failed to send after retries", { phone, waMessageId });
+        }
+        return res.sendStatus(200);
+      }
+    }
+
     const recentRows = await fetchRecentMessages(phone, getMemoryHistoryLimit());
     const leadMem = await getLeadMemory(phone);
     const adaptive = analyzeAdaptiveSalesBrain({ message, recentRows, leadMemory: leadMem });
@@ -242,6 +272,14 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
 
     const mode = detectMode(message);
     const intent = routeStrategicIntent(message);
+    const isPaidLead = String(leadMem?.stage || "").toLowerCase() === "closed_won";
+
+    if (isPaidLead) {
+      const paidSupportReply = "You're already onboarded. Share updates or blockers, and I'll move setup/support steps forward.";
+      await saveMessage(phone, paidSupportReply, "bot");
+      await sendWhatsApp(phone, paidSupportReply);
+      return res.sendStatus(200);
+    }
 
     if (mode === "HUMAN_MODE") {
       await trackPhaseDAnalytics({

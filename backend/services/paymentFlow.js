@@ -1,5 +1,11 @@
 import { createPaymentLink } from "../payments/razorpay.js";
-import { fetchLeadByPhone, savePaymentLink } from "./supabase.js";
+import { getRazorpay } from "../payments/razorpay.js";
+import {
+  fetchLatestPaymentLinkByPhone,
+  fetchLeadByPhone,
+  markPaymentLinkPaidByProviderId,
+  savePaymentLink,
+} from "./supabase.js";
 import { buildCloseModeReply } from "./aiControl.js";
 
 export async function sendInstantPaymentFlow({ phone, leadMem, lang, servicePkg, serviceKey }) {
@@ -40,4 +46,61 @@ export async function sendInstantPaymentFlow({ phone, leadMem, lang, servicePkg,
     paymentLink,
     requiresEmail,
   });
+}
+
+export function isPaymentConfirmationMessage(message) {
+  const low = String(message || "").toLowerCase().trim();
+  return /\b(paid|done payment|payment done)\b/.test(low);
+}
+
+export async function handlePaymentConfirmationMessage(phone) {
+  const latest = await fetchLatestPaymentLinkByPhone(phone);
+  if (!latest?.provider_link_id) return null;
+
+  let status = String(latest.status || "").toLowerCase();
+  let remotePaymentId = "";
+  try {
+    const rp = getRazorpay();
+    const remote = await rp.paymentLink.fetch(String(latest.provider_link_id));
+    status = String(remote?.status || status || "").toLowerCase();
+    remotePaymentId = String(remote?.payment_id || "").trim();
+  } catch {
+    // Keep fallback on stored status.
+  }
+
+  if (status === "paid") {
+    await markPaymentLinkPaidByProviderId(
+      String(latest.provider_link_id),
+      remotePaymentId || latest.payment_id || "",
+      new Date().toISOString()
+    );
+    return {
+      paid: true,
+      text: [
+        "Payment confirmed.",
+        "Great — onboarding starts now.",
+        "",
+        "Quick onboarding details:",
+        "1. Business name + niche",
+        "2. Brand assets link (logo, creatives, copy)",
+        "3. Primary goal for first 14 days",
+      ].join("\n"),
+    };
+  }
+
+  if (latest.short_url) {
+    return {
+      paid: false,
+      text: [
+        "I checked — payment is still pending.",
+        "Sharing your secure link again:",
+        String(latest.short_url),
+      ].join("\n"),
+    };
+  }
+
+  return {
+    paid: false,
+    text: "I checked — payment is still pending on the latest link.",
+  };
 }
