@@ -77,12 +77,12 @@ export async function handlePaymentConfirmationMessage(phone) {
     return {
       paid: true,
       text: [
-        "Payment confirmed.",
-        "Great — onboarding starts now.",
+        "Payment confirmed. Great choice.",
+        "Onboarding starts now.",
         "",
-        "Quick onboarding details:",
+        "Share these 3 details:",
         "1. Business name + niche",
-        "2. Brand assets link (logo, creatives, copy)",
+        "2. Assets link (logo, creatives, copy)",
         "3. Primary goal for first 14 days",
       ].join("\n"),
     };
@@ -93,7 +93,7 @@ export async function handlePaymentConfirmationMessage(phone) {
       paid: false,
       text: [
         "I checked — payment is still pending.",
-        "Sharing your secure link again:",
+        "Sharing your secure link:",
         String(latest.short_url),
       ].join("\n"),
     };

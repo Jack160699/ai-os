@@ -47,6 +47,14 @@ function readMemoryTag(summary, tag) {
 
 export function buildPhaseCFollowupMessage(leadMemory) {
   const lm = leadMemory || {};
+  const onboardingPending = readMemoryTag(lm.last_summary, "onboarding_pending") === "1";
+  if (onboardingPending) {
+    return [
+      "Quick onboarding reminder.",
+      "Share your business name, assets link, and first 14-day goal.",
+      "Once shared, setup moves immediately.",
+    ].join("\n");
+  }
   const bt = String(lm.buyer_type || "explorer").toLowerCase();
   const hint = String(lm.last_summary || "").trim().slice(0, 160);
   const need = readMemoryTag(lm.last_summary, "need");
@@ -115,7 +123,8 @@ export async function runLeadMemoryRevenueFollowupSweep(limit = 20) {
   for (const lm of due) {
     const phone = String(lm?.phone || "");
     if (!phone) continue;
-    if (isClosedStage(lm.stage)) continue;
+    const onboardingPending = readMemoryTag(lm.last_summary, "onboarding_pending") === "1";
+    if (isClosedStage(lm.stage) && !onboardingPending) continue;
     if (await isOwnerNumber(phone)) continue;
 
     const lastSent = lm.last_followup_sent_at ? Date.parse(String(lm.last_followup_sent_at)) : NaN;
@@ -130,12 +139,16 @@ export async function runLeadMemoryRevenueFollowupSweep(limit = 20) {
     sent += 1;
     const now = new Date().toISOString();
     const delay = computePhaseCFollowupDelayMs(lm);
-    const nextAt = new Date(Date.now() + Math.max(delay, gap)).toISOString();
+    const nextAt = onboardingPending ? null : new Date(Date.now() + Math.max(delay, gap)).toISOString();
 
     await saveMessage(phone, msg, "bot");
+    const nextSummary = onboardingPending
+      ? String(lm.last_summary || "").replace(/\[onboarding_pending:1\]/g, "").trim() || null
+      : undefined;
     await upsertLeadMemory(phone, {
       last_followup_sent_at: now,
       next_followup_at: nextAt,
+      ...(nextSummary !== undefined ? { last_summary: nextSummary } : {}),
     });
 
     const niche = lm.business_type || lm.service_interest || null;

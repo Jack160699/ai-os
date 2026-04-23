@@ -190,10 +190,17 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       if (paymentReply?.text) {
         if (paymentReply.paid) {
           await updateLead(phone, "payment:captured");
+          const nowIso = new Date().toISOString();
+          const reminderAt = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
+          const nextSummary = [String(leadMem?.last_summary || "").trim(), "[onboarding_pending:1]"]
+            .filter(Boolean)
+            .join(" ")
+            .trim();
           await upsertLeadMemory(phone, {
             stage: "closed_won",
-            next_followup_at: null,
-            last_contacted_at: new Date().toISOString(),
+            next_followup_at: reminderAt,
+            last_contacted_at: nowIso,
+            last_summary: nextSummary || null,
           });
           const owners = String(ENV.OWNER_WHATSAPP_NUMBERS || "")
             .split(",")

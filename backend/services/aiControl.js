@@ -242,8 +242,7 @@ export function buildBundleRecommendationReply({
     trustLine,
     humanStyleVariant(`${industry}:${requestedService}:${previousNeed}`),
     urgencyLine,
-    upsellLine,
-    returningUpsellLine,
+    returningClient ? returningUpsellLine : upsellLine,
     "Should I get this started for you?",
   ]
     .filter(Boolean)
@@ -425,12 +424,9 @@ export function routeStrategicIntent(message) {
 export function directIntentReply(intent, language = "english") {
   if (intent === "services_menu") {
     return [
-      "Here's what works:",
-      "• Website conversion setup",
-      "• Lead generation ads",
-      "• WhatsApp automation",
-      "• Full growth bundle",
-      "Next step: demo or WhatsApp audit?",
+      "Understood. Most service businesses need faster response and better follow-up first.",
+      "Best route is website conversion + lead generation + WhatsApp automation in one stack.",
+      "Should I map the best setup for your business?",
     ].join("\n");
   }
 
