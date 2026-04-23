@@ -1,6 +1,19 @@
 import express from "express";
 import { detectMode } from "../utils/detectMode.js";
-import { buildPrompt, detectUserLanguage, directIntentReply, routeStrategicIntent } from "../services/aiControl.js";
+import {
+  buildBundleRecommendationReply,
+  buildIntentRoutedReply,
+  buildObjectionReply,
+  buildPrompt,
+  detectRequestedService,
+  detectUserLanguage,
+  directIntentReply,
+  getServicePackage,
+  getIndustryBundle,
+  isAgreementMessage,
+  isHighIntentMessage,
+  routeStrategicIntent,
+} from "../services/aiControl.js";
 import {
   buildMemoryContext,
   getMemoryHistoryLimit,
@@ -8,9 +21,6 @@ import {
 } from "../services/conversationMemory.js";
 import { bumpLeadMemoryNextFollowupAfterBotReply } from "../services/revenueFollowupEngine.js";
 import {
-  inferCtaFromReply,
-  inferResponseStyle,
-  savePhaseDPromptPerformance,
   trackPhaseDAnalytics,
 } from "../services/phaseDAnalytics.js";
 import { analyzeAdaptiveSalesBrain } from "../services/adaptiveSalesBrain.js";
@@ -18,7 +28,22 @@ import { getAIResponse } from "../services/openai.js";
 import { executeCeoCommand, isOwnerNumber } from "../services/ceoBridge.js";
 import { updateQualification } from "../services/salesEngine.js";
 import { sendFounderOutreach, sendWhatsApp } from "../services/whatsapp.js";
-import { fetchRecentMessages, getLeadMemory, saveMessage, updateLead, upsertLeadMemory } from "../services/supabase.js";
+import {
+  fetchRecentMessages,
+  getLeadMemory,
+  saveMessage,
+  updateLead,
+  upsertLeadMemory,
+} from "../services/supabase.js";
+import { sendInstantPaymentFlow } from "../services/paymentFlow.js";
+import { recordPhaseDBotTurn } from "../services/replyEngine.js";
+import {
+  appendMemoryTag,
+  extractLeadProfilePatch,
+  isReturningLead,
+  parseNeedTag,
+  readMemoryTag,
+} from "../services/leadBrain.js";
 import { claimWaMessageId, releaseWaMessageId } from "../utils/webhookDedupe.js";
 import { assertMetaWebhookSignature } from "../utils/metaSignature.js";
 import { ENV } from "../config/env.js";
@@ -32,40 +57,6 @@ function wantsExplicitCall(message) {
   );
 }
 
-async function recordPhaseDBotTurn({ phone, replyText, source, adaptive, niche, lang, userTurnCount }) {
-  const cta = inferCtaFromReply(replyText);
-  const style = inferResponseStyle(replyText);
-  const excerpt = String(replyText || "").slice(0, 280);
-  const isFirst = userTurnCount === 1;
-  await trackPhaseDAnalytics({
-    phone,
-    event_type: "replied",
-    meta: {
-      buyer_type: adaptive.buyer_type,
-      intent_score: adaptive.intent_score,
-      niche,
-      language: lang,
-      cta_used: cta,
-      response_style: style,
-      is_first_reply: isFirst,
-      reply_excerpt: excerpt,
-    },
-  });
-  await savePhaseDPromptPerformance({
-    phone: String(phone),
-    reply_excerpt: String(replyText || "").slice(0, 320),
-    buyer_type: adaptive.buyer_type ?? null,
-    intent_score: Number.isFinite(Number(adaptive.intent_score)) ? Math.round(Number(adaptive.intent_score)) : null,
-    niche,
-    language: lang,
-    cta_used: cta,
-    response_style: style,
-    is_first_reply: isFirst,
-    source,
-    outcome_hint: isFirst ? "first_reply" : "replied",
-    created_at: new Date().toISOString(),
-  });
-}
 
 function getVerifyToken() {
   return ENV.WHATSAPP_VERIFY_TOKEN || "";
@@ -197,9 +188,19 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
     const recentRows = await fetchRecentMessages(phone, getMemoryHistoryLimit());
     const leadMem = await getLeadMemory(phone);
     const adaptive = analyzeAdaptiveSalesBrain({ message, recentRows, leadMemory: leadMem });
+    const profilePatch = extractLeadProfilePatch(message, leadMem || {});
+    const needTag = parseNeedTag(message);
+    const objectionTag = adaptive.objection_type || "";
+    const memorySeed = String(leadMem?.last_summary || "");
+    let taggedSummary = memorySeed;
+    if (needTag) taggedSummary = appendMemoryTag(taggedSummary, "need", needTag);
+    if (objectionTag) taggedSummary = appendMemoryTag(taggedSummary, "objection", objectionTag);
     await upsertLeadMemory(phone, {
       buyer_type: adaptive.buyer_type,
       intent_score: adaptive.intent_score,
+      stage: adaptive.hot_lead ? "qualified" : leadMem?.stage || "engaged",
+      ...profilePatch,
+      last_summary: taggedSummary || leadMem?.last_summary || null,
     });
 
     const lang = detectUserLanguage(message);
@@ -279,6 +280,120 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       });
     }
 
+    const highIntent = isHighIntentMessage(message) || Boolean(adaptive.hot_lead);
+    const agreesToBuy = isAgreementMessage(message) || Boolean(adaptive.buying_intent);
+    const hasPaymentIntent = Boolean(sig0.payment_intent);
+    const isSalesContext = mode === "SALES_MODE" || intent === "pricing" || intent === "interested";
+    const effectiveLeadMem = { ...(leadMem || {}), ...profilePatch, last_summary: taggedSummary || leadMem?.last_summary || "" };
+    const previousNeed = readMemoryTag(effectiveLeadMem.last_summary, "need");
+    const serviceKey = detectRequestedService(message, String(effectiveLeadMem?.service_interest || ""));
+    const bundle = getIndustryBundle({ industry: adaptive.industry || "general", requestedService: serviceKey });
+    const servicePkg = getServicePackage(bundle.primaryService || serviceKey);
+
+    // Highest-priority close path: payment intent / explicit buy intent / hot buyer.
+    if (hasPaymentIntent || highIntent || agreesToBuy) {
+      const closeReply = await sendInstantPaymentFlow({
+        phone,
+        leadMem,
+        lang,
+        servicePkg,
+        serviceKey: bundle.primaryService || serviceKey,
+      });
+      await saveMessage(phone, closeReply, "bot");
+      const sentClose = await sendWhatsApp(phone, closeReply);
+      if (!sentClose) {
+        log.error("Outbound close-mode reply failed to send after retries", { phone, waMessageId, intent });
+      }
+      await recordPhaseDBotTurn({
+        phone,
+        replyText: closeReply,
+        source: "whatsapp_close_mode",
+        adaptive,
+        niche: serviceKey,
+        lang,
+        userTurnCount,
+      });
+      await bumpLeadMemoryNextFollowupAfterBotReply(phone);
+      return res.sendStatus(200);
+    }
+
+    const bundleReply = buildBundleRecommendationReply({
+      language: lang,
+      industry: adaptive.industry || "general",
+      requestedService: serviceKey,
+      previousNeed,
+      returningClient: isReturningLead(effectiveLeadMem),
+    });
+    if (bundleReply && isSalesContext) {
+      await saveMessage(phone, bundleReply, "bot");
+      const sentBundle = await sendWhatsApp(phone, bundleReply);
+      if (!sentBundle) {
+        log.error("Outbound bundle recommendation failed to send after retries", { phone, waMessageId, intent });
+      }
+      await recordPhaseDBotTurn({
+        phone,
+        replyText: bundleReply,
+        source: "whatsapp_bundle_recommendation",
+        adaptive,
+        niche: bundle.primaryService || serviceKey,
+        lang,
+        userTurnCount,
+      });
+      await bumpLeadMemoryNextFollowupAfterBotReply(phone);
+      return res.sendStatus(200);
+    }
+
+    const objectionReply = buildObjectionReply({
+      language: lang,
+      objectionType: adaptive.objection_type || null,
+      industry: adaptive.industry || "general",
+      serviceKey: bundle.primaryService || serviceKey,
+    });
+    if (objectionReply) {
+      await saveMessage(phone, objectionReply, "bot");
+      const sentObj = await sendWhatsApp(phone, objectionReply);
+      if (!sentObj) {
+        log.error("Outbound objection reply failed to send after retries", { phone, waMessageId, intent });
+      }
+      await recordPhaseDBotTurn({
+        phone,
+        replyText: objectionReply,
+        source: "whatsapp_objection_router",
+        adaptive,
+        niche: serviceKey,
+        lang,
+        userTurnCount,
+      });
+      await bumpLeadMemoryNextFollowupAfterBotReply(phone);
+      return res.sendStatus(200);
+    }
+
+    const intentRoutedReply = buildIntentRoutedReply({
+      language: lang,
+      intentBand: adaptive.intent_band || "cold",
+      industry: adaptive.industry || "general",
+      serviceKey: bundle.primaryService || serviceKey,
+      previousNeed,
+    });
+    if (intentRoutedReply && (isSalesContext || intent !== "general")) {
+      await saveMessage(phone, intentRoutedReply, "bot");
+      const sentRouted = await sendWhatsApp(phone, intentRoutedReply);
+      if (!sentRouted) {
+        log.error("Outbound intent-routed reply failed to send after retries", { phone, waMessageId, intent });
+      }
+      await recordPhaseDBotTurn({
+        phone,
+        replyText: intentRoutedReply,
+        source: "whatsapp_intent_band_router",
+        adaptive,
+        niche: serviceKey,
+        lang,
+        userTurnCount,
+      });
+      await bumpLeadMemoryNextFollowupAfterBotReply(phone);
+      return res.sendStatus(200);
+    }
+
     const direct = directIntentReply(intent, lang);
     if (direct) {
       await saveMessage(phone, direct, "bot");
@@ -300,7 +415,13 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
     }
 
     const { promptBlock } = await buildMemoryContext(phone, { recentRows });
-    const prompt = buildPrompt(mode, message, promptBlock);
+    const prompt = buildPrompt(mode, message, promptBlock, {
+      closeMode: false,
+      serviceKey,
+      packageName: servicePkg.packageName,
+      packagePrice: servicePkg.priceInr,
+      packageTimeline: servicePkg.timeline,
+    });
     const reply = await getAIResponse(prompt);
 
     await saveMessage(phone, reply, "bot");

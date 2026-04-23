@@ -11,7 +11,15 @@ const ghostReturnDays = () =>
  * @param {string} params.message
  * @param {Array<{ sender?: string }>} params.recentRows oldest→newest user/bot messages
  * @param {object|null} params.leadMemory row from `lead_memory` (may be null)
- * @returns {{ buyer_type: string, intent_score: number }}
+ * @returns {{
+ *   buyer_type: string,
+ *   intent_score: number,
+ *   intent_band: "cold" | "warm" | "hot",
+ *   hot_lead: boolean,
+ *   buying_intent: boolean,
+ *   objection_type: "expensive" | "later" | "trust" | "not_now" | null,
+ *   industry: "salon" | "gym" | "clinic" | "real_estate" | "ecommerce" | "general"
+ * }}
  */
 export function analyzeAdaptiveSalesBrain({ message, recentRows = [], leadMemory = null }) {
   const raw = String(message || "");
@@ -43,7 +51,12 @@ export function analyzeAdaptiveSalesBrain({ message, recentRows = [], leadMemory
   else if (userTurns >= 4) score += 12;
   else if (userTurns >= 2) score += 6;
 
+  const hasBuyingIntentKeyword =
+    /\b(start now|start today|ready to start|lets start|let's start|book|proceed|kar do|chalu|go ahead|pay|payment|link bhejo|send link)\b/.test(
+      low
+    );
   score = Math.min(100, Math.max(0, Math.round(score)));
+  const intent_band = score >= 72 ? "hot" : score >= 40 ? "warm" : "cold";
 
   const lastAt = leadMemory?.last_contacted_at ? Date.parse(String(leadMemory.last_contacted_at)) : NaN;
   const gapMs = Number.isFinite(lastAt) ? Date.now() - lastAt : 0;
@@ -70,5 +83,27 @@ export function analyzeAdaptiveSalesBrain({ message, recentRows = [], leadMemory
     buyer_type = "explorer";
   }
 
-  return { buyer_type, intent_score: score };
+  let objection_type = null;
+  if (/\b(expensive|costly|high price|too much|mehenga|mahenga|price high|budget low)\b/.test(low)) {
+    objection_type = "expensive";
+  } else if (/\b(later|baad me|bad me|next month|next week|phir|not today|abhi nahi)\b/.test(low)) {
+    objection_type = "later";
+  } else if (/\b(trust|proof|real|genuine|fake|scam|bharosa|guarantee|reviews?)\b/.test(low)) {
+    objection_type = "trust";
+  } else if (/\b(not now|no need|nahi chahiye|skip|not interested|mat karo)\b/.test(low)) {
+    objection_type = "not_now";
+  }
+
+  const profile = `${low} ${String(leadMemory?.business_type || "").toLowerCase()} ${String(leadMemory?.service_interest || "").toLowerCase()}`;
+  let industry = "general";
+  if (/\b(salon|beauty|spa|hair|makeup)\b/.test(profile)) industry = "salon";
+  else if (/\b(gym|fitness|trainer|workout)\b/.test(profile)) industry = "gym";
+  else if (/\b(clinic|doctor|hospital|dental|physio)\b/.test(profile)) industry = "clinic";
+  else if (/\b(real estate|realtor|property|builder|broker)\b/.test(profile)) industry = "real_estate";
+  else if (/\b(ecommerce|e-commerce|shopify|d2c|online store|amazon)\b/.test(profile)) industry = "ecommerce";
+
+  const hot_lead = intent_band === "hot" || buyer_type === "fast_buyer";
+  const buying_intent = hasBuyingIntentKeyword || /\b(advance|invoice|upi|razorpay)\b/.test(low);
+
+  return { buyer_type, intent_score: score, intent_band, hot_lead, buying_intent, objection_type, industry };
 }

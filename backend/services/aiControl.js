@@ -21,8 +21,414 @@ const HINGLISH_HINTS = [
   "ads",
 ];
 
+const HIGH_INTENT_KEYWORDS = ["price", "start", "payment", "cost", "kitna", "link", "ready"];
+
+const SERVICE_PACKAGES = {
+  website: {
+    serviceLabel: "Website Development",
+    packageName: "Website Growth Launch",
+    outcomes: ["premium conversion-focused website", "WhatsApp + lead form integration", "basic SEO + speed setup"],
+    priceInr: 19999,
+    timeline: "5-7 days",
+  },
+  ads: {
+    serviceLabel: "Lead Generation Ads",
+    packageName: "Leadflow Ads Sprint",
+    outcomes: ["campaign + targeting setup", "high-intent lead funnel", "daily optimization with reporting"],
+    priceInr: 24999,
+    timeline: "48 hours setup + 30 days management",
+  },
+  bot: {
+    serviceLabel: "AI WhatsApp Bot",
+    packageName: "AI Bot Conversion Stack",
+    outcomes: ["WhatsApp auto-reply + lead qualification", "instant follow-up flow", "handoff rules for hot leads"],
+    priceInr: 14999,
+    timeline: "3-5 days",
+  },
+  seo: {
+    serviceLabel: "SEO / Google Growth",
+    packageName: "Local SEO Momentum",
+    outcomes: ["Google ranking optimization", "location pages + keyword structure", "monthly growth roadmap"],
+    priceInr: 12999,
+    timeline: "30 days initial cycle",
+  },
+  branding: {
+    serviceLabel: "Branding & Design",
+    packageName: "Premium Brand Starter",
+    outcomes: ["logo + visual identity", "social brand kit", "positioning-aligned creatives"],
+    priceInr: 9999,
+    timeline: "4-6 days",
+  },
+  automation: {
+    serviceLabel: "Automation Systems",
+    packageName: "Business Automation Core",
+    outcomes: ["lead capture to CRM automation", "follow-up automation workflows", "manual effort reduction setup"],
+    priceInr: 17999,
+    timeline: "5-8 days",
+  },
+  growth: {
+    serviceLabel: "Full Growth Package",
+    packageName: "Stratxcel Growth Engine",
+    outcomes: ["offer + funnel strategy", "lead gen + close support", "execution dashboard + weekly optimization"],
+    priceInr: 29999,
+    timeline: "7 days kickoff + ongoing optimization",
+  },
+};
+
+const INDUSTRY_LINES = {
+  salon: "For salons: faster local booking flow + repeat client follow-ups.",
+  gym: "For gyms: trial-to-membership conversion and faster lead callbacks.",
+  clinic: "For clinics: appointment trust signals + compliant patient follow-up flow.",
+  real_estate: "For real estate: higher-intent lead filtering and site-visit conversion flow.",
+  ecommerce: "For ecommerce: higher ROAS traffic + cart recovery and repeat purchase push.",
+  general: "For your segment: lead quality, conversion, and follow-up speed improve together.",
+};
+
+const INDUSTRY_AUTHORITY_LINES = {
+  salon: "Salons usually lose leads after hours. Booking automation fixes that fastest.",
+  gym: "Gyms lose trial leads due to slow follow-up. Instant WhatsApp conversion works best.",
+  clinic: "Clinics grow fastest with reminders + repeat booking automation.",
+  ecommerce: "D2C brands win with abandoned cart recovery + repeat purchase flows.",
+  real_estate: "Property leads die on delayed response. Instant qualification works best.",
+  general: "Service businesses convert faster with instant response and structured follow-up.",
+};
+
+const INDUSTRY_BUNDLE_MAP = {
+  salon: {
+    primaryService: "ads",
+    bundleName: "Salon Local Booking Accelerator",
+    roiOutcomes: ["more local appointment leads", "higher repeat booking rate", "faster WhatsApp close cycle"],
+    upsellService: "bot",
+    upsellReason: "bot auto-followups reduce no-shows and lift booking conversion",
+  },
+  gym: {
+    primaryService: "ads",
+    bundleName: "Gym Trial-to-Membership Engine",
+    roiOutcomes: ["higher trial lead volume", "better trial show-up rate", "more paid membership closes"],
+    upsellService: "automation",
+    upsellReason: "automation improves lead callback speed and conversion consistency",
+  },
+  clinic: {
+    primaryService: "website",
+    bundleName: "Clinic Trust + Appointment Growth Bundle",
+    roiOutcomes: ["more appointment bookings", "higher patient trust conversion", "stronger local lead capture"],
+    upsellService: "seo",
+    upsellReason: "SEO adds steady high-intent appointment traffic",
+  },
+  real_estate: {
+    primaryService: "ads",
+    bundleName: "Real Estate Site-Visit Funnel Bundle",
+    roiOutcomes: ["more qualified buyer leads", "higher site-visit booking rate", "faster deal pipeline movement"],
+    upsellService: "bot",
+    upsellReason: "bot qualifies inquiries instantly and filters low-intent chats",
+  },
+  ecommerce: {
+    primaryService: "ads",
+    bundleName: "Ecommerce ROAS + Recovery Bundle",
+    roiOutcomes: ["higher purchase intent traffic", "better cart recovery conversion", "improved revenue per campaign"],
+    upsellService: "automation",
+    upsellReason: "automation improves abandoned cart and repeat purchase recovery",
+  },
+  general: {
+    primaryService: "growth",
+    bundleName: "Revenue Growth Starter Bundle",
+    roiOutcomes: ["higher lead-to-sale conversion", "better sales consistency", "faster time to first revenue wins"],
+    upsellService: "automation",
+    upsellReason: "automation supports scale without increasing manual effort",
+  },
+};
+
 function low(s) {
   return String(s || "").toLowerCase().trim();
+}
+
+function humanStyleVariant(seed = "") {
+  const lines = [
+    "Straight answer — starter plan is enough.",
+    "Honestly, for your stage I'd keep it lean.",
+    "Best ROI move right now: booking automation first.",
+    "Quickest win: follow-up automation.",
+  ];
+  const s = String(seed || "x");
+  let h = 0;
+  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return lines[h % lines.length];
+}
+
+export function isHighIntentMessage(message) {
+  const text = low(message);
+  if (!text) return false;
+  return HIGH_INTENT_KEYWORDS.some((kw) => text.includes(kw));
+}
+
+export function detectRequestedService(message, memoryBlock = "") {
+  const text = `${low(message)} ${low(memoryBlock)}`;
+  if (/\b(website|site|landing page|web)\b/.test(text)) return "website";
+  if (/\b(ad|ads|meta ads|facebook ads|google ads|lead gen)\b/.test(text)) return "ads";
+  if (/\b(bot|whatsapp bot|chatbot|ai bot)\b/.test(text)) return "bot";
+  if (/\b(seo|google ranking|gmb|google my business)\b/.test(text)) return "seo";
+  if (/\b(brand|branding|logo|design)\b/.test(text)) return "branding";
+  if (/\b(automation|crm|workflow|system)\b/.test(text)) return "automation";
+  if (/\b(growth package|full service|full growth|complete package)\b/.test(text)) return "growth";
+  return "growth";
+}
+
+export function getServicePackage(serviceKey) {
+  return SERVICE_PACKAGES[serviceKey] || SERVICE_PACKAGES.growth;
+}
+
+export function isAgreementMessage(message) {
+  const text = low(message);
+  return /\b(yes|ok|okay|done|confirm|confirmed|go ahead|proceed|let's do it|lets do it|start now|kar do|theek hai|thik hai|start|ready|buy|send link|lets begin)\b/.test(
+    text
+  );
+}
+
+export function getIndustryBundle({ industry = "general", requestedService = "growth" }) {
+  const base = INDUSTRY_BUNDLE_MAP[industry] || INDUSTRY_BUNDLE_MAP.general;
+  const primaryService = requestedService && requestedService !== "growth" ? requestedService : base.primaryService;
+  const pkg = getServicePackage(primaryService);
+  const upsellService = base.upsellService;
+  const upsellPkg = getServicePackage(upsellService);
+  const showUpsell = upsellService && upsellService !== primaryService;
+  return {
+    industry,
+    primaryService,
+    packageName: base.bundleName,
+    roiOutcomes: base.roiOutcomes,
+    priceInr: pkg.priceInr,
+    timeline: pkg.timeline,
+    upsell: showUpsell
+      ? {
+          serviceKey: upsellService,
+          packageName: upsellPkg.packageName,
+          reason: base.upsellReason,
+          priceInr: upsellPkg.priceInr,
+        }
+      : null,
+  };
+}
+
+export function buildBundleRecommendationReply({
+  language = "english",
+  industry = "general",
+  requestedService = "growth",
+  previousNeed = "",
+  returningClient = false,
+}) {
+  const bundle = getIndustryBundle({ industry, requestedService });
+  const price = `₹${Number(bundle.priceInr || 0).toLocaleString("en-IN")}`;
+  const roiLine = bundle.roiOutcomes.slice(0, 3).map((x) => `• ${x}`).join("\n");
+  const authorityLine = INDUSTRY_AUTHORITY_LINES[industry] || INDUSTRY_AUTHORITY_LINES.general;
+  const resumeLine = previousNeed
+    ? `Continuing your earlier need: ${String(previousNeed).replace(/_/g, " ")}.`
+    : "";
+  const trustLine = `Live in ${bundle.timeline}. Done-for-you setup. Fast onboarding.`;
+  const urgencyLine =
+    language === "hinglish" || language === "hindi"
+      ? "I can reserve one setup slot this week."
+      : "I can reserve one setup slot this week.";
+  const upsellLine = bundle.upsell
+    ? language === "hinglish" || language === "hindi"
+      ? `Relevant upsell: ${bundle.upsell.packageName} (${`₹${Number(bundle.upsell.priceInr || 0).toLocaleString("en-IN")}`}) — ${bundle.upsell.reason}.`
+      : `Relevant upsell: ${bundle.upsell.packageName} (${`₹${Number(bundle.upsell.priceInr || 0).toLocaleString("en-IN")}`}) — ${bundle.upsell.reason}.`
+    : "";
+  const returningUpsellLine =
+    returningClient && bundle.upsell
+      ? `Returning client advantage: add ${bundle.upsell.packageName} now for stronger compounding ROI.`
+      : "";
+
+  if (language === "hinglish" || language === "hindi") {
+    return [
+      authorityLine,
+      `Recommended for your business: ${bundle.packageName}`,
+      resumeLine,
+      "ROI outcomes:",
+      roiLine,
+      `Investment: ${price}`,
+      trustLine,
+      humanStyleVariant(`${industry}:${requestedService}:${previousNeed}`),
+      urgencyLine,
+      upsellLine,
+      returningUpsellLine,
+      "Next step: demo ya payment link?",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  return [
+    authorityLine,
+    `Recommended for your business: ${bundle.packageName}`,
+    resumeLine,
+    "ROI outcomes:",
+    roiLine,
+    `Investment: ${price}`,
+    trustLine,
+    humanStyleVariant(`${industry}:${requestedService}:${previousNeed}`),
+    urgencyLine,
+    upsellLine,
+    returningUpsellLine,
+    "Next step: demo or payment link?",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function detectObjectionType(message) {
+  const text = low(message);
+  if (/\b(expensive|costly|high price|too much|mehenga|mahenga|price high|budget low)\b/.test(text)) return "expensive";
+  if (/\b(later|baad me|bad me|next month|next week|phir|not today|abhi nahi)\b/.test(text)) return "later";
+  if (/\b(trust|proof|real|genuine|fake|scam|bharosa|guarantee|reviews?)\b/.test(text)) return "trust";
+  if (/\b(not now|no need|nahi chahiye|skip|not interested|mat karo)\b/.test(text)) return "not_now";
+  return null;
+}
+
+export function buildObjectionReply({
+  language = "english",
+  objectionType = null,
+  industry = "general",
+  serviceKey = "growth",
+}) {
+  if (!objectionType) return "";
+  const pkg = getServicePackage(serviceKey);
+  const price = `₹${Number(pkg.priceInr || 0).toLocaleString("en-IN")}`;
+  const anchorPrice = `₹${Number(Math.round((pkg.priceInr || 0) * 1.35)).toLocaleString("en-IN")}`;
+  const industryLine = INDUSTRY_LINES[industry] || INDUSTRY_LINES.general;
+  const authorityLine = "We run this playbook daily across Indian SMBs with measurable conversion lift.";
+  const trustSignals = "Timeline locked, dedicated support, revisions included, and milestone-based delivery.";
+  const urgencyLine = "This week's capacity is limited; locking now secures an earlier start window.";
+
+  const objectionMap = {
+    expensive: `Anchor is ${anchorPrice}; your optimized execution investment is ${price} for ${pkg.packageName} so ROI starts faster without wasted spend.`,
+    later: `I recommend securing ${pkg.packageName} now so we can start execution on priority and avoid momentum loss.`,
+    trust: `I recommend ${pkg.packageName} with a milestone-based delivery plan so you get transparent progress from day one.`,
+    not_now: `I recommend a lean start with ${pkg.packageName} so you move forward without heavy commitment risk.`,
+  };
+  const core = objectionMap[objectionType] || objectionMap.expensive;
+
+  if (language === "hinglish" || language === "hindi") {
+    return [
+      core,
+      authorityLine,
+      industryLine,
+      `Delivery: ${pkg.timeline}.`,
+      trustSignals,
+      "Support: dedicated WhatsApp support + priority handling; revisions included.",
+      urgencyLine,
+      "Main onboarding slot abhi lock kar raha hoon — approval pe execution start.",
+    ].join("\n");
+  }
+
+  return [
+    core,
+    authorityLine,
+    industryLine,
+    `Delivery timeline: ${pkg.timeline}.`,
+    trustSignals,
+    "Support: dedicated WhatsApp support with priority response, revisions included.",
+    urgencyLine,
+    "I will lock your onboarding slot immediately on approval.",
+  ].join("\n");
+}
+
+export function buildIntentRoutedReply({
+  language = "english",
+  intentBand = "cold",
+  industry = "general",
+  serviceKey = "growth",
+  previousNeed = "",
+}) {
+  const bundle = getIndustryBundle({ industry, requestedService: serviceKey });
+  const price = `₹${Number(bundle.priceInr || 0).toLocaleString("en-IN")}`;
+  const anchorPrice = `₹${Number(Math.round((bundle.priceInr || 0) * 1.4)).toLocaleString("en-IN")}`;
+  const authorityLine = INDUSTRY_AUTHORITY_LINES[industry] || INDUSTRY_AUTHORITY_LINES.general;
+  const trustSignals = "Done-for-you setup. Proven for service businesses. Minimal effort from your side.";
+  const urgencyLine = "Best next step: start setup today.";
+
+  if (intentBand === "hot") {
+    return [
+      authorityLine,
+      `Best option is: ${bundle.packageName}`,
+      `Here's what works:\n• ${bundle.roiOutcomes.slice(0, 3).join("\n• ")}`,
+      `Price anchor: ${anchorPrice}\nYour investment: ${price}`,
+      `Launch window: ${bundle.timeline}`,
+      trustSignals,
+      urgencyLine,
+      "Next step: payment link.",
+    ].join("\n");
+  }
+
+  if (intentBand === "warm") {
+    return [
+      authorityLine,
+      `Recommended for your business: ${bundle.packageName}`,
+      `Fastest route:\n• ${bundle.roiOutcomes.slice(0, 2).join("\n• ")}`,
+      `Price anchor: ${anchorPrice}\nYour investment: ${price}`,
+      `Launch in ${bundle.timeline}`,
+      trustSignals,
+      urgencyLine,
+      "Next step: demo or payment link?",
+    ].join("\n");
+  }
+
+  return [
+    authorityLine,
+    `I'd start with: ${bundle.packageName}`,
+    `Primary outcome:\n• ${bundle.roiOutcomes[0]}`,
+    previousNeed ? `Resume context: continuing your earlier need on ${String(previousNeed).replace(/_/g, " ")}.` : "",
+    trustSignals,
+    "Next step: WhatsApp audit or demo?",
+  ].join("\n");
+}
+
+export function buildCloseModeReply({
+  language = "english",
+  serviceKey = "growth",
+  paymentLink = "",
+  requiresEmail = false,
+}) {
+  const pkg = getServicePackage(serviceKey);
+  const price = `₹${Number(pkg.priceInr || 0).toLocaleString("en-IN")}`;
+  const anchorPrice = `₹${Number(Math.round((pkg.priceInr || 0) * 1.4)).toLocaleString("en-IN")}`;
+  const outcomeLine = pkg.outcomes.map((x) => `✅ ${x}`).join("\n");
+  const persuasionBlock = [
+    "Authority: executed repeatedly for high-intent growth conversations.",
+    `Price anchor: ${anchorPrice} | Your plan: ${price}`,
+    "Risk reduction: timeline committed, dedicated support, revisions included.",
+    "Ethical urgency: limited onboarding capacity this week.",
+  ].join("\n");
+  const cta = paymentLink
+    ? `Perfect 👍\n\nSecure payment link:\n${paymentLink}\n\nAfter payment:\n1. Onboarding form\n2. Assets collection\n3. Setup starts immediately`
+    : requiresEmail
+      ? "Next step: share billing email to generate your live payment link now."
+      : "Next step: I am generating your live Razorpay payment link now.";
+
+  if (language === "hinglish" || language === "hindi") {
+    return [
+      `Perfect. ${pkg.serviceLabel} ke liye close-ready plan:`,
+      "",
+      `Package: ${pkg.packageName}`,
+      `Outcomes:`,
+      outcomeLine,
+      persuasionBlock,
+      `Timeline: ${pkg.timeline}`,
+      "",
+      cta,
+    ].join("\n");
+  }
+
+  return [
+    `Perfect. Here is the close-ready plan for ${pkg.serviceLabel}:`,
+    "",
+    `Package: ${pkg.packageName}`,
+    "Outcomes:",
+    outcomeLine,
+    persuasionBlock,
+    `Timeline: ${pkg.timeline}`,
+    "",
+    cta,
+  ].join("\n");
 }
 
 export function detectUserLanguage(message) {
@@ -55,50 +461,40 @@ export function routeStrategicIntent(message) {
 export function directIntentReply(intent, language = "english") {
   if (intent === "services_menu") {
     return [
-      "🚀 Stratxcel can help with:",
-      "",
-      "1️⃣ Website Development",
-      "2️⃣ More Leads with Ads",
-      "3️⃣ AI WhatsApp Bots",
-      "4️⃣ Branding & Design",
-      "5️⃣ SEO / Google Growth",
-      "6️⃣ Automation Systems",
-      "7️⃣ Full Growth Packages",
-      "",
-      "Reply with a number 👍",
+      "Here's what works:",
+      "• Website conversion setup",
+      "• Lead generation ads",
+      "• WhatsApp automation",
+      "• Full growth bundle",
+      "Next step: demo or WhatsApp audit?",
     ].join("\n");
   }
 
   if (intent === "pricing") {
     if (language === "english") {
       return [
-        "Here are starting plans:",
-        "- Website starts ₹9,999",
-        "- AI Bot starts ₹14,999",
-        "- Ads Management starts ₹12,999/month",
-        "- Branding starts ₹2,999",
-        "",
-        "Best option depends on your business goal and current stage.",
-        "What are you looking to grow first?",
+        "Top recommendation: Website Growth Launch.",
+        "ROI: stronger conversion and lead quality in 5-7 days.",
+        "Price anchor ₹27,999; current execution plan ₹19,999.",
+        "Timeline, support, and revisions are included.",
+        "Approve and I will lock your onboarding slot.",
       ].join("\n");
     }
     return [
-      "Starting pricing ye hai:",
-      "- Website starts ₹9,999",
-      "- AI Bot starts ₹14,999",
-      "- Ads Management starts ₹12,999/month",
-      "- Branding starts ₹2,999",
-      "",
-      "Best option aapke business goal aur current stage pe depend karta hai.",
-      "Abhi sabse pehle kya grow karna hai?",
+      "Top recommendation: Website Growth Launch.",
+      "ROI: conversion aur lead quality 5-7 din me improve hoti hai.",
+      "Price anchor ₹27,999; current execution plan ₹19,999.",
+      "Timeline, support, aur revisions included hain.",
+      "Approve karo, main onboarding slot lock karta hoon.",
     ].join("\n");
   }
 
   if (intent === "website_interest") {
     return [
       "Great choice 👌",
-      "Aajkal website sirf design nahi - trust + lead tool honi chahiye.",
-      "Aapka business type kya hai?",
+      "Recommendation: conversion-first website rollout start karte hain.",
+      "Timeline 5-7 days, support + revisions included, and faster go-live slot available this week.",
+      "Share approval and I will move to payment step.",
     ].join("\n");
   }
 
@@ -117,12 +513,9 @@ export function directIntentReply(intent, language = "english") {
   if (intent === "interested") {
     return [
       "Great 👍",
-      "Can I know:",
-      "1. your business type",
-      "2. current goal",
-      "3. budget range",
-      "",
-      "Then I'll suggest the best fit.",
+      "Recommendation locked: best-fit ROI bundle for your goal.",
+      "I will handle execution with committed timeline, support, and revisions.",
+      "Confirm to proceed and I will trigger the payment step now.",
     ].join("\n");
   }
   return "";
@@ -134,13 +527,21 @@ function languageInstruction(language) {
   return "User language is English. Reply in clear conversational English.";
 }
 
-export function buildPrompt(mode, userMessage, memoryBlock = "") {
+export function buildPrompt(mode, userMessage, memoryBlock = "", options = {}) {
   const mem = (memoryBlock || "").trim();
   const memorySection = mem ? `\n${escapeForPrompt(mem)}\n` : "\nNo memory context available.\n";
   const language = detectUserLanguage(userMessage);
   const intent = routeStrategicIntent(userMessage);
+  const closeMode = Boolean(options.closeMode);
+  const serviceKey = String(options.serviceKey || "");
+  const packageName = String(options.packageName || "");
+  const packagePrice = options.packagePrice != null ? `₹${Number(options.packagePrice).toLocaleString("en-IN")}` : "";
+  const packageTimeline = String(options.packageTimeline || "");
+  const paymentLink = String(options.paymentLink || "");
   const modeHint =
-    mode === "SALES_MODE"
+    closeMode
+      ? "CLOSE_MODE: no questions unless mandatory field is missing. Give package, outcomes, price, timeline, and direct payment CTA."
+      : mode === "SALES_MODE"
       ? "User is price or decision focused. Give concise option guidance with one smart qualifying question."
       : mode === "SUGGESTION_MODE"
         ? "User is unsure. Recommend practical growth path with one next step."
@@ -476,6 +877,18 @@ FINAL RULE:
 You are here to grow businesses and close deals professionally.
 Every message should feel valuable, human, and conversion-focused.
 
+Mandatory conversion controls:
+- Ask zero questions by default.
+- Ask at most one question only when a mandatory field is missing to execute next step.
+- Stay focused only on the service the user requested in this message.
+- Use confident, direct, premium sales closer tone.
+- Replace passive questions with clear recommendations.
+- Include trust signals naturally: timeline, support, revisions.
+- Add soft urgency without sounding pushy.
+- Keep replies short and high-impact; prefer bullets over long paragraphs.
+- End every sales reply with one next step: demo, payment, call, WhatsApp audit, or setup start.
+- Avoid weak phrases: maybe, perhaps, let me know, if interested, we can try, what do you think.
+
 ━━━━━━━━━━━━━━━━━━
 📌 RUNTIME CONTEXT (apply on top of the above)
 ━━━━━━━━━━━━━━━━━━
@@ -483,6 +896,12 @@ ${languageInstruction(language)}
 
 Mode: ${modeHint}
 Intent tag: ${intent}
+Close mode: ${closeMode ? "ON" : "OFF"}
+Focused service: ${serviceKey || "auto"}
+Package name: ${packageName || "auto"}
+Package price: ${packagePrice || "auto"}
+Package timeline: ${packageTimeline || "auto"}
+Payment link: ${paymentLink || "pending"}
 
 [CONTEXT MEMORY]
 ${memorySection}

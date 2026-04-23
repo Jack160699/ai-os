@@ -184,6 +184,11 @@ function formatLeadMemoryProfileBlock(row) {
     }
   }
   push("Last summary", row.last_summary);
+  const summary = String(row.last_summary || "");
+  const need = summary.match(/\[need:([^\]]+)\]/)?.[1]?.trim();
+  const objection = summary.match(/\[objection:([^\]]+)\]/)?.[1]?.trim();
+  if (need) push("Resume need", need.replace(/_/g, " "));
+  if (objection) push("Known objection", objection.replace(/_/g, " "));
   if (!lines.length) return "";
   return ["LEAD PROFILE (structured memory; facts only, do not invent beyond this):", ...lines].join("\n");
 }

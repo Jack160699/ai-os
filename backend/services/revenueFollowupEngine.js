@@ -27,6 +27,9 @@ function minGapMs() {
 export function computePhaseCFollowupDelayMs(leadMemory) {
   const lm = leadMemory || {};
   const score = Number(lm.intent_score);
+  const stage = String(lm.stage || "").toLowerCase();
+  if (stage === "qualified" || stage === "proposal_sent") return 3 * HOUR_MS;
+  if (Number.isFinite(score) && score > 78) return 4 * HOUR_MS;
   if (Number.isFinite(score) && score > 70) return 6 * HOUR_MS;
   const bt = String(lm.buyer_type || "").toLowerCase();
   if (bt === "fast_buyer") return 6 * HOUR_MS;
@@ -36,25 +39,38 @@ export function computePhaseCFollowupDelayMs(leadMemory) {
   return 7 * DAY_MS;
 }
 
+function readMemoryTag(summary, tag) {
+  const s = String(summary || "");
+  const m = s.match(new RegExp(`\\[${String(tag)}:([^\\]]+)\\]`));
+  return m?.[1] ? m[1].trim() : "";
+}
+
 export function buildPhaseCFollowupMessage(leadMemory) {
   const lm = leadMemory || {};
   const bt = String(lm.buyer_type || "explorer").toLowerCase();
   const hint = String(lm.last_summary || "").trim().slice(0, 160);
+  const need = readMemoryTag(lm.last_summary, "need");
+  const objection = readMemoryTag(lm.last_summary, "objection");
+  const service = String(lm.service_interest || "").replace(/_/g, " ").trim();
+  const business = String(lm.business_type || "").replace(/_/g, " ").trim();
+  const resumeLine = need ? `Resume note: continuing your ${need.replace(/_/g, " ")} priority.` : "";
+  const profileLine = business || service ? `Profile fit: ${[business, service].filter(Boolean).join(" + ")}.` : "";
+  const objectionLine = objection ? `Last objection handled: ${objection.replace(/_/g, " ")}.` : "";
   const tail = hint ? `\n\nEarlier you mentioned: "${hint}"` : "";
 
   if (bt === "fast_buyer" || (Number.isFinite(Number(lm.intent_score)) && Number(lm.intent_score) > 70)) {
-    return `Quick ping 👋 Still want to move forward today?${tail}\n\nReply YES and I'll share the clean next step + timeline 🚀`.trim();
+    return `Quick priority follow-up 👋${tail}\n\n${resumeLine}\n${profileLine}\nAuthority note: this close flow is already working for similar businesses.\nPrice anchor is locked; your rollout plan includes timeline, support, and revisions.\nIf you're in, reply YES and I'll send your payment link now.`.trim();
   }
   if (bt === "skeptic") {
-    return `Hey — totally get wanting clarity before next steps.${tail}\n\nWant a simple breakdown of how we work + what to expect (no pressure)? 👍`.trim();
+    return `Clarity follow-up 👋${tail}\n\n${resumeLine}\n${objectionLine}\nLow-risk path: milestone delivery, committed support, and revision rounds included.\nIf this works for you, reply YES and I'll lock the kickoff step.`.trim();
   }
   if (bt === "budget_buyer") {
-    return `Checking in 👋${tail}\n\nIf budget's tight, we can start small and still get momentum. Want 2–3 starter options that fit?`.trim();
+    return `Checking in 👋${tail}\n\n${resumeLine}\nRecommendation: start with the lean ROI package now and scale after first wins.\nEthical urgency: current slots are limited this week.\nReply YES and I'll share the payment step.`.trim();
   }
   if (bt === "ghosted_return_lead") {
-    return `Welcome back 👋${tail}\n\nWhenever you're ready, tell me your #1 goal right now and I'll suggest the fastest path.`.trim();
+    return `Welcome back 👋${tail}\n\n${profileLine}\nTop path is ready: fast-start rollout with support and revisions included.\nReturning client advantage: we can add an ROI upsell once base plan is locked.\nReply YES and I'll activate the next step instantly.`.trim();
   }
-  return `Gentle follow-up from Stratxcel 👋${tail}\n\nWhat would help you most this week — leads, website polish, or something else?`.trim();
+  return `Follow-up from Stratxcel 👋${tail}\n\n${resumeLine}\n${profileLine}\nRecommendation is prepared for fastest ROI this week.\nIf aligned, reply YES and I'll move you to the payment step.`.trim();
 }
 
 async function threadHasPendingUserReply(phone) {
