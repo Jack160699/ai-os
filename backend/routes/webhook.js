@@ -75,7 +75,7 @@ function extractInboundUserText(messageObj) {
   const t = messageObj?.text?.body;
   if (typeof t === "string" && t.trim()) return t.trim();
   const interactiveId = messageObj?.interactive?.button_reply?.id || messageObj?.interactive?.list_reply?.id;
-  if (interactiveId) return String(interactiveId).replace(/_/g, " ").trim();
+  if (interactiveId) return String(interactiveId).trim();
   return "";
 }
 
@@ -86,10 +86,6 @@ function detectInboundFounderSource(messageObj) {
     }
   }
   return "typed";
-}
-
-function isFounderGreetingText(message) {
-  return /^(hi|hello|hey|hii|yo|start)\b/i.test(String(message || "").trim());
 }
 
 function extractSalesSignals(message) {
@@ -181,12 +177,6 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
 
     await saveMessage(phone, message, "user");
     const owner = await isOwnerNumber(phone);
-    if (owner && isFounderGreetingText(message)) {
-      const greet = "Hey 👋\nKya chal raha hai aaj?";
-      await saveMessage(phone, greet, "bot");
-      await sendFounderOutreach(phone, { text: greet, interactive: null });
-      return res.sendStatus(200);
-    }
     if (owner) {
       const out = await executeCeoCommand({ command: message, phone, source: founderSource });
       await saveMessage(phone, out.response, "bot");

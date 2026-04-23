@@ -630,6 +630,10 @@ function normalizeFreeText(v) {
     .toLowerCase();
 }
 
+function normalizeActionToken(v) {
+  return normalizeFreeText(v).replace(/\s+/g, "_");
+}
+
 function rootCausesFromDiagnosis(diagnosis, analysis) {
   const list = [];
   if (diagnosis?.root_problem) list.push(diagnosis.root_problem);
@@ -691,9 +695,15 @@ function dynamicDirections({ focus, situation }) {
 
 function parseDirectionSelection(message, dirs) {
   const low = normalizeFreeText(message);
+  const lowToken = normalizeActionToken(message);
   const dirId = low.match(/^dir_(\d)$/);
   if (dirId) {
     const idx = Number(dirId[1]) - 1;
+    return dirs[idx] || "";
+  }
+  const dirToken = lowToken.match(/^dir_(\d)$/);
+  if (dirToken) {
+    const idx = Number(dirToken[1]) - 1;
     return dirs[idx] || "";
   }
   const num = low.match(/\b([1-3])\b/);
@@ -919,8 +929,13 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
   const state = stateFromDb(persisted);
   const msg = String(message || "").trim();
   const lowMsg = normalizeFreeText(msg);
+  const lowToken = normalizeActionToken(msg);
   const forcedIntent =
-    lowMsg === "focus_leads" ? "growth advice" : lowMsg === "focus_closing" ? "close leads" : intent.kind || "unclear";
+    lowToken === "focus_leads"
+      ? "growth advice"
+      : lowToken === "focus_closing"
+        ? "close leads"
+        : intent.kind || "unclear";
   const focus = inferPrimaryFocus({ understanding: { intent: forcedIntent }, diagnosis, situation, message: msg });
   const dirs = dynamicDirections({ focus, situation });
   const progress = parseProgressPct(msg);
@@ -948,9 +963,17 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
       ],
     };
   } else if (progress != null && state?.waiting_for_update) {
-    await updateFounderProgress(ownerPhone, progress);
+    try {
+      await updateFounderProgress(ownerPhone, progress);
+    } catch {
+      // Keep founder response path resilient.
+    }
     if (progress >= 100) {
-      await clearFounderExecutionState(ownerPhone);
+      try {
+        await clearFounderExecutionState(ownerPhone);
+      } catch {
+        // Keep founder response path resilient.
+      }
       text = [
         "Solid. Yeh sprint complete ho gaya.",
         "",
@@ -959,13 +982,17 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
         `Continuation:\n${buildExecutionPlan(state.active_focus || focus, { urgent, lowEnergy }).next}`,
       ].join("\n");
     } else {
-      await saveFounderExecutionState(ownerPhone, {
-        ...state,
-        progress_percent: progress,
-        waiting_for_update: true,
-        last_action_at: nowIso,
-        next_reminder_at: new Date(Date.now() + INACTIVITY_MS).toISOString(),
-      });
+      try {
+        await saveFounderExecutionState(ownerPhone, {
+          ...state,
+          progress_percent: progress,
+          waiting_for_update: true,
+          last_action_at: nowIso,
+          next_reminder_at: new Date(Date.now() + INACTIVITY_MS).toISOString(),
+        });
+      } catch {
+        // Keep founder response path resilient.
+      }
       text = [
         `Noted: ${progress}%`,
         "",
@@ -980,18 +1007,61 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
     if (selected) {
       const plan = buildExecutionPlan(focus, { urgent, lowEnergy });
       const nextReminderAt = new Date(Date.now() + INACTIVITY_MS).toISOString();
-      await saveFounderExecutionState(ownerPhone, {
-        active_focus: focus,
-        selected_direction: selected,
-        plan: { tasks: plan.tasks, asset: plan.asset, next: plan.next },
-        progress_percent: 0,
-        waiting_for_update: true,
-        last_action_at: nowIso,
-        next_reminder_at: nextReminderAt,
-        meta: { direction_choices: dirs, urgent, low_energy: lowEnergy },
-      });
+      try {
+        await saveFounderExecutionState(ownerPhone, {
+          active_focus: focus,
+          selected_direction: selected,
+          plan: { tasks: plan.tasks, asset: plan.asset, next: plan.next },
+          progress_percent: 0,
+          waiting_for_update: true,
+          last_action_at: nowIso,
+          next_reminder_at: nextReminderAt,
+          meta: {
+            direction_choices: dirs,
+            urgent,
+            low_energy: lowEnergy,
+            preferred_language: "hinglish",
+            last_issue: forcedIntent,
+            repeated_bottlenecks: [diagnosis.root_problem, diagnosis.secondary_problem].filter(Boolean),
+          },
+        });
+      } catch {
+        // Keep founder response path resilient.
+      }
       text = buildExecutionMessage({ focus: focus[0].toUpperCase() + focus.slice(1), plan });
     } else {
+      if (forcedIntent === "draft message") {
+        text = formatFounderResponse({
+          answer: "Reply ready karte hain.",
+          reason: "Lead context ke bina strong reply miss ho sakta hai.",
+          priority: "Ek line context do: last msg + objection + stage.",
+          directions: [
+            { label: "Lead ka last message bhejo", short: "Last msg" },
+            { label: "Objection batao (price/trust/time)", short: "Objection" },
+            { label: "Stage batao (new/warm/hot)", short: "Stage" },
+          ],
+        });
+        interactive = null;
+      } else if (forcedIntent === "daily priorities") {
+        text = formatFounderResponse({
+          answer: "Aaj ka focus clear hai.",
+          reason: "Pipeline tab grow karti hai jab outreach + follow-up + close parallel chale.",
+          priority: "Pehle revenue-impact wala block execute karo.",
+          directions: [
+            { label: "Leads push karo (fresh conversations)", short: "Leads" },
+            { label: "Closing push karo (hot threads)", short: "Closing" },
+            { label: "Offer tighten karo (conversion bump)", short: "Offer" },
+          ],
+        });
+        interactive = {
+          body: "Aaj kis pe execute karna hai?",
+          rows: [
+            { id: "dir_1", title: "Leads push" },
+            { id: "dir_2", title: "Closing push" },
+            { id: "dir_3", title: "Offer tighten" },
+          ],
+        };
+      } else {
       if (forcedIntent === "revenue help") {
         const rev = buildRevenueIssueFramework(situation);
         text = rev.text;
@@ -1038,6 +1108,7 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
         rows: dirs.map((d, i) => ({ id: `dir_${i + 1}`, title: titleForMenuCommand(d.slice(0, 24)) })).slice(0, 3),
       };
       }
+      }
     }
   }
 
@@ -1045,22 +1116,29 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
   if (notif) {
     text = `${notif}\n\n---\n\n${text}`.slice(0, CEO_MESSAGE_MAX);
     if (state.waiting_for_update) {
-      await saveFounderExecutionState(ownerPhone, {
-        ...state,
-        last_action_at: nowIso,
-        next_reminder_at: new Date(Date.now() + INACTIVITY_MS).toISOString(),
-      });
+      try {
+        await saveFounderExecutionState(ownerPhone, {
+          ...state,
+          last_action_at: nowIso,
+          next_reminder_at: new Date(Date.now() + INACTIVITY_MS).toISOString(),
+        });
+      } catch {
+        // Keep founder response path resilient.
+      }
     }
   }
-
-  await storeDecisionReflection({
-    ownerPhone,
-    message,
-    intent: intent.kind || "unclear",
-    diagnosis,
-    selection,
-    source,
-  });
+  try {
+    await storeDecisionReflection({
+      ownerPhone,
+      message,
+      intent: intent.kind || "unclear",
+      diagnosis,
+      selection,
+      source,
+    });
+  } catch {
+    // Keep founder response path resilient.
+  }
 
   return {
     text: String(text || "").slice(0, CEO_MESSAGE_MAX),

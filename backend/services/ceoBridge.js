@@ -100,18 +100,18 @@ function detectIntent(commandRaw) {
     .replace(/\s+/g, " ");
   if (!cmd) return "unknown";
   if (isProblemStatement(cmd)) return "unknown";
-  if (cmd.includes("morning brief") || /^morning\s+brief\b/.test(cmd)) return "morning brief";
+  if (cmd === "morning brief") return "morning brief";
   if (/^drafts\s+yes\b/i.test(cmd) || cmd === "yes send drafts") return "drafts yes";
   if (/^drafts\s+no\b/i.test(cmd) || cmd === "no send drafts") return "drafts no";
   if (cmd.includes("drafts send all") || /\bsend all drafts\b/.test(cmd)) return "drafts send all";
   if (/^drafts\s+preview\b/i.test(cmd)) return "drafts preview";
-  if (cmd.includes("weekly optimization report") || (cmd.includes("weekly") && cmd.includes("optimization"))) {
+  if (cmd === "weekly optimization report") {
     return "weekly optimization report";
   }
-  if (cmd.includes("today")) return "today stats";
-  if (cmd.includes("hot")) return "hot leads";
+  if (cmd === "today stats") return "today stats";
+  if (cmd === "hot leads") return "hot leads";
   if (cmd === "revenue" || cmd === "revenue report") return "revenue";
-  if (cmd.includes("follow")) return "pending followups";
+  if (cmd === "pending followups") return "pending followups";
   if (cmd.includes("create task") || cmd.startsWith("task ")) return "create task";
   if (cmd.includes("assign lead") || cmd.includes("assign")) return "assign lead";
   if (cmd.includes("start ads") || cmd.includes("ads start")) return "start ads";
@@ -120,7 +120,7 @@ function detectIntent(commandRaw) {
 
 function isProblemStatement(message) {
   const text = String(message || "").toLowerCase();
-  return /nahi|ni|kam|issue|problem|aa rha|aa raha|nahi ho raha/i.test(text);
+  return /\b(nahi|ni|kam|issue|problem|aa rha|aa raha|nahi ho raha|nahi aa raha|nhi|slow|down)\b/i.test(text);
 }
 
 function extractPhone(text) {
@@ -351,15 +351,19 @@ export async function executeCeoCommand({ command, phone, source }) {
     // Keep CEO command flow resilient if analytics insert fails.
   }
 
-  await logCeoCommand({
-    command: raw,
-    intent,
-    status,
-    source_phone: normPhone(phone) || null,
-    response_text: response,
-    payload: auditPayload,
-    created_at: new Date().toISOString(),
-  });
+  try {
+    await logCeoCommand({
+      command: raw,
+      intent,
+      status,
+      source_phone: normPhone(phone) || null,
+      response_text: response,
+      payload: auditPayload,
+      created_at: new Date().toISOString(),
+    });
+  } catch {
+    // Never block founder response on audit logging.
+  }
 
   return { ok: status === "ok", intent, status, response, payload: auditPayload, interactive, source: reqSource };
 }
