@@ -102,28 +102,14 @@ function detectIntent(commandRaw) {
 
   const exactMap = new Map([
     ["morning brief", "morning brief"],
-    ["today stats", "today stats"],
     ["hot leads", "hot leads"],
     ["revenue", "revenue"],
     ["revenue report", "revenue"],
-    ["pending followups", "pending followups"],
-    ["weekly optimization report", "weekly optimization report"],
-    ["drafts preview", "drafts preview"],
-    ["drafts send all", "drafts send all"],
-    ["drafts yes", "drafts yes"],
-    ["drafts no", "drafts no"],
-    ["yes send drafts", "drafts yes"],
-    ["no send drafts", "drafts no"],
   ]);
   if (exactMap.has(cmd)) return exactMap.get(cmd);
 
   if (isProblemStatement(cmd)) return "unknown";
 
-  if (/\bsend all drafts\b/.test(cmd)) return "drafts send all";
-  if (/^drafts\s+preview\b/.test(cmd)) return "drafts preview";
-  if (cmd.includes("create task") || cmd.startsWith("task ")) return "create task";
-  if (cmd.includes("assign lead") || cmd.includes("assign")) return "assign lead";
-  if (cmd.includes("start ads") || cmd.includes("ads start")) return "start ads";
   return "unknown";
 }
 

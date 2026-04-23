@@ -1035,26 +1035,21 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
     const aiPrompt = buildFounderAiPrompt({ message: msg, situation, state });
     text = await getAIResponse(aiPrompt);
     const dirLabels = extractDirectionsForButtons(text);
-    if (dirLabels.length >= 2 && /\b(Tum kya fix karna chahte ho|direction)\b/i.test(text)) {
-      interactive = {
-        body: "Ek direction choose karo:",
-        rows: dirLabels.map((d, i) => ({ id: `dir_${i + 1}`, title: titleForMenuCommand(d.slice(0, 24)) })).slice(0, 3),
-      };
-      try {
-        await saveFounderExecutionState(ownerPhone, {
-          ...state,
-          active_focus: focus,
-          last_action_at: nowIso,
-          meta: {
-            ...(state.meta || {}),
-            preferred_language: "hinglish",
-            last_issue: intent.kind || "general",
-            repeated_bottlenecks: [diagnosis.root_problem, diagnosis.secondary_problem].filter(Boolean),
-            ai_suggested_directions: dirLabels,
-          },
-        });
-      } catch {}
-    }
+    try {
+      await saveFounderExecutionState(ownerPhone, {
+        ...state,
+        active_focus: focus,
+        last_action_at: nowIso,
+        meta: {
+          ...(state.meta || {}),
+          preferred_language: "hinglish",
+          last_issue: intent.kind || "general",
+          repeated_bottlenecks: [diagnosis.root_problem, diagnosis.secondary_problem].filter(Boolean),
+          ai_suggested_directions: dirLabels,
+        },
+      });
+    } catch {}
+    interactive = null;
   }
 
   const notif = buildNotificationLine({ situation, state });
