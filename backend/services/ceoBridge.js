@@ -134,19 +134,19 @@ function formatList(items, empty = "None") {
 
 function waFormatRevenue(rev) {
   return [
-    "Revenue Summary",
+    "Revenue snapshot",
     `Paid links: ${rev.paid_links}`,
-    `Paid count: ${rev.paid_count}`,
-    `Collected: ₹${Number(rev.paid_amount_rupees || 0).toLocaleString("en-IN")}`,
+    `Paid deals: ${rev.paid_count}`,
+    `Collected abhi tak: ₹${Number(rev.paid_amount_rupees || 0).toLocaleString("en-IN")}`,
   ].join("\n");
 }
 
 function waFormatFollowups(rows) {
   return [
-    "Pending Followups",
+    "Pending follow-ups",
     formatList(
       rows.map((r) => `${r.phone || "na"} · ${r.stage || "stage"} · ${r.next_followup_at || "now"}`),
-      "No pending followups."
+      "Abhi pending follow-up nahi hai."
     ),
   ].join("\n");
 }

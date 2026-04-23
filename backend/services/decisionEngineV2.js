@@ -24,10 +24,8 @@ function detectFounderTone(message) {
   return "neutral";
 }
 
-function detectLanguage(message, recentRows) {
-  const all = [message, ...(recentRows || []).map((r) => r.text || "")].join(" ").toLowerCase();
-  const hits = (all.match(/\b(kya|kaise|karu|nahi|raha|hai|bhejo|chahiye|toh)\b/g) || []).length;
-  return hits >= 2 ? "hinglish" : "english";
+function detectLanguage() {
+  return "hinglish";
 }
 
 function classifyIntent(message) {
@@ -39,6 +37,9 @@ function classifyIntent(message) {
   if (/\b(close nahi|closing|deal)\b/.test(low)) return "closing problem";
   if (/\b(sales kam|revenue|payment|cash)\b/.test(low)) return "revenue concern";
   if (/\b(why|diagnos|problem|stuck|ghost)\b/.test(low)) return "diagnostic";
+  if (/\b(kya focus karu|kya karu|ab kya)\b/.test(low)) return "daily priorities";
+  if (/\b(leads?\s*nahi\s*aa\s*rahe|lead aa nahi)\b/.test(low)) return "growth problem";
+  if (/\b(close\s*nahi\s*ho\s*raha)\b/.test(low)) return "closing problem";
   return "unclear";
 }
 
@@ -287,28 +288,61 @@ export function selectBestMove({ scoredActions }) {
 }
 
 export function generateFounderReply({ message, intent, situation, diagnosis, selection }) {
-  const hi = situation.founder_language === "hinglish";
   if (intent === "greeting") {
-    return "Ready. Batao kis issue pe kaam karna hai.";
+    return "Hey 👋\nAaj kya chal raha hai?";
   }
   if (!selection.best_move) {
-    return hi
-      ? "Context weak hai. Leads, closing, revenue ya draft — kya solve karna hai?"
-      : "Context is thin. Should we solve leads, closing, revenue, or drafting first?";
+    return "Thoda context de — leads, closing, revenue ya draft me kya atka hua hai?";
   }
 
-  const whatISee = hi
-    ? `Seedha bolu?\nAbhi ${diagnosis.root_problem} dikh raha hai.`
-    : `Direct take:\nRight now this is a ${diagnosis.root_problem}.`;
-  const matters = hi
-    ? `Abhi sabse important: ${selection.best_move.label.toLowerCase()}.`
-    : `What matters now: ${selection.best_move.label.toLowerCase()}.`;
-  const exact = hi ? `Exact move:\n→ ${selection.best_move.move}` : `Exact move:\n→ ${selection.best_move.move}`;
+  const low = String(message || "").toLowerCase();
+  if (/lead/.test(low) && /nahi/.test(low)) {
+    return [
+      "Clear top-funnel issue hai.",
+      "",
+      "Last few days outreach consistent nahi lag raha.",
+      "",
+      "Fastest fix:",
+      "→ Aaj 10–15 logon ko direct WhatsApp outreach bhejo",
+    ]
+      .join("\n")
+      .slice(0, MAX_TEXT);
+  }
+  if (/close/.test(low) && /nahi/.test(low)) {
+    return [
+      "Usually 3 reason hote hain:",
+      "- follow-up slow",
+      "- trust low",
+      "- pricing unclear",
+      "",
+      `Tere case me ${diagnosis.root_problem.includes("follow") ? "follow-up weak" : "close urgency weak"} lag raha hai.`,
+      "",
+      `Aaj ka move:\n→ ${selection.best_move.move}`,
+    ]
+      .join("\n")
+      .slice(0, MAX_TEXT);
+  }
+  if (/focus/.test(low) || /priority/.test(low)) {
+    return [
+      "Seedha bolu?",
+      "",
+      `Abhi ${diagnosis.root_problem} dikh raha hai.`,
+      "",
+      "Aaj:",
+      `→ ${selection.best_move.move}`,
+      selection.backup_move ? `→ ${selection.backup_move.move}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, MAX_TEXT);
+  }
+
+  const whatISee = `Seedha bolu?\nAbhi ${diagnosis.root_problem} dikh raha hai.`;
+  const matters = `Abhi sabse important: ${selection.best_move.label.toLowerCase()}.`;
+  const exact = `Exact move:\n→ ${selection.best_move.move}`;
   const next =
     selection.backup_move && selection.backup_move.score > 0.62
-      ? hi
-        ? `Then:\n→ ${selection.backup_move.move}`
-        : `Then:\n→ ${selection.backup_move.move}`
+      ? `Uske baad:\n→ ${selection.backup_move.move}`
       : "";
   return [whatISee, "", matters, "", exact, next].filter(Boolean).join("\n").slice(0, MAX_TEXT);
 }

@@ -115,50 +115,50 @@ function buildConversationalBody(data, intent) {
 
   if (intent === "today stats") {
     if (hints.pipe_empty || data.insufficient) {
-      lines.push("Nothing in CRM yet.");
-      lines.push("Get a few real chats going on WhatsApp first.");
-      lines.push("Ping me once people are replying — I'll steer fast.");
+      lines.push("CRM me abhi flow thin hai.");
+      lines.push("Pehle WhatsApp pe kuch real chats start karo.");
+      lines.push("Replies aate hi ping karo — fir fast optimize karenge.");
     } else {
       const t = Number(ts?.total_leads) || 0;
       const q = Number(ts?.qualified) || 0;
       const w = Number(ts?.won) || 0;
-      lines.push(`${t} leads · ${q} in a good place · ${w} won.`);
+      lines.push(`${t} leads · ${q} strong stage me · ${w} won.`);
       if (hints.conversion_soft) {
-        lines.push("Looks like people stall before they're really qualified.");
-        lines.push("I'd tighten first replies before spending more.");
+        lines.push("Lag raha hai log qualified hone se pehle hi drop kar rahe hain.");
+        lines.push("Pehle first reply tighten karo, phir spend badhao.");
       } else if (hints.high_intent) {
-        lines.push("A few threads look hot in memory — worth hitting today.");
+        lines.push("Memory me kuch threads hot dikh rahe hain — aaj hi hit karo.");
       } else {
-        lines.push("Main thing: pick 3 warm threads and move them to paid.");
+        lines.push("Main move: 3 warm threads uthao aur paid tak push karo.");
       }
     }
   } else if (intent === "hot leads") {
     if (hints.has_hot) {
       const n = Number(hints.hot_count) || 0;
-      lines.push(`${n} HOT in CRM right now.`);
-      lines.push("Scroll down — I wrote copy you can paste.");
-      lines.push("Speed beats perfect here.");
+      lines.push(`CRM me abhi ${n} HOT leads hain.`);
+      lines.push("Neeche copy ready hai — direct paste kar sakte ho.");
+      lines.push("Yaha speed perfect se zyada important hai.");
     } else if (hints.ghost_hot) {
-      lines.push("No HOT tags in CRM.");
-      lines.push("Memory still shows heat — scoring or follow-up's off.");
-      lines.push("Call the warmest 5 manually today.");
+      lines.push("CRM me HOT tags nahi dikh rahe.");
+      lines.push("Memory heat dikha rahi hai — scoring ya follow-up weak hai.");
+      lines.push("Aaj warmest 5 leads ko manually touch karo.");
     } else {
-      lines.push("No hot list yet.");
-      lines.push("Either traffic's thin or the bot isn't pulling urgency out.");
+      lines.push("Hot list abhi build nahi hui.");
+      lines.push("Ya to traffic thin hai, ya urgency extract nahi ho rahi.");
     }
   } else if (intent === "weekly optimization report") {
     if (hints.thin || data.insufficient) {
-      lines.push("Thin week data-wise.");
-      lines.push("Run ~10 real convos through WhatsApp, then ask again.");
+      lines.push("Is week ka data abhi thin hai.");
+      lines.push("~10 real WhatsApp convos chalao, fir dubara check karte hain.");
     } else if (hints.drop_hard) {
-      lines.push("People drop off early — first answer's probably the leak.");
-      lines.push("Fix that before throwing more money at reach.");
+      lines.push("Log early drop kar rahe hain — first answer me leak lag raha hai.");
+      lines.push("Reach pe paisa daalne se pehle ye fix karo.");
     } else if (hints.mid_funnel) {
-      lines.push("Middle of the funnel's sticky.");
-      lines.push("More nudges + clearer next step usually fixes it.");
+      lines.push("Mid funnel sticky ho raha hai.");
+      lines.push("Better nudges + clearer next step se ye usually fix hota hai.");
     } else {
-      lines.push("Week looks busy enough to read patterns.");
-      lines.push("Double down on what's already working.");
+      lines.push("Week me enough signal hai patterns read karne ke liye.");
+      lines.push("Jo kaam kar raha hai usi pe double down karo.");
     }
   }
 
@@ -360,19 +360,10 @@ export function isFounderGreeting(messageRaw) {
 }
 
 export function buildFounderWelcomeMessage() {
-  const rows = [
-    { id: "morning_brief", title: "Morning brief" },
-    { id: "hot_leads", title: "Hot leads" },
-    { id: "today_stats", title: "Pipeline" },
-    { id: "weekly_optimization_report", title: "Growth plan" },
-  ];
-  const text = ["Ready.", "What do you want to run first?", formatChooseBlockFromRows(rows)]
-    .join("\n")
-    .trim()
-    .slice(0, CEO_MESSAGE_MAX);
+  const text = "Hey 👋\nKya chal raha hai aaj?";
   return {
     text,
-    interactive: { body: "Pick your first move:", rows },
+    interactive: null,
     payload: { founder_mode: true, natural_kind: "greeting" },
   };
 }

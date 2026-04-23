@@ -88,6 +88,10 @@ function detectInboundFounderSource(messageObj) {
   return "typed";
 }
 
+function isFounderGreetingText(message) {
+  return /^(hi|hello|hey|hii|yo|start)\b/i.test(String(message || "").trim());
+}
+
 function extractSalesSignals(message) {
   const low = String(message || "").toLowerCase();
   const budgetMatch = low.match(/(?:₹|rs\.?|inr)?\s*(\d{2,3})\s*k\b|(?:₹|rs\.?|inr)?\s*(\d{4,6})\b/);
@@ -177,6 +181,12 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
 
     await saveMessage(phone, message, "user");
     const owner = await isOwnerNumber(phone);
+    if (owner && isFounderGreetingText(message)) {
+      const greet = "Hey 👋\nKya chal raha hai aaj?";
+      await saveMessage(phone, greet, "bot");
+      await sendFounderOutreach(phone, { text: greet, interactive: null });
+      return res.sendStatus(200);
+    }
     if (owner) {
       const out = await executeCeoCommand({ command: message, phone, source: founderSource });
       await saveMessage(phone, out.response, "bot");
