@@ -801,6 +801,29 @@ function buildFrameworkMessage({ answer, currentState, reasons, priority, direct
     .slice(0, CEO_MESSAGE_MAX);
 }
 
+function formatFounderResponse({ answer, reason, priority, directions }) {
+  const list = Array.isArray(directions) ? directions : [];
+  return [
+    String(answer || "").trim(),
+    "",
+    "Reason:",
+    String(reason || "").trim(),
+    "",
+    "Priority:",
+    String(priority || "").trim(),
+    "",
+    `Abhi ${list.length} direction hai:`,
+    "",
+    ...list.map((d, i) => `${i + 1}. ${String(d?.label || "").trim()}`),
+    "",
+    "Tum kya fix karna chahte ho?",
+    ...list.map((d) => `→ ${String(d?.short || d?.label || "").trim()}`),
+  ]
+    .join("\n")
+    .trim()
+    .slice(0, CEO_MESSAGE_MAX);
+}
+
 function buildRevenueIssueFramework(situation) {
   const leads = Number(situation?.leads_today || 0);
   const hot = Number(situation?.hot_leads || 0);
@@ -825,33 +848,18 @@ function buildRevenueIssueFramework(situation) {
   }
 
   const directions = [
-    "Leads check karo",
-    "Closing check karo",
-    "Offer check karo",
+    { label: "Leads check karo (aa bhi rahe hain ya nahi)", short: "Leads" },
+    { label: "Closing check karo (convert ho rahe hain ya nahi)", short: "Closing" },
+    { label: "Offer check karo (value clear lag rahi hai ya nahi)", short: "Offer" },
   ];
 
   return {
-    text: [
-      "Revenue slow hai.",
-      "",
-      "Reason:",
+    text: formatFounderResponse({
+      answer: "Revenue stuck hai.",
       reason,
-      "",
-      "Priority:",
       priority,
-      "",
-      "Abhi 3 direction hai:",
-      "1. Leads check karo",
-      "2. Closing check karo",
-      "3. Offer check karo",
-      "",
-      "Tum kya fix karna chahte ho?",
-      "→ Leads",
-      "→ Closing",
-      "→ Offer",
-    ]
-      .join("\n")
-      .slice(0, CEO_MESSAGE_MAX),
+      directions,
+    }),
     directions,
   };
 }
@@ -923,8 +931,15 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
   const nowIso = new Date().toISOString();
 
   if (forcedIntent === "unclear") {
-    text =
-      "Seedha bolo:\nLeads issue fix karna hai ya closing issue?";
+    text = formatFounderResponse({
+      answer: "Issue clear karte hain.",
+      reason: "Message me exact bottleneck clear nahi hai.",
+      priority: "Ek focus lock karo taaki aaj execution start ho.",
+      directions: [
+        { label: "Leads issue fix karo", short: "Leads" },
+        { label: "Closing issue fix karo", short: "Closing" },
+      ],
+    });
     interactive = {
       body: "Ek choose karo:",
       rows: [
@@ -990,7 +1005,7 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
         };
       } else {
       const reasons = rootCausesFromDiagnosis(diagnosis, analyzeBusinessStateFromData({ crm: situation.crm, lmRows: situation.lead_events_7d || [] }));
-      const answer = `Main answer: ${selection?.best_move?.move || "Aaj direct execution sprint chalayenge."}`;
+      const answer = selection?.best_move?.move || "Aaj direct execution sprint chalayenge.";
       const currentState =
         focus === "closing"
           ? "Closing slow chal rahi hai."
@@ -1007,12 +1022,16 @@ export async function runFounderDecisionEngineV2({ ownerPhone, message, source }
             : focus === "offer"
               ? "Abhi sabse pehle offer clarity fix karo."
               : "Abhi sabse pehle naye conversations chahiye.";
-      text = buildFrameworkMessage({
+      const reasonLine = reasons
+        .map((r) => String(r).replace(/top funnel weak/gi, "Top funnel weak hai").replace(/slow follow-up on warm\/hot leads/gi, "Warm leads pe follow-up slow hai"))
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(" ");
+      text = formatFounderResponse({
         answer: `${answer}\n${currentState}`,
-        currentState,
-        reasons: reasons.map((r) => String(r).replace(/top funnel weak/gi, "Top funnel weak hai").replace(/slow follow-up on warm\/hot leads/gi, "Warm leads pe follow-up slow hai")),
+        reason: reasonLine || "Funnel me ek execution leak aa raha hai.",
         priority,
-        directions: dirs,
+        directions: dirs.map((d) => ({ label: d, short: d.split(" ")[0] || d })),
       });
       interactive = {
         body: "Direction choose karo:",
