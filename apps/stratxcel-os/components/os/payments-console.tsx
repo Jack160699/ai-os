@@ -151,7 +151,7 @@ export function PaymentsConsole({
                   {link.status}
                 </Badge>
                 {link.status === "pending" && pendingAgeHours(link) > 24 ? (
-                  <Badge variant="destructive">Pending {pendingAgeHours(link)}h</Badge>
+                  <Badge variant="hot">Pending {pendingAgeHours(link)}h</Badge>
                 ) : null}
                 <span className="text-slate-400">{formatMinor(link)}</span>
               </div>

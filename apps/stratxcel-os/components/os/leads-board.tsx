@@ -64,7 +64,7 @@ export function LeadsBoard({ leads: initial }: { leads: Lead[] }) {
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base leading-tight">{lead.full_name}</CardTitle>
                   <div className="flex shrink-0 items-center gap-1">
-                    {lead.temperature === "hot" ? <Badge variant="destructive">Priority</Badge> : null}
+                    {lead.temperature === "hot" ? <Badge variant="hot">Priority</Badge> : null}
                     <Badge variant={lead.temperature === "hot" ? "hot" : lead.temperature === "warm" ? "warm" : "cold"} className="capitalize">
                       {lead.temperature}
                     </Badge>

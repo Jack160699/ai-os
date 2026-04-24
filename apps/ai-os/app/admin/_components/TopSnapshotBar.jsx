@@ -34,7 +34,7 @@ export function TopSnapshotBar({ summary, syncedAt }) {
               Live status pulse
             </span>
             <span className="rounded-full border border-white/[0.1] bg-white/[0.04] px-3 py-1 text-slate-300">
-              Last sync: {new Date(syncedAt || Date.now()).toLocaleTimeString()}
+              Last sync: {syncedAt ? new Date(syncedAt).toLocaleTimeString() : "—"}
             </span>
             <span className="rounded-full border border-white/[0.1] bg-white/[0.04] px-3 py-1 text-slate-300">Notifications: 3</span>
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/[0.14] bg-slate-700 text-[11px] font-semibold text-white">SC</span>
