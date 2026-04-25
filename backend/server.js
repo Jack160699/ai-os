@@ -270,6 +270,28 @@ app.get("/inbox/lead/:phone", async (req, res) => {
   }
 });
 
+app.get("/api/messages/:phone", async (req, res) => {
+  if (!assertDashboardAccess(req, res)) return;
+  const phone = String(req.params.phone || "").replace(/\D/g, "");
+  if (!phone) return res.status(400).json({ error: "invalid_phone" });
+  try {
+    const rows = await fetchRecentMessages(phone, 200);
+    const messages = (Array.isArray(rows) ? rows : [])
+      .map((row) => ({
+        id: row.id || `${phone}-${row.created_at || Date.now()}`,
+        phone,
+        sender: String(row.sender || "").toLowerCase() === "user" ? "user" : "admin",
+        text: String(row.text || ""),
+        created_at: row.created_at || new Date().toISOString(),
+      }))
+      .sort((a, b) => parseIso(a.created_at) - parseIso(b.created_at));
+    return res.status(200).json({ phone, messages });
+  } catch (err) {
+    log.error("api.messages failed", { err: err?.message || String(err), phone });
+    return res.status(500).json({ error: "messages_failed" });
+  }
+});
+
 app.post("/inbox/mark-read", async (req, res) => {
   if (!assertDashboardAccess(req, res)) return;
   return res.status(200).json({ ok: true });

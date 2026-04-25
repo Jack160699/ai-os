@@ -252,6 +252,17 @@ export function LiveInbox() {
       if (!res.ok || !data.ok) {
         setError(data.error || "Send failed.");
       } else {
+        const nowIso = new Date().toISOString();
+        setDetail((prev) => {
+          if (!prev) return prev;
+          const nextTranscript = Array.isArray(prev.transcript)
+            ? [...prev.transcript, { role: "assistant", text, timestamp_utc: nowIso }]
+            : [{ role: "assistant", text, timestamp_utc: nowIso }];
+          const nextMessages = Array.isArray(prev.messages)
+            ? [...prev.messages, { id: `${selected}-${nowIso}`, sender: "admin", text, created_at: nowIso }]
+            : [{ id: `${selected}-${nowIso}`, sender: "admin", text, created_at: nowIso }];
+          return { ...prev, transcript: nextTranscript, messages: nextMessages };
+        });
         setReply("");
         setError("");
         await fetchDetail(selected);
