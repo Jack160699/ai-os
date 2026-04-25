@@ -27,6 +27,7 @@ function toDetailShape({ phone, state, messages }) {
   }));
   return {
     phone,
+    message_count: normalizedMessages.length,
     state: state && typeof state === "object" ? state : {},
     messages: normalizedMessages,
     transcript,

@@ -14,6 +14,20 @@ const leadConflict = process.env.SUPABASE_LEADS_ON_CONFLICT || "phone";
 const messagesOrderColumn =
   (process.env.SUPABASE_MESSAGES_ORDER || "created_at").trim() || "created_at";
 
+function normalizePhoneForMatch(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function phoneMatchesTarget(storedPhone, requestedPhone) {
+  const a = normalizePhoneForMatch(storedPhone);
+  const b = normalizePhoneForMatch(requestedPhone);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const a10 = a.slice(-10);
+  const b10 = b.slice(-10);
+  return Boolean(a10 && b10 && a10 === b10);
+}
+
 function isTransientSupabaseErr(err) {
   const msg = String(err?.message || "").toLowerCase();
   return (
@@ -64,18 +78,21 @@ export async function saveMessage(phone, text, sender) {
  */
 export async function fetchRecentMessages(phone, limit = 10) {
   if (!supabase) return [];
-  const n = Math.min(50, Math.max(1, Number.parseInt(String(limit), 10) || 10));
+  const n = Math.min(500, Math.max(1, Number.parseInt(String(limit), 10) || 10));
   const orderOpts =
     messagesOrderColumn === "created_at"
       ? { ascending: false, nullsFirst: false }
       : { ascending: false };
+  const digits = normalizePhoneForMatch(phone);
+  const plusDigits = digits ? `+${digits}` : "";
+  const last10 = digits.slice(-10);
   try {
     const data = await withRetry(
       async () => {
         const { data: rows, error } = await supabase
           .from("messages")
-          .select("sender,text,created_at,id")
-          .eq("phone", phone)
+          .select("sender,text,created_at,id,phone")
+          .in("phone", [phone, digits, plusDigits].filter(Boolean))
           .order(messagesOrderColumn, orderOpts)
           .limit(n);
         if (error) throw Object.assign(new Error(error.message), { supabaseError: error });
@@ -89,7 +106,36 @@ export async function fetchRecentMessages(phone, limit = 10) {
         isRetryable: isTransientSupabaseErr,
       }
     );
-    const rows = Array.isArray(data) ? data : [];
+    let rows = Array.isArray(data) ? data : [];
+    if (!rows.length && last10) {
+      const fallback = await withRetry(
+        async () => {
+          const { data: allRows, error } = await supabase
+            .from("messages")
+            .select("sender,text,created_at,id,phone")
+            .order(messagesOrderColumn, orderOpts)
+            .limit(Math.max(300, n * 3));
+          if (error) throw Object.assign(new Error(error.message), { supabaseError: error });
+          return allRows;
+        },
+        {
+          retries: Math.max(0, Number.parseInt(process.env.SUPABASE_RETRIES || "2", 10) || 2),
+          baseMs: 250,
+          maxMs: 5000,
+          label: "supabase.fetchRecentMessages.fallback",
+          isRetryable: isTransientSupabaseErr,
+        }
+      );
+      rows = (Array.isArray(fallback) ? fallback : []).filter((r) => phoneMatchesTarget(r?.phone, digits));
+      rows.sort((a, b) => {
+        const ta = Date.parse(String(a?.created_at || ""));
+        const tb = Date.parse(String(b?.created_at || ""));
+        const aTs = Number.isFinite(ta) ? ta : 0;
+        const bTs = Number.isFinite(tb) ? tb : 0;
+        return bTs - aTs;
+      });
+      rows = rows.slice(0, n);
+    }
     return rows.reverse();
   } catch (err) {
     log.error("Supabase fetchRecentMessages failed", {

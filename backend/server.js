@@ -250,17 +250,29 @@ app.get("/inbox/lead/:phone", async (req, res) => {
       fetchRecentMessages(phone, 200),
     ]);
     const state = (Array.isArray(memRows) ? memRows : []).find((r) => String(r.phone || "").replace(/\D/g, "") === phone) || {};
-    const transcript = (Array.isArray(transcriptRows) ? transcriptRows : []).map((row) => ({
+    const messages = (Array.isArray(transcriptRows) ? transcriptRows : [])
+      .map((row) => ({
+        id: row.id || `${phone}-${row.created_at || Date.now()}`,
+        sender: String(row.sender || "").toLowerCase() === "user" ? "user" : "admin",
+        text: row.text || "",
+        created_at: row.created_at || new Date().toISOString(),
+      }))
+      .sort((a, b) => parseIso(a.created_at) - parseIso(b.created_at));
+    const transcript = messages.map((row) => ({
+      id: row.id,
+      sender: row.sender,
       role: String(row.sender || "").toLowerCase() === "user" ? "user" : "assistant",
       text: row.text || "",
       timestamp_utc: row.created_at || new Date().toISOString(),
     }));
     return res.status(200).json({
       phone,
+      message_count: messages.length,
       state: {
         profile_name: state.name || "Lead",
         tags: Array.isArray(state.tags) ? state.tags : [],
       },
+      messages,
       transcript,
       suggestions: [],
     });
@@ -285,7 +297,14 @@ app.get("/api/messages/:phone", async (req, res) => {
         created_at: row.created_at || new Date().toISOString(),
       }))
       .sort((a, b) => parseIso(a.created_at) - parseIso(b.created_at));
-    return res.status(200).json({ phone, messages });
+    const transcript = messages.map((row) => ({
+      id: row.id,
+      sender: row.sender,
+      role: row.sender === "user" ? "user" : "assistant",
+      text: row.text,
+      timestamp_utc: row.created_at,
+    }));
+    return res.status(200).json({ phone, message_count: messages.length, messages, transcript });
   } catch (err) {
     log.error("api.messages failed", { err: err?.message || String(err), phone });
     return res.status(500).json({ error: "messages_failed" });
