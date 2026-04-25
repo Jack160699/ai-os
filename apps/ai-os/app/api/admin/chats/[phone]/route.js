@@ -16,6 +16,18 @@ function normalizeMessage(row = {}, idx = 0, phone = "") {
   };
 }
 
+function normalizePhone(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function phoneMatches(a, b) {
+  const x = normalizePhone(a);
+  const y = normalizePhone(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  return x.slice(-10) && y.slice(-10) && x.slice(-10) === y.slice(-10);
+}
+
 function toDetailShape({ phone, state, messages }) {
   const normalizedMessages = (Array.isArray(messages) ? messages : [])
     .map((row, idx) => normalizeMessage(row, idx, phone))
@@ -35,6 +47,24 @@ function toDetailShape({ phone, state, messages }) {
   };
 }
 
+function buildSystemFallbackMessage(phone, text, ts) {
+  return [
+    {
+      id: `${phone}-${ts}-fallback`,
+      sender: "admin",
+      text: String(text || "Conversation exists but no message history was found in the messages table yet."),
+      created_at: ts || new Date().toISOString(),
+    },
+  ];
+}
+
+function extractDashboardConversation(dashboardData, digits) {
+  const pipeline = Array.isArray(dashboardData?.recent_pipeline) ? dashboardData.recent_pipeline : [];
+  const leads = Array.isArray(dashboardData?.recent_leads) ? dashboardData.recent_leads : [];
+  const rows = [...pipeline, ...leads];
+  return rows.find((row) => phoneMatches(row?.phone, digits)) || null;
+}
+
 export async function GET(request, { params }) {
   const denied = assertAdminRequest(request);
   if (denied) return denied;
@@ -47,55 +77,69 @@ export async function GET(request, { params }) {
 
   const base = backendBase();
   const headers = adminApiHeaders();
-  const leadUrl = `${base}/inbox/lead/${encodeURIComponent(digits)}`;
-  const leadRes = await fetch(leadUrl, { cache: "no-store", headers });
+  const [leadRes, messagesRes, chatsRes, dashboardRes] = await Promise.all([
+    fetch(`${base}/inbox/lead/${encodeURIComponent(digits)}`, { cache: "no-store", headers }),
+    fetch(`${base}/api/messages/${encodeURIComponent(digits)}`, { cache: "no-store", headers }),
+    fetch(`${base}/api/chats`, { cache: "no-store", headers }),
+    fetch(`${base}/dashboard.json`, { cache: "no-store", headers }),
+  ]);
+
   const leadData = await leadRes.json().catch(() => ({}));
+  const messagesData = await messagesRes.json().catch(() => ({}));
+  const chatsData = await chatsRes.json().catch(() => ({}));
+  const dashboardData = await dashboardRes.json().catch(() => ({}));
 
   const leadTranscript = Array.isArray(leadData?.transcript) ? leadData.transcript : [];
-  if (leadRes.ok && leadTranscript.length > 0) {
-    const fromLead = leadTranscript.map((row, idx) =>
-      normalizeMessage(
-        {
-          id: row.id,
-          sender: row.sender || row.role,
-          text: row.text,
-          created_at: row.created_at || row.timestamp_utc,
-        },
-        idx,
-        digits,
-      ),
-    );
-    return NextResponse.json(
-      toDetailShape({
-        phone: digits,
-        state: leadData?.state || {},
-        messages: fromLead,
-      }),
-      { status: 200 },
-    );
-  }
-
-  const messagesUrl = `${base}/api/messages/${encodeURIComponent(digits)}`;
-  const messagesRes = await fetch(messagesUrl, { cache: "no-store", headers });
-  const messagesData = await messagesRes.json().catch(() => ({}));
-  const fallbackMessages = Array.isArray(messagesData?.messages) ? messagesData.messages : [];
-  if (messagesRes.ok && fallbackMessages.length > 0) {
-    return NextResponse.json(
-      toDetailShape({
-        phone: digits,
-        state: leadData?.state || {},
-        messages: fallbackMessages,
-      }),
-      { status: 200 },
-    );
-  }
-
-  return NextResponse.json(
-    toDetailShape({
-      phone: digits,
-      state: leadData?.state || {},
-      messages: [],
-    }),
-    { status: 200 },
+  const leadMessages = leadTranscript.map((row, idx) =>
+    normalizeMessage(
+      {
+        id: row.id,
+        sender: row.sender || row.role,
+        text: row.text,
+        created_at: row.created_at || row.timestamp_utc,
+      },
+      idx,
+      digits,
+    ),
   );
+  const messagesRows = Array.isArray(messagesData?.messages) ? messagesData.messages : [];
+  const state = leadData?.state || {};
+
+  if (leadRes.ok && leadMessages.length > 0) {
+    const shaped = toDetailShape({ phone: digits, state, messages: leadMessages });
+    return NextResponse.json({ ...shaped, source_used: "inbox_lead" }, { status: 200 });
+  }
+
+  if (messagesRes.ok && messagesRows.length > 0) {
+    const shaped = toDetailShape({ phone: digits, state, messages: messagesRows });
+    return NextResponse.json({ ...shaped, source_used: "api_messages" }, { status: 200 });
+  }
+
+  const chatRows = Array.isArray(chatsData?.conversations) ? chatsData.conversations : [];
+  const chatRow = chatRows.find((row) => phoneMatches(row?.phone, digits)) || null;
+  if (chatRow) {
+    const ts = chatRow?.last_time || new Date().toISOString();
+    const text = chatRow?.last_message || "Recent chat detected in conversation list.";
+    const shaped = toDetailShape({
+      phone: digits,
+      state,
+      messages: buildSystemFallbackMessage(digits, text, ts),
+    });
+    return NextResponse.json({ ...shaped, source_used: "api_chats_reconstructed" }, { status: 200 });
+  }
+
+  const dashboardRow = extractDashboardConversation(dashboardData, digits);
+  if (dashboardRow) {
+    const ts = dashboardRow?.last_reply_time || dashboardRow?.timestamp_utc || new Date().toISOString();
+    const text = dashboardRow?.summary || dashboardRow?.pain_point || "Recent dashboard conversation detected.";
+    const shaped = toDetailShape({
+      phone: digits,
+      state,
+      messages: buildSystemFallbackMessage(digits, text, ts),
+    });
+    return NextResponse.json({ ...shaped, source_used: "dashboard_reconstructed" }, { status: 200 });
+  }
+
+  const empty = toDetailShape({ phone: digits, state, messages: [] });
+  return NextResponse.json({ ...empty, source_used: "none" }, { status: 200 });
 }
