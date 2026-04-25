@@ -15,6 +15,7 @@ import {
   fetchPaymentLinks,
   fetchSalesPipeline,
   fetchRecentMessages,
+  saveMessage,
 } from "./services/supabase.js";
 import { sendWhatsApp } from "./services/whatsapp.js";
 import { log } from "./utils/logger.js";
@@ -287,10 +288,13 @@ app.post("/inbox/action", async (req, res) => {
 app.post("/inbox/reply", async (req, res) => {
   if (!assertDashboardAccess(req, res)) return;
   const phone = String(req.body?.phone || "").replace(/\D/g, "");
-  const text = String(req.body?.text || "").trim();
+  const text = String(req.body?.message || req.body?.text || "").trim();
   if (!phone || !text) return res.status(400).json({ ok: false, error: "invalid_payload" });
   try {
     const ok = await sendWhatsApp(phone, text);
+    if (ok) {
+      await saveMessage(phone, text, "admin");
+    }
     return res.status(ok ? 200 : 502).json({ ok });
   } catch (err) {
     log.error("inbox.reply failed", { err: err?.message || String(err), phone });

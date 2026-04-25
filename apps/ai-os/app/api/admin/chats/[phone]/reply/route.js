@@ -19,7 +19,12 @@ export async function POST(request, { params }) {
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
-  const text = typeof body?.text === "string" ? body.text : "";
+  const text =
+    typeof body?.message === "string"
+      ? body.message
+      : typeof body?.text === "string"
+        ? body.text
+        : "";
 
   const res = await fetch(`${backendBase()}/inbox/reply`, {
     method: "POST",
