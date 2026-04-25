@@ -11,8 +11,14 @@ function toTs(value) {
 }
 
 function normalizeConversations(data) {
-  if (Array.isArray(data?.conversations)) {
-    const rows = data.conversations.map((row) => ({
+  const conversationsInput =
+    (Array.isArray(data?.conversations) && data.conversations) ||
+    (Array.isArray(data?.data?.conversations) && data.data.conversations) ||
+    (Array.isArray(data?.items) && data.items) ||
+    null;
+
+  if (Array.isArray(conversationsInput)) {
+    const rows = conversationsInput.map((row) => ({
       phone: String(row?.phone || row?.id || "").replace(/\D/g, ""),
       name: row?.name || row?.title || String(row?.phone || row?.id || "").replace(/\D/g, "") || "Lead",
       temperature: String(row?.temperature || row?.temp || "warm").toLowerCase(),
@@ -32,10 +38,14 @@ function normalizeConversations(data) {
     ? data
     : Array.isArray(data?.messages)
       ? data.messages
+      : Array.isArray(data?.rows)
+        ? data.rows
+        : Array.isArray(data?.data?.messages)
+          ? data.data.messages
       : [];
   const byPhone = new Map();
   for (const row of sourceRows) {
-    const phone = String(row?.phone || "").replace(/\D/g, "");
+    const phone = String(row?.phone || row?.lead_phone || row?.wa_id || "").replace(/\D/g, "");
     if (!phone) continue;
     if (!byPhone.has(phone)) byPhone.set(phone, []);
     byPhone.get(phone).push(row);
@@ -54,8 +64,9 @@ function normalizeConversations(data) {
       name: latest?.name || phone,
       temperature: String(latest?.temperature || "warm").toLowerCase(),
       unread,
-      last_message: latest?.text || latest?.last_message || "",
-      last_time: latest?.created_at || latest?.last_time || latest?.timestamp_utc || new Date().toISOString(),
+      last_message: latest?.text || latest?.message || latest?.last_message || "",
+      last_time:
+        latest?.created_at || latest?.createdAt || latest?.last_time || latest?.timestamp_utc || new Date().toISOString(),
     };
   });
   conversations.sort((a, b) => toTs(b.last_time) - toTs(a.last_time));
@@ -76,8 +87,10 @@ export async function GET(request) {
   const q = String(searchParams.get("q") || "").trim().toLowerCase();
   const temperature = String(searchParams.get("temperature") || "all").toLowerCase();
   const unreadOnly = String(searchParams.get("unread_only") || "") === "1";
-  const res = await fetch(`${backendBase()}/api/chats`, { cache: "no-store", headers: adminApiHeaders() });
+  const upstreamUrl = `${backendBase()}/api/chats`;
+  const res = await fetch(upstreamUrl, { cache: "no-store", headers: adminApiHeaders() });
   const data = await res.json().catch(() => ({}));
+  const rawKeys = data && typeof data === "object" ? Object.keys(data) : [];
   const normalized = normalizeConversations(data);
   let conversations = normalized.conversations;
   if (q) {
@@ -91,9 +104,17 @@ export async function GET(request) {
   if (unreadOnly) {
     conversations = conversations.filter((c) => Number(c.unread || 0) > 0);
   }
-  if (process.env.INBOX_DEBUG === "1") {
-    const n = conversations.length;
-    console.info("[inbox-api] proxy /api/chats status=", res.status, "threads=", n);
-  }
+  console.info(
+    "[admin/chats] upstream=",
+    upstreamUrl,
+    "status=",
+    res.status,
+    "keys=",
+    rawKeys.join(","),
+    "normalized=",
+    normalized.conversations.length,
+    "returned=",
+    conversations.length,
+  );
   return NextResponse.json({ conversations, updated_at: normalized.updated_at }, { status: res.status });
 }
