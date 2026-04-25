@@ -3,6 +3,12 @@ import { assertAdminRequest } from "@/app/admin/_lib/adminApiGate";
 import { adminApiHeaders } from "@/app/admin/_lib/backendFetch";
 import { backendBase } from "@/app/admin/_lib/backendFetch";
 
+function isMetadataTagText(value) {
+  const text = String(value || "").trim().toLowerCase();
+  if (!text) return false;
+  return /^\[(need|objection|stage):[^\]]+\]$/.test(text);
+}
+
 function normalizeMessage(row = {}, idx = 0, phone = "") {
   const senderRaw = String(row.sender || row.role || "").toLowerCase();
   const sender = senderRaw === "user" ? "user" : "admin";
@@ -31,6 +37,7 @@ function phoneMatches(a, b) {
 function toDetailShape({ phone, state, messages }) {
   const normalizedMessages = (Array.isArray(messages) ? messages : [])
     .map((row, idx) => normalizeMessage(row, idx, phone))
+    .filter((m) => !isMetadataTagText(m.text))
     .sort((a, b) => Date.parse(String(a.created_at || "")) - Date.parse(String(b.created_at || "")));
   const transcript = normalizedMessages.map((m) => ({
     role: m.sender === "user" ? "user" : "assistant",
@@ -48,11 +55,15 @@ function toDetailShape({ phone, state, messages }) {
 }
 
 function buildSystemFallbackMessage(phone, text, ts) {
+  const clean = String(text || "").trim();
+  const fallbackText = !clean || isMetadataTagText(clean)
+    ? "Recent conversation detected, but full WhatsApp history is not available yet."
+    : clean;
   return [
     {
       id: `${phone}-${ts}-fallback`,
       sender: "admin",
-      text: String(text || "Conversation exists but no message history was found in the messages table yet."),
+      text: fallbackText,
       created_at: ts || new Date().toISOString(),
     },
   ];
@@ -103,16 +114,18 @@ export async function GET(request, { params }) {
     ),
   );
   const messagesRows = Array.isArray(messagesData?.messages) ? messagesData.messages : [];
+  const cleanMessagesRows = messagesRows.filter((row) => !isMetadataTagText(row?.text || row?.message));
+  const cleanLeadMessages = leadMessages.filter((row) => !isMetadataTagText(row?.text));
   const state = leadData?.state || {};
 
-  if (leadRes.ok && leadMessages.length > 0) {
-    const shaped = toDetailShape({ phone: digits, state, messages: leadMessages });
-    return NextResponse.json({ ...shaped, source_used: "inbox_lead" }, { status: 200 });
+  if (messagesRes.ok && cleanMessagesRows.length > 0) {
+    const shaped = toDetailShape({ phone: digits, state, messages: cleanMessagesRows });
+    return NextResponse.json({ ...shaped, source_used: "api_messages" }, { status: 200 });
   }
 
-  if (messagesRes.ok && messagesRows.length > 0) {
-    const shaped = toDetailShape({ phone: digits, state, messages: messagesRows });
-    return NextResponse.json({ ...shaped, source_used: "api_messages" }, { status: 200 });
+  if (leadRes.ok && cleanLeadMessages.length > 0) {
+    const shaped = toDetailShape({ phone: digits, state, messages: cleanLeadMessages });
+    return NextResponse.json({ ...shaped, source_used: "inbox_lead" }, { status: 200 });
   }
 
   const chatRows = Array.isArray(chatsData?.conversations) ? chatsData.conversations : [];
