@@ -18,6 +18,19 @@ function applyFilter(rows, filter, archivedMap, deletedMap) {
   return activeRows;
 }
 
+function normalizeConversationRow(row = {}) {
+  const phone = String(row.phone || row.id || "").replace(/\D/g, "");
+  return {
+    ...row,
+    phone,
+    name: row.name || row.title || phone || "Lead",
+    last_message: row.last_message || row.lastMessage || row.snippet || row.text || "",
+    last_time: row.last_time || row.timestamp || row.updated_at || row.created_at || "",
+    unread: Number(row.unread ?? row.unread_count ?? 0) || 0,
+    temperature: String(row.temperature || row.temp || "warm").toLowerCase(),
+  };
+}
+
 function playSubtlePing() {
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -105,7 +118,7 @@ export function LiveInbox() {
         setRows([]);
         return;
       }
-      const conv = data.conversations;
+      const conv = data.conversations.map((row) => normalizeConversationRow(row)).filter((row) => row.phone);
       const totalUnread = conv.reduce((acc, r) => acc + (Number(r.unread) || 0), 0);
       if (inboxReadyRef.current && totalUnread > prevUnreadRef.current) {
         playSubtlePing();
