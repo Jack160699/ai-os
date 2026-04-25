@@ -31,6 +31,61 @@ function normalizeConversationRow(row = {}) {
   };
 }
 
+function normalizeThreadMessage(row = {}, idx = 0) {
+  const senderRaw = String(row.sender || row.role || "").toLowerCase();
+  const sender = senderRaw === "user" ? "user" : "admin";
+  const text = String(row.text || row.message || "");
+  const createdAt = row.created_at || row.timestamp_utc || row.timestamp || new Date().toISOString();
+  return {
+    id: row.id || `${createdAt}-${idx}`,
+    sender,
+    text,
+    created_at: createdAt,
+  };
+}
+
+function normalizeDetailPayload(payload, phone) {
+  const input = payload ?? {};
+  const transcript = Array.isArray(input?.transcript) ? input.transcript : [];
+  const messagesFromTranscript = transcript.map((row, idx) =>
+    normalizeThreadMessage(
+      {
+        id: row.id,
+        sender: row.sender || row.role,
+        text: row.text,
+        created_at: row.created_at || row.timestamp_utc,
+      },
+      idx,
+    ),
+  );
+
+  let messages = [];
+  if (messagesFromTranscript.length > 0) {
+    messages = messagesFromTranscript;
+  } else if (Array.isArray(input?.messages)) {
+    messages = input.messages.map((row, idx) => normalizeThreadMessage(row, idx));
+  } else if (Array.isArray(input?.data)) {
+    messages = input.data.map((row, idx) => normalizeThreadMessage(row, idx));
+  } else if (Array.isArray(input)) {
+    messages = input.map((row, idx) => normalizeThreadMessage(row, idx));
+  }
+
+  messages.sort((a, b) => Date.parse(String(a.created_at || "")) - Date.parse(String(b.created_at || "")));
+  const normalizedTranscript = messages.map((m) => ({
+    role: m.sender === "user" ? "user" : "assistant",
+    text: m.text,
+    timestamp_utc: m.created_at,
+  }));
+
+  return {
+    phone: String(input?.phone || phone || "").replace(/\D/g, ""),
+    state: input?.state && typeof input.state === "object" ? input.state : {},
+    messages,
+    transcript: normalizedTranscript,
+    suggestions: Array.isArray(input?.suggestions) ? input.suggestions : [],
+  };
+}
+
 function playSubtlePing() {
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -144,13 +199,29 @@ export function LiveInbox() {
   const fetchDetail = useCallback(async (phone) => {
     if (!phone) return setDetail(null);
     setLoadingDetail(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
-      const res = await fetch(`/api/admin/chats/${encodeURIComponent(phone)}`, { credentials: "include", cache: "no-store" });
-      if (!res.ok) return setDetail(null);
-      setDetail(await res.json());
+      const res = await fetch(`/api/admin/chats/${encodeURIComponent(phone)}`, {
+        credentials: "include",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
+      if (!res.ok) {
+        setDetail(normalizeDetailPayload({}, phone));
+        return;
+      }
+      setDetail(normalizeDetailPayload(data, phone));
     } catch {
-      setDetail(null);
+      setDetail(normalizeDetailPayload({}, phone));
     } finally {
+      clearTimeout(timeoutId);
       setLoadingDetail(false);
     }
   }, []);
