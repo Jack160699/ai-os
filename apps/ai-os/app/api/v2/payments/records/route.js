@@ -33,6 +33,11 @@ export async function GET(request) {
       recorded_at_utc: row?.recorded_at_utc || null,
       customer_phone: row?.phone || row?.customer_phone || "",
       customer_name: row?.name || row?.customer_name || "",
+      source: row?.source || (String(row?.channel || "").toLowerCase().includes("whatsapp") ? "whatsapp" : "website"),
+      purpose: row?.purpose || row?.description || "Consultation",
+      paid_at: row?.paid_at || null,
+      created_by: row?.created_by || "system",
+      link: row?.payment_link || row?.short_url || "",
     }));
 
     return NextResponse.json({ records }, { status: 200 });

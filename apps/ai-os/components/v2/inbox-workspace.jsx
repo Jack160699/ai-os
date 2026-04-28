@@ -7,6 +7,7 @@ import { useProMode } from "@/components/v2/pro-mode";
 export function InboxWorkspace() {
   const { proMode } = useProMode();
   const [rows, setRows] = useState([]);
+  const [activeFilter, setActiveFilter] = useState("all");
   const [selected, setSelected] = useState("");
   const [detail, setDetail] = useState(null);
   const [query, setQuery] = useState("");
@@ -20,6 +21,10 @@ export function InboxWorkspace() {
   const [mobileTab, setMobileTab] = useState("list");
   const [retryKey, setRetryKey] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestion, setSuggestion] = useState("");
+  const [eventStage, setEventStage] = useState("follow_up");
+  const messageEndRef = useRef(null);
   const prevUnreadRef = useRef(0);
   const searchRef = useRef(null);
   const sendReplyRef = useRef(() => {});
@@ -31,6 +36,11 @@ export function InboxWorkspace() {
       .replace(/^[a-z]+:/i, "")
       .replace(/_/g, " ")
       .replace(/\b\w/g, (char) => char.toUpperCase());
+  const formatTime = (value) => {
+    const date = new Date(String(value || ""));
+    if (Number.isNaN(date.getTime())) return "--";
+    return date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  };
 
   const loadConversations = useCallback(async (search = "") => {
     setLoading(true);
@@ -113,9 +123,13 @@ export function InboxWorkspace() {
     const id = setInterval(() => {
       loadConversations(query);
       if (selected) loadDetail(selected);
-    }, 10000);
+    }, 5000);
     return () => clearInterval(id);
   }, [query, selected, loadConversations, loadDetail]);
+
+  useEffect(() => {
+    messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [detail?.messages?.length, selected]);
 
   useEffect(() => {
     if (!toast) return;
@@ -264,6 +278,70 @@ export function InboxWorkspace() {
     }
   }
 
+  async function generateSuggestion() {
+    if (!selected) return;
+    setSuggesting(true);
+    try {
+      const res = await fetch(`/api/v2/inbox/${encodeURIComponent(selected)}/suggest`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data?.error || "Could not generate suggestion");
+        return;
+      }
+      const next = String(data?.suggestion || data?.text || data?.reply || "").trim();
+      setSuggestion(next);
+      if (next) setReply(next);
+    } finally {
+      setSuggesting(false);
+    }
+  }
+
+  async function sendPaymentLink() {
+    if (!selected) return;
+    const customerName = selectedRow?.name || "Customer";
+    const response = await fetch("/api/v2/payments/create-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: 499,
+        name: customerName,
+        phone: selected,
+        description: "Consultation",
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.ok) {
+      setError(payload?.error || "Could not generate payment link");
+      return;
+    }
+    const link = String(payload.payment_link || payload.short_url || "");
+    if (!link) {
+      setError("Payment link generation failed");
+      return;
+    }
+    setReply(`Payment link: ${link}`);
+    setToast("Payment link ready");
+  }
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((row) => {
+      const tags = Array.isArray(row?.tags) ? row.tags.map((v) => String(v).toLowerCase()) : [];
+      if (activeFilter === "unread") return Number(row?.unread || 0) > 0;
+      if (activeFilter === "assigned") return Boolean(row?.assigned_user_id);
+      if (activeFilter === "payments") return tags.some((tagValue) => tagValue.includes("payment"));
+      if (activeFilter === "hot") return tags.some((tagValue) => tagValue.includes("hot"));
+      return true;
+    });
+  }, [rows, activeFilter]);
+
+  const filterTabs = [
+    { id: "all", label: "All" },
+    { id: "unread", label: "Unread" },
+    { id: "assigned", label: "Assigned" },
+    { id: "payments", label: "Payments" },
+    { id: "hot", label: "Hot Leads" },
+  ];
+
   return (
     <div className="grid min-h-[calc(100vh-220px)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
       <div className="flex gap-2 lg:hidden">
@@ -293,6 +371,22 @@ export function InboxWorkspace() {
           placeholder="Search by phone or text"
             className="mb-3 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-sm text-[var(--v2-text)] outline-none transition focus:border-[var(--v2-focus)]"
         />
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {filterTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveFilter(tab.id)}
+              className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
+                activeFilter === tab.id
+                  ? "border-[var(--v2-focus)] bg-[var(--v2-elevated)] text-[var(--v2-text)]"
+                  : "border-[var(--v2-border)] text-[var(--v2-muted)] hover:border-[var(--v2-focus)]"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         {loading ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -300,13 +394,13 @@ export function InboxWorkspace() {
             ))}
           </div>
         ) : null}
-        {!loading && rows.length === 0 ? (
+        {!loading && filteredRows.length === 0 ? (
           <div className="rounded-xl border border-dashed border-black/15 p-4 text-sm text-[var(--v2-muted)] dark:border-white/15">
             No messages yet
           </div>
         ) : null}
         <div className="space-y-2">
-          {rows.map((row) => (
+          {filteredRows.map((row) => (
             <button
               key={row.phone}
               type="button"
@@ -323,6 +417,7 @@ export function InboxWorkspace() {
                 <span className="text-[var(--v2-muted)]">{row.assigned_to || "Unassigned"}</span>
                 <span className="rounded-lg border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-2 py-0.5">Unread {row.unread || 0}</span>
               </div>
+              <p className="mt-1 text-[10px] text-[var(--v2-muted)]">Last seen {formatTime(row.last_time)}</p>
               {proMode ? (
                 <div className="mt-2 flex items-center gap-2 text-[10px] text-[#94a3b8]">
                   <span className="rounded-md border border-white/10 px-1.5 py-0.5">SLA 12m</span>
@@ -346,6 +441,13 @@ export function InboxWorkspace() {
         {selected ? (
           <>
             <h2 className="text-base font-semibold">{selectedRow?.name || selected}</h2>
+            <button
+              type="button"
+              onClick={() => loadDetail(selected)}
+              className="mt-2 rounded-lg border border-[var(--v2-border)] px-2 py-1 text-[11px] text-[var(--v2-muted)]"
+            >
+              Load older messages
+            </button>
             <div className="mt-4 space-y-2">
               {(detail?.messages || []).map((message) => (
                 <div
@@ -356,7 +458,8 @@ export function InboxWorkspace() {
                       : "ml-auto border border-[#3b82f6]/35 bg-[#3b82f6]/18 text-white"
                   }`}
                 >
-                  {message.text}
+                  <p>{message.text}</p>
+                  <p className="mt-1 text-[10px] opacity-75">{formatTime(message.created_at)} {message.sender === "admin" ? "· sent" : ""}</p>
                 </div>
               ))}
               {(detail?.messages || []).length === 0 ? (
@@ -365,6 +468,7 @@ export function InboxWorkspace() {
                 </div>
               ) : null}
             </div>
+            <div ref={messageEndRef} />
             <div className="sticky bottom-0 mt-4 flex gap-2 rounded-xl border border-white/10 bg-[#0b1220] p-2">
               <input
                 value={reply}
@@ -452,6 +556,47 @@ export function InboxWorkspace() {
           </button>
         </div>
         {error ? <p className="mt-3 text-xs text-rose-500">{error}</p> : null}
+        <h3 className="mt-5 text-sm font-semibold">AI Suggested Reply</h3>
+        <button
+          type="button"
+          onClick={generateSuggestion}
+          disabled={!selected || suggesting}
+          className="mt-2 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)] disabled:opacity-60"
+        >
+          {suggesting ? "Generating..." : "Generate Suggestion"}
+        </button>
+        {suggestion ? <p className="mt-2 text-xs text-[var(--v2-muted)]">{suggestion}</p> : null}
+
+        <h3 className="mt-5 text-sm font-semibold">Event Takeover</h3>
+        <select
+          value={eventStage}
+          onChange={(e) => setEventStage(e.target.value)}
+          className="mt-2 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-text)]"
+        >
+          <option value="attending">Attending</option>
+          <option value="interested">Interested</option>
+          <option value="follow_up">Follow-up</option>
+        </select>
+        <button
+          type="button"
+          onClick={() => {
+            setTag(eventStage);
+            setToast(`Stage set: ${formatTag(eventStage)}`);
+          }}
+          className="mt-2 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]"
+        >
+          Apply Stage
+        </button>
+
+        <h3 className="mt-5 text-sm font-semibold">Payment Action</h3>
+        <button
+          type="button"
+          onClick={sendPaymentLink}
+          disabled={!selected}
+          className="mt-2 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)] disabled:opacity-60"
+        >
+          Generate Payment Link
+        </button>
         <button
           type="button"
           onClick={() => setRetryKey((v) => v + 1)}
