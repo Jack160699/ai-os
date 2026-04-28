@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminApiHeaders, backendBase } from "@/app/admin/_lib/backendFetch";
 import { validateLaunchEnv } from "@/lib/v2/env";
+import { routeErrorResponse } from "@/lib/v2/diagnostics";
 import { requireApiUser, requireRateLimit } from "@/lib/v2/server-guard";
 
 async function checkDb(supabase) {
@@ -25,28 +26,35 @@ async function checkNotifications(supabase, userId) {
 }
 
 export async function GET(request) {
-  const limited = requireRateLimit(request, { namespace: "v2-health", max: 40, windowMs: 60000 });
-  if (limited) return limited;
+  try {
+    const limited = requireRateLimit(request, { namespace: "v2-health", max: 40, windowMs: 60000 });
+    if (limited) return limited;
 
-  const auth = await requireApiUser(request);
-  if (auth.errorResponse) return auth.errorResponse;
+    const auth = await requireApiUser(request);
+    if (auth.errorResponse) return auth.errorResponse;
 
-  const [db, inboxApi, notifications] = await Promise.all([
-    checkDb(auth.supabase),
-    checkInboxApi(),
-    checkNotifications(auth.supabase, auth.user.id),
-  ]);
+    const [db, inboxApi, notifications] = await Promise.all([
+      checkDb(auth.supabase),
+      checkInboxApi(),
+      checkNotifications(auth.supabase, auth.user.id),
+    ]);
 
-  const env = validateLaunchEnv();
-  const authCheck = { ok: true, detail: auth.user.email || "ok" };
-  const checks = {
-    auth: authCheck,
-    db,
-    inbox_api: inboxApi,
-    notifications,
-    env,
-  };
-  const ok = Object.values(checks).every((row) => row?.ok !== false);
+    const env = validateLaunchEnv();
+    const authCheck = { ok: true, detail: auth.user.email || "ok" };
+    const checks = {
+      auth: authCheck,
+      db,
+      inbox_api: inboxApi,
+      notifications,
+      env,
+    };
+    const ok = Object.values(checks).every((row) => row?.ok !== false);
 
-  return NextResponse.json({ ok, checks, checked_at: new Date().toISOString() }, { status: ok ? 200 : 503 });
+    return NextResponse.json(
+      { ok, checks, checked_at: new Date().toISOString(), diagnostics: { backend_base: backendBase() } },
+      { status: ok ? 200 : 503 },
+    );
+  } catch (error) {
+    return routeErrorResponse("api.v2.health", error);
+  }
 }

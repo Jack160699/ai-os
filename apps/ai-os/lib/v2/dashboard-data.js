@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { hasSupabaseConfig } from "@/lib/supabase/server";
 
 function startOfTodayIso() {
   const now = new Date();
@@ -24,17 +25,29 @@ function backendHeaders() {
 }
 
 export async function getV2DashboardData() {
-  const supabase = await createClient();
   const since = startOfTodayIso();
+  const paymentLogs = await fetch(`${backendBase()}/dashboard.json`, { cache: "no-store", headers: backendHeaders() }).then((r) =>
+    r.json().catch(() => ({})),
+  );
 
-  const [messagesToday, teamActive, notesPending, paymentLogs] = await Promise.all([
-    supabase.from("messages").select("id", { count: "exact", head: true }).gte("created_at", since).eq("direction", "in"),
-    supabase.from("team_members").select("user_id", { count: "exact", head: true }).eq("is_active", true),
-    supabase.from("inbox_notes").select("id", { count: "exact", head: true }).gte("created_at", since),
-    fetch(`${backendBase()}/dashboard.json`, { cache: "no-store", headers: backendHeaders() }).then((r) =>
-      r.json().catch(() => ({})),
-    ),
-  ]);
+  let messagesTodayCount = 0;
+  let teamActiveCount = 0;
+  let notesPendingCount = 0;
+  if (hasSupabaseConfig()) {
+    try {
+      const supabase = await createClient();
+      const [messagesToday, teamActive, notesPending] = await Promise.all([
+        supabase.from("messages").select("id", { count: "exact", head: true }).gte("created_at", since).eq("direction", "in"),
+        supabase.from("team_members").select("user_id", { count: "exact", head: true }).eq("is_active", true),
+        supabase.from("inbox_notes").select("id", { count: "exact", head: true }).gte("created_at", since),
+      ]);
+      messagesTodayCount = Number(messagesToday.count || 0);
+      teamActiveCount = Number(teamActive.count || 0);
+      notesPendingCount = Number(notesPending.count || 0);
+    } catch (error) {
+      console.error("[v2][dashboard-data] supabase metrics fallback", { message: error?.message || String(error) });
+    }
+  }
 
   const events = Array.isArray(paymentLogs?.payment_events_recent) ? paymentLogs.payment_events_recent : [];
   const pendingPayments = events.filter((row) => {
@@ -49,10 +62,10 @@ export async function getV2DashboardData() {
 
   return {
     metrics: [
-      { label: "Chats Today", value: String(messagesToday.count || 0) },
-      { label: "Pending Tasks", value: String(notesPending.count || 0) },
+      { label: "Chats Today", value: String(messagesTodayCount) },
+      { label: "Pending Tasks", value: String(notesPendingCount) },
       { label: "Payments Due", value: String(pendingPayments) },
-      { label: "Active Team Members", value: String(teamActive.count || 0) },
+      { label: "Active Team Members", value: String(teamActiveCount) },
     ],
     activity: recentActivity,
   };

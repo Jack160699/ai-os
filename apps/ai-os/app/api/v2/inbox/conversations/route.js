@@ -13,11 +13,13 @@ function parseJsonSafe(text) {
 
 function normalizeConversationRow(row = {}) {
   const phone = String(row?.phone || "").replace(/\D/g, "");
+  const lastMessageRaw = String(row?.last_message || "");
+  const lastMessage = /^\[(need|objection|stage|summary):[^\]]+\]$/i.test(lastMessageRaw.trim()) ? "" : lastMessageRaw;
   return {
     phone,
     name: row?.name || phone || "Lead",
     unread: Number(row?.unread ?? 0) || 0,
-    last_message: String(row?.last_message || ""),
+    last_message: lastMessage,
     last_time: row?.last_time || row?.created_at || null,
   };
 }
