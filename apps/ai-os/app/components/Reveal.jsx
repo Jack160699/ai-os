@@ -8,14 +8,16 @@ import { useLayoutEffect, useRef, useState } from "react";
  */
 export function Reveal({ children, className = "", delay = 0 }) {
   const ref = useRef(null);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  });
 
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el || typeof window === "undefined") return;
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setVisible(true);
       return;
     }
 

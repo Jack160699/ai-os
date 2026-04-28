@@ -27,13 +27,14 @@ function MoonIcon() {
 }
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState(ADMIN_THEME_DARK);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") return ADMIN_THEME_DARK;
+    return normalizeTheme(window.localStorage.getItem(ADMIN_THEME_KEY) || document.documentElement.dataset.adminTheme);
+  });
 
   useEffect(() => {
-    const current = normalizeTheme(window.localStorage.getItem(ADMIN_THEME_KEY) || document.documentElement.dataset.adminTheme);
-    setTheme(current);
-    document.documentElement.dataset.adminTheme = current;
-  }, []);
+    document.documentElement.dataset.adminTheme = theme;
+  }, [theme]);
 
   const isLight = theme === ADMIN_THEME_LIGHT;
 

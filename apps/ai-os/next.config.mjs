@@ -7,6 +7,9 @@ const monorepoRoot = join(appDir, "../..");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@stratxcel/payments", "@stratxcel/ui"],
+  experimental: {
+    optimizePackageImports: ["recharts", "framer-motion"],
+  },
   turbopack: {
     root: monorepoRoot,
   },

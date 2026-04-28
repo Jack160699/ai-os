@@ -59,8 +59,11 @@ export function AdminTopBar({ activePath, navItems, primaryNavItems = [], second
   }, [menuOpen]);
 
   useEffect(() => {
-    setMenuOpen(false);
-    setNotifOpen(false);
+    const id = requestAnimationFrame(() => {
+      setMenuOpen(false);
+      setNotifOpen(false);
+    });
+    return () => cancelAnimationFrame(id);
   }, [activePath]);
 
   useEffect(() => {

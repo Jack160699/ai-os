@@ -9,8 +9,11 @@ function labelFromMinutes(mins) {
 }
 
 export function SyncStatus({ syncedAt }) {
-  const base = useMemo(() => new Date(syncedAt || Date.now()), [syncedAt]);
-  const [now, setNow] = useState(Date.now());
+  const base = useMemo(() => {
+    const ts = Date.parse(String(syncedAt || ""));
+    return new Date(Number.isFinite(ts) ? ts : 0);
+  }, [syncedAt]);
+  const [now, setNow] = useState(base.getTime());
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60000);
