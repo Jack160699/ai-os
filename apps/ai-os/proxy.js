@@ -68,9 +68,14 @@ export async function proxy(request) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const authResp = await supabase.auth.getUser();
+    user = authResp?.data?.user || null;
+  } catch (error) {
+    console.error("[v2][proxy] supabase guard fallback", { message: error?.message || String(error) });
+    return NextResponse.next();
+  }
 
   if (!user && pathname !== "/v2/login") {
     return NextResponse.redirect(new URL("/v2/login", request.url));

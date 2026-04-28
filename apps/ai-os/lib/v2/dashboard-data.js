@@ -26,9 +26,18 @@ function backendHeaders() {
 
 export async function getV2DashboardData() {
   const since = startOfTodayIso();
-  const paymentLogs = await fetch(`${backendBase()}/dashboard.json`, { cache: "no-store", headers: backendHeaders() }).then((r) =>
-    r.json().catch(() => ({})),
-  );
+  let paymentLogs = {};
+  let degradedReason = null;
+  try {
+    paymentLogs = await fetch(`${backendBase()}/dashboard.json`, {
+      cache: "no-store",
+      headers: backendHeaders(),
+      signal: AbortSignal.timeout(2500),
+    }).then((r) => r.json().catch(() => ({})));
+  } catch (error) {
+    degradedReason = "backend_unreachable";
+    console.error("[v2][dashboard-data] backend metrics fallback", { message: error?.message || String(error) });
+  }
 
   let messagesTodayCount = 0;
   let teamActiveCount = 0;
@@ -68,5 +77,7 @@ export async function getV2DashboardData() {
       { label: "Active Team Members", value: String(teamActiveCount) },
     ],
     activity: recentActivity,
+    degraded: Boolean(degradedReason),
+    degradedReason,
   };
 }
