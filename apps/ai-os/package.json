@@ -13,6 +13,8 @@
     "@stratxcel/config": "file:../../packages/config",
     "@stratxcel/payments": "file:../../packages/payments",
     "@stratxcel/ui": "file:../../packages/ui",
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.105.0",
     "framer-motion": "^12.23.12",
     "next": "16.2.3",
     "razorpay": "^2.9.6",
