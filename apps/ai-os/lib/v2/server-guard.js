@@ -1,23 +1,23 @@
 import { NextResponse } from "next/server";
-import { AUTH_COOKIE } from "@/app/admin/_lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/v2/auth";
 import { checkRateLimit } from "@/lib/v2/rate-limit";
 import { hasSupabaseConfig } from "@/lib/supabase/server";
+import { isValidOwnerSessionToken, OWNER_SESSION_COOKIE } from "@/lib/v2/owner-session";
 
 export async function requireApiUser(request) {
-  if (!hasSupabaseConfig()) {
-    const expectedPassword = process.env.ADMIN_DASHBOARD_PASSWORD || "";
-    const cookieValue = request.cookies.get(AUTH_COOKIE)?.value || "";
-    const legacyAuthed = !expectedPassword || cookieValue === expectedPassword;
-    if (!legacyAuthed) {
-      return { errorResponse: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
-    }
+  const ownerCookie = request.cookies.get(OWNER_SESSION_COOKIE)?.value || "";
+  const ownerAuthed = await isValidOwnerSessionToken(ownerCookie);
+  if (ownerAuthed) {
     return {
-      user: { id: "legacy-admin", email: "admin@local" },
+      user: { id: "owner-admin", email: String(process.env.ADMIN_EMAIL || "owner@local").trim().toLowerCase() },
       role: "super_admin",
       supabase: null,
     };
+  }
+
+  if (!hasSupabaseConfig()) {
+    return { errorResponse: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
   }
 
   const supabase = await createClient();

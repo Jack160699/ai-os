@@ -1,32 +1,36 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { AUTH_COOKIE } from "@/app/admin/_lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseConfig } from "@/lib/supabase/server";
 import { normalizeRole } from "@/lib/v2/rbac";
+import { isValidOwnerSessionToken, OWNER_SESSION_COOKIE } from "@/lib/v2/owner-session";
 
-const MIGRATION_ADMIN_EMAIL = (process.env.V2_LEGACY_ADMIN_EMAIL || "shriyanshchandrakar@gmail.com").toLowerCase();
+const OWNER_EMAIL = String(process.env.ADMIN_EMAIL || "owner@local").trim().toLowerCase();
 
 export function getUserRole(user) {
   return normalizeRole(user?.app_metadata?.role || user?.user_metadata?.role);
 }
 
 async function getLegacyAuthContext() {
-  const expectedPassword = process.env.ADMIN_DASHBOARD_PASSWORD || "";
   const cookieStore = await cookies();
-  const legacyAuthed = !expectedPassword || cookieStore.get(AUTH_COOKIE)?.value === expectedPassword;
+  const ownerSession = cookieStore.get(OWNER_SESSION_COOKIE)?.value || "";
+  const ownerAuthed = await isValidOwnerSessionToken(ownerSession);
   return {
-    user: legacyAuthed
-      ? { id: "legacy-admin", email: MIGRATION_ADMIN_EMAIL, app_metadata: { role: "super_admin" } }
+    user: ownerAuthed
+      ? { id: "owner-admin", email: OWNER_EMAIL, app_metadata: { role: "super_admin" } }
       : null,
     role: "super_admin",
-    degraded: true,
   };
 }
 
 export async function getAuthContext() {
+  const ownerContext = await getLegacyAuthContext();
+  if (ownerContext.user) {
+    return ownerContext;
+  }
+
   if (!hasSupabaseConfig()) {
-    return getLegacyAuthContext();
+    return ownerContext;
   }
 
   try {
@@ -34,16 +38,13 @@ export async function getAuthContext() {
     let user = null;
     const resp = await supabase.auth.getUser();
     user = resp?.data?.user || null;
-    if (!user) {
-      return getLegacyAuthContext();
-    }
     return {
       user,
       role: getUserRole(user),
     };
   } catch (error) {
     console.error("[v2][auth] supabase auth fallback", { message: error?.message || String(error) });
-    return getLegacyAuthContext();
+    return ownerContext;
   }
 }
 

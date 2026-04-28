@@ -2,16 +2,20 @@
 
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { AUTH_COOKIE } from "@/app/admin/_lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseConfig } from "@/lib/supabase/server";
+import { clearOwnerSessionCookie } from "@/lib/v2/owner-session";
 
 export async function logoutAction() {
   if (hasSupabaseConfig()) {
-    const supabase = await createClient();
-    await supabase.auth.signOut();
+    try {
+      const supabase = await createClient();
+      await supabase.auth.signOut();
+    } catch {
+      // Ignore Supabase signout failures and clear local session regardless.
+    }
   }
   const cookieStore = await cookies();
-  cookieStore.set(AUTH_COOKIE, "", { maxAge: 0, path: "/" });
+  clearOwnerSessionCookie(cookieStore);
   redirect("/v2/login");
 }
