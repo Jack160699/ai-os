@@ -7,6 +7,9 @@ export async function GET(request) {
 
   const auth = await requireApiUser(request);
   if (auth.errorResponse) return auth.errorResponse;
+  if (!auth.supabase) {
+    return NextResponse.json({ notifications: [], unread: 0 }, { status: 200 });
+  }
 
   const { data, error } = await auth.supabase
     .from("notifications")
@@ -29,6 +32,9 @@ export async function PATCH(request) {
 
   const auth = await requireApiUser(request);
   if (auth.errorResponse) return auth.errorResponse;
+  if (!auth.supabase) {
+    return NextResponse.json({ ok: true }, { status: 200 });
+  }
 
   let body;
   try {

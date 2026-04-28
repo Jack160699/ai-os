@@ -4,6 +4,7 @@ import { validateLaunchEnv } from "@/lib/v2/env";
 import { requireApiUser, requireRateLimit } from "@/lib/v2/server-guard";
 
 async function checkDb(supabase) {
+  if (!supabase) return { ok: true, detail: "skipped_no_supabase" };
   const { error } = await supabase.from("team_members").select("user_id").limit(1);
   return { ok: !error, detail: error?.message || "ok" };
 }
@@ -18,6 +19,7 @@ async function checkInboxApi() {
 }
 
 async function checkNotifications(supabase, userId) {
+  if (!supabase) return { ok: true, detail: "skipped_no_supabase" };
   const { error } = await supabase.from("notifications").select("id").or(`user_id.eq.${userId},user_id.is.null`).limit(1);
   return { ok: !error, detail: error?.message || "ok" };
 }

@@ -1,9 +1,25 @@
 import { NextResponse } from "next/server";
+import { AUTH_COOKIE } from "@/app/admin/_lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/v2/auth";
 import { checkRateLimit } from "@/lib/v2/rate-limit";
+import { hasSupabaseConfig } from "@/lib/supabase/server";
 
 export async function requireApiUser(request) {
+  if (!hasSupabaseConfig()) {
+    const expectedPassword = process.env.ADMIN_DASHBOARD_PASSWORD || "";
+    const cookieValue = request.cookies.get(AUTH_COOKIE)?.value || "";
+    const legacyAuthed = !expectedPassword || cookieValue === expectedPassword;
+    if (!legacyAuthed) {
+      return { errorResponse: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
+    }
+    return {
+      user: { id: "legacy-admin", email: "admin@local" },
+      role: "super_admin",
+      supabase: null,
+    };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

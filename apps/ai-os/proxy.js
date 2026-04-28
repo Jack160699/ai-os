@@ -8,6 +8,7 @@ function getUserRole(user) {
 
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
+  const hasSupabase = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   const routeMap = new Map([
     ["/admin", "/v2"],
@@ -31,6 +32,10 @@ export async function proxy(request) {
   }
 
   if (!pathname.startsWith("/v2")) {
+    return NextResponse.next();
+  }
+
+  if (!hasSupabase) {
     return NextResponse.next();
   }
 
