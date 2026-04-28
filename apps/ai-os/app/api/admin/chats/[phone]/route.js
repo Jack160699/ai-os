@@ -114,18 +114,30 @@ export async function GET(request, { params }) {
     ),
   );
   const messagesRows = Array.isArray(messagesData?.messages) ? messagesData.messages : [];
-  const cleanMessagesRows = messagesRows.filter((row) => !isMetadataTagText(row?.text || row?.message));
+  const realCountFromApi = Number(messagesData?.real_count || 0);
+  const hasRealMessages = realCountFromApi > 0 || messagesRows.length > 0;
   const cleanLeadMessages = leadMessages.filter((row) => !isMetadataTagText(row?.text));
   const state = leadData?.state || {};
 
-  if (messagesRes.ok && cleanMessagesRows.length > 0) {
-    const shaped = toDetailShape({ phone: digits, state, messages: cleanMessagesRows });
-    return NextResponse.json({ ...shaped, source_used: "api_messages" }, { status: 200 });
+  if (messagesRes.ok && hasRealMessages) {
+    const shaped = toDetailShape({ phone: digits, state, messages: messagesRows });
+    return NextResponse.json(
+      {
+        ...shaped,
+        source_used: messagesData?.source_used || "api_messages",
+        real_count: Number(messagesData?.real_count || messagesRows.length),
+        fallback_used: false,
+      },
+      { status: 200 },
+    );
   }
 
   if (leadRes.ok && cleanLeadMessages.length > 0) {
     const shaped = toDetailShape({ phone: digits, state, messages: cleanLeadMessages });
-    return NextResponse.json({ ...shaped, source_used: "inbox_lead" }, { status: 200 });
+    return NextResponse.json(
+      { ...shaped, source_used: "inbox_lead", real_count: cleanLeadMessages.length, fallback_used: true },
+      { status: 200 },
+    );
   }
 
   const chatRows = Array.isArray(chatsData?.conversations) ? chatsData.conversations : [];
@@ -138,7 +150,10 @@ export async function GET(request, { params }) {
       state,
       messages: buildSystemFallbackMessage(digits, text, ts),
     });
-    return NextResponse.json({ ...shaped, source_used: "api_chats_reconstructed" }, { status: 200 });
+    return NextResponse.json(
+      { ...shaped, source_used: "api_chats_reconstructed", real_count: 0, fallback_used: true },
+      { status: 200 },
+    );
   }
 
   const dashboardRow = extractDashboardConversation(dashboardData, digits);
@@ -150,9 +165,12 @@ export async function GET(request, { params }) {
       state,
       messages: buildSystemFallbackMessage(digits, text, ts),
     });
-    return NextResponse.json({ ...shaped, source_used: "dashboard_reconstructed" }, { status: 200 });
+    return NextResponse.json(
+      { ...shaped, source_used: "dashboard_reconstructed", real_count: 0, fallback_used: true },
+      { status: 200 },
+    );
   }
 
   const empty = toDetailShape({ phone: digits, state, messages: [] });
-  return NextResponse.json({ ...empty, source_used: "none" }, { status: 200 });
+  return NextResponse.json({ ...empty, source_used: "none", real_count: 0, fallback_used: true }, { status: 200 });
 }

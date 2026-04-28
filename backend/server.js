@@ -287,7 +287,7 @@ app.get("/api/messages/:phone", async (req, res) => {
   const phone = String(req.params.phone || "").replace(/\D/g, "");
   if (!phone) return res.status(400).json({ error: "invalid_phone" });
   try {
-    const rows = await fetchRecentMessages(phone, 200);
+    const rows = await fetchRecentMessages(phone, 500);
     const messages = (Array.isArray(rows) ? rows : [])
       .map((row) => ({
         id: row.id || `${phone}-${row.created_at || Date.now()}`,
@@ -304,7 +304,16 @@ app.get("/api/messages/:phone", async (req, res) => {
       text: row.text,
       timestamp_utc: row.created_at,
     }));
-    return res.status(200).json({ phone, message_count: messages.length, messages, transcript });
+    const realCount = messages.length;
+    return res.status(200).json({
+      phone,
+      message_count: realCount,
+      source_used: "messages_table",
+      real_count: realCount,
+      fallback_used: false,
+      messages,
+      transcript,
+    });
   } catch (err) {
     log.error("api.messages failed", { err: err?.message || String(err), phone });
     return res.status(500).json({ error: "messages_failed" });
