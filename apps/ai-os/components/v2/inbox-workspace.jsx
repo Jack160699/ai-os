@@ -128,6 +128,12 @@ export function InboxWorkspace() {
   }, [query, selected, loadConversations, loadDetail]);
 
   useEffect(() => {
+    if (!selected && rows.length > 0) {
+      setSelected(rows[0].phone);
+    }
+  }, [rows, selected]);
+
+  useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [detail?.messages?.length, selected]);
 
@@ -188,6 +194,15 @@ export function InboxWorkspace() {
         const tag = String(event.target?.tagName || "").toLowerCase();
         if (tag === "textarea" || tag === "input") {
           sendReplyRef.current();
+        }
+      }
+      if ((event.key === "ArrowDown" || event.key === "ArrowUp") && rows.length > 0) {
+        const current = rows.findIndex((row) => row.phone === selected);
+        if (current >= 0) {
+          const next = event.key === "ArrowDown"
+            ? Math.min(rows.length - 1, current + 1)
+            : Math.max(0, current - 1);
+          setSelected(rows[next].phone);
         }
       }
     };
@@ -342,6 +357,17 @@ export function InboxWorkspace() {
     { id: "hot", label: "Hot Leads" },
   ];
 
+  const customerDetails = useMemo(
+    () => ({
+      name: selectedRow?.name || "Customer",
+      phone: selected || "-",
+      assigned: selectedRow?.assigned_to || "Unassigned",
+      unread: Number(selectedRow?.unread || 0),
+      lastSeen: formatTime(selectedRow?.last_time),
+    }),
+    [selectedRow, selected],
+  );
+
   return (
     <div className="grid min-h-[calc(100vh-220px)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
       <div className="flex gap-2 lg:hidden">
@@ -440,7 +466,16 @@ export function InboxWorkspace() {
         {!selected ? <p className="text-sm text-[var(--v2-muted)]">Select a conversation</p> : null}
         {selected ? (
           <>
-            <h2 className="text-base font-semibold">{selectedRow?.name || selected}</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-base font-semibold">{selectedRow?.name || selected}</h2>
+              <button
+                type="button"
+                onClick={() => setMobileTab("list")}
+                className="rounded-lg border border-[var(--v2-border)] px-2 py-1 text-[11px] text-[var(--v2-muted)] lg:hidden"
+              >
+                Back
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => loadDetail(selected)}
@@ -454,8 +489,8 @@ export function InboxWorkspace() {
                   key={message.id}
                   className={`max-w-[82%] rounded-xl px-3 py-2 text-sm ${
                     message.sender === "user"
-                      ? "border border-white/10 bg-white/[0.03] text-[var(--v2-text)]"
-                      : "ml-auto border border-[#3b82f6]/35 bg-[#3b82f6]/18 text-white"
+                      ? "rounded-bl-md border border-white/10 bg-white/[0.03] text-[var(--v2-text)]"
+                      : "ml-auto rounded-br-md border border-[var(--v2-border)] bg-[var(--v2-elevated)] text-[var(--v2-text)]"
                   }`}
                 >
                   <p>{message.text}</p>
@@ -483,6 +518,14 @@ export function InboxWorkspace() {
               >
                 {saving ? "Sending..." : "Send"}
               </button>
+              <button
+                type="button"
+                onClick={sendPaymentLink}
+                disabled={!selected}
+                className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-sm text-[var(--v2-muted)] disabled:opacity-60"
+              >
+                Pay
+              </button>
             </div>
           </>
         ) : null}
@@ -493,6 +536,17 @@ export function InboxWorkspace() {
           mobileTab !== "actions" ? "hidden lg:block" : ""
         }`}
       >
+        <h3 className="text-sm font-semibold">Customer Details</h3>
+        <div className="mt-2 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] p-3 text-xs text-[var(--v2-muted)]">
+          <p className="font-medium text-[var(--v2-text)]">{customerDetails.name}</p>
+          <p className="mt-1">{customerDetails.phone}</p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <p>Assigned: {customerDetails.assigned}</p>
+            <p>Unread: {customerDetails.unread}</p>
+            <p className="col-span-2">Last seen: {customerDetails.lastSeen}</p>
+          </div>
+        </div>
+
         <h3 className="text-sm font-semibold">Assignment</h3>
         <select
           value={detail?.assignment?.assigned_user_id || selectedRow?.assigned_user_id || ""}
@@ -566,6 +620,15 @@ export function InboxWorkspace() {
           {suggesting ? "Generating..." : "Generate Suggestion"}
         </button>
         {suggestion ? <p className="mt-2 text-xs text-[var(--v2-muted)]">{suggestion}</p> : null}
+        {suggestion ? (
+          <button
+            type="button"
+            onClick={() => setReply(suggestion)}
+            className="mt-2 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]"
+          >
+            Use Suggestion
+          </button>
+        ) : null}
 
         <h3 className="mt-5 text-sm font-semibold">Event Takeover</h3>
         <select

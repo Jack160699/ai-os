@@ -27,6 +27,7 @@ export function PaymentsRecords() {
   const [modalOpen, setModalOpen] = useState(false);
   const [creatingLink, setCreatingLink] = useState(false);
   const [generatedLink, setGeneratedLink] = useState("");
+  const [historyPhone, setHistoryPhone] = useState("");
   const [form, setForm] = useState({
     customer: "",
     phone: "",
@@ -146,6 +147,60 @@ export function PaymentsRecords() {
     }
   }
 
+  async function updateStatus(paymentId, status) {
+    if (!paymentId) return;
+    try {
+      const res = await fetch(`/api/v2/payments/${encodeURIComponent(paymentId)}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Could not update status");
+      setRows((prev) =>
+        prev.map((row) =>
+          row.payment_id === paymentId
+            ? { ...row, status, paid_at: status.includes("paid") ? new Date().toISOString() : row.paid_at }
+            : row,
+        ),
+      );
+    } catch (err) {
+      setError(err?.message || "Could not update status");
+    }
+  }
+
+  function exportCsv() {
+    const headers = ["date", "customer", "phone", "amount", "source", "purpose", "status", "paid_at", "created_by", "payment_id"];
+    const lines = filtered.map((row) =>
+      [
+        row.recorded_at_utc || "",
+        row.customer_name || "",
+        row.customer_phone || "",
+        row.amount_rupees || 0,
+        row.source || "",
+        row.purpose || row.reason || "",
+        row.status || "",
+        row.paid_at || "",
+        row.created_by || "",
+        row.payment_id || "",
+      ]
+        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+        .join(","),
+    );
+    const csv = [headers.join(","), ...lines].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `payments-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const customerHistory = historyPhone
+    ? rows.filter((row) => String(row.customer_phone || "") === String(historyPhone))
+    : [];
+
   return (
     <div className="rounded-2xl border border-[var(--v2-border)] bg-[var(--v2-panel)] p-4 shadow-[0_10px_20px_rgba(0,0,0,0.2)]">
       <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
@@ -181,6 +236,7 @@ export function PaymentsRecords() {
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={() => setModalOpen(true)} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-text)]">+ Generate Payment Link</button>
+          <button type="button" onClick={exportCsv} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Export CSV</button>
           <button type="button" onClick={loadRecords} disabled={loading} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)] disabled:opacity-60">{loading ? "Refreshing..." : "Refresh"}</button>
         </div>
       </div>
@@ -220,9 +276,12 @@ export function PaymentsRecords() {
                 <td className="px-3 py-2">{row.link ? <a className="underline" href={row.link} target="_blank" rel="noreferrer">Open</a> : "-"}</td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap gap-1">
-                    <button className="rounded border border-[var(--v2-border)] px-2 py-1 text-[10px] text-[var(--v2-muted)]">Mark paid</button>
+                    <button onClick={() => updateStatus(row.payment_id, "paid")} className="rounded border border-[var(--v2-border)] px-2 py-1 text-[10px] text-[var(--v2-muted)]">Mark paid</button>
                     <button className="rounded border border-[var(--v2-border)] px-2 py-1 text-[10px] text-[var(--v2-muted)]">Resend</button>
                     <button className="rounded border border-[var(--v2-border)] px-2 py-1 text-[10px] text-[var(--v2-muted)]">Refund note</button>
+                    <button onClick={() => setHistoryPhone(row.customer_phone || "")} className="rounded border border-[var(--v2-border)] px-2 py-1 text-[10px] text-[var(--v2-muted)]">History</button>
+                    <button className="rounded border border-[var(--v2-border)] px-2 py-1 text-[10px] text-[var(--v2-muted)]">Receipt</button>
+                    <button className="rounded border border-[var(--v2-border)] px-2 py-1 text-[10px] text-[var(--v2-muted)]">Invoice</button>
                   </div>
                 </td>
               </tr>
@@ -241,6 +300,23 @@ export function PaymentsRecords() {
           <div className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Collection rate: {totals.paid + totals.failed > 0 ? Math.round((totals.paid / (totals.paid + totals.failed)) * 100) : 0}%</div>
           <div className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Aging buckets: 0-7d {totals.pending}</div>
           <div className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Advanced filters enabled</div>
+        </div>
+      ) : null}
+
+      {historyPhone ? (
+        <div className="mt-3 rounded-2xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] p-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-[var(--v2-text)]">Customer History ({historyPhone})</p>
+            <button onClick={() => setHistoryPhone("")} className="text-xs text-[var(--v2-muted)]">Close</button>
+          </div>
+          <div className="mt-2 space-y-1.5">
+            {customerHistory.slice(0, 8).map((row) => (
+              <div key={`${row.payment_id}-${row.recorded_at_utc}`} className="rounded-lg border border-[var(--v2-border)] px-2 py-1 text-xs text-[var(--v2-muted)]">
+                {formatTime(row.recorded_at_utc)} · {formatAmount(row.amount_rupees)} · {row.status}
+              </div>
+            ))}
+            {customerHistory.length === 0 ? <p className="text-xs text-[var(--v2-muted)]">No history found.</p> : null}
+          </div>
         </div>
       ) : null}
 
