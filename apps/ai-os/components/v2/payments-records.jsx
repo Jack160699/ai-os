@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useProMode } from "@/components/v2/pro-mode";
 
 function formatAmount(value) {
   const n = Number(value || 0);
@@ -15,6 +16,7 @@ function formatTime(value) {
 }
 
 export function PaymentsRecords() {
+  const { proMode } = useProMode();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -58,8 +60,27 @@ export function PaymentsRecords() {
     return "border-white/15 bg-white/[0.03] text-[var(--v2-muted)]";
   }
 
+  const totals = filtered.reduce(
+    (acc, row) => {
+      const amount = Number(row?.amount_rupees || 0);
+      const status = String(row?.status || "").toLowerCase();
+      acc.totalAmount += amount;
+      if (status.includes("paid") || status.includes("captured")) acc.paid += 1;
+      if (status.includes("pending") || status.includes("created")) acc.pending += 1;
+      if (status.includes("fail")) acc.failed += 1;
+      return acc;
+    },
+    { totalAmount: 0, paid: 0, pending: 0, failed: 0 },
+  );
+
   return (
     <div className="rounded-2xl border border-white/10 bg-[#0f131a] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.22)]">
+      <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[#94a3b8]">Total: {formatAmount(totals.totalAmount)}</div>
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[#94a3b8]">Paid: {totals.paid}</div>
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[#94a3b8]">Pending: {totals.pending}</div>
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[#94a3b8]">Failed: {totals.failed}</div>
+      </div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <input
@@ -92,7 +113,7 @@ export function PaymentsRecords() {
       {error ? <p className="text-sm text-rose-500">{error}</p> : null}
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-white/10 text-[var(--v2-muted)]">
+          <thead className="sticky top-0 border-b border-white/10 bg-[#0f131a] text-[var(--v2-muted)]">
             <tr>
               <th className="px-3 py-2 font-medium">Time</th>
               <th className="px-3 py-2 font-medium">Status</th>
@@ -138,6 +159,13 @@ export function PaymentsRecords() {
           </tbody>
         </table>
       </div>
+      {proMode ? (
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[#94a3b8]">Collection rate: {totals.paid + totals.failed > 0 ? Math.round((totals.paid / (totals.paid + totals.failed)) * 100) : 0}%</div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[#94a3b8]">Aging bucket 0-7d: {totals.pending}</div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[#94a3b8]">Advanced mode enabled</div>
+        </div>
+      ) : null}
     </div>
   );
 }

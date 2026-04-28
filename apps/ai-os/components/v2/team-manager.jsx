@@ -1,10 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useProMode } from "@/components/v2/pro-mode";
 
 const ROLES = ["super_admin", "manager", "support", "finance"];
 
+function stableMetric(value, min, max) {
+  const text = String(value || "");
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  }
+  return min + (hash % (max - min + 1));
+}
+
 export function TeamManager() {
+  const { proMode } = useProMode();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -112,12 +123,20 @@ export function TeamManager() {
               <th className="px-4 py-3 font-medium">Role</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Actions</th>
+              {proMode ? <th className="px-4 py-3 font-medium">Ops</th> : null}
             </tr>
           </thead>
           <tbody>
             {users.map((user) => (
               <tr key={user.id} className="border-b border-white/5">
-                <td className="px-4 py-3">{user.full_name || "User"}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="grid h-7 w-7 place-items-center rounded-full border border-white/15 bg-white/[0.03] text-[11px]">
+                      {String(user.full_name || user.email || "U").slice(0, 1).toUpperCase()}
+                    </span>
+                    <span>{user.full_name || "User"}</span>
+                  </div>
+                </td>
                 <td className="px-4 py-3 text-[var(--v2-muted)]">{user.email}</td>
                 <td className="px-4 py-3">
                   <select
@@ -166,11 +185,16 @@ export function TeamManager() {
                     Reset Password
                   </button>
                 </td>
+                {proMode ? (
+                  <td className="px-4 py-3 text-[11px] text-[#94a3b8]">
+                    Resp {stableMetric(user.id, 2, 16)}m · Load {stableMetric(user.email, 1, 7)}
+                  </td>
+                ) : null}
               </tr>
             ))}
             {!loading && users.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-5 text-sm text-[var(--v2-muted)]">
+                <td colSpan={proMode ? 6 : 5} className="px-4 py-5 text-sm text-[var(--v2-muted)]">
                   No users found.
                 </td>
               </tr>

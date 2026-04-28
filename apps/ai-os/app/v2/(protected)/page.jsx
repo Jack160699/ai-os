@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/v2/page-header";
+import { DashboardCanvas } from "@/components/v2/dashboard-canvas";
 import { getV2DashboardData } from "@/lib/v2/dashboard-data";
 import { validateLaunchEnv } from "@/lib/v2/env";
 
@@ -32,50 +33,7 @@ export default async function DashboardPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {data.metrics.map((metric) => (
-          <article
-            key={metric.label}
-            className="rounded-2xl border border-white/10 bg-[#0f131a] px-5 py-4 shadow-[0_8px_30px_rgba(0,0,0,0.22)]"
-          >
-            <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--v2-muted)]">{metric.label}</p>
-            <p className="mt-3 text-xl font-semibold leading-tight">{metric.value}</p>
-          </article>
-        ))}
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-        <div className="rounded-2xl border border-white/10 bg-[#0f131a] px-5 py-4 shadow-[0_8px_30px_rgba(0,0,0,0.22)]">
-          <h2 className="text-base font-semibold tracking-tight">Recent Activity</h2>
-          <ul className="mt-3 space-y-2.5 text-sm text-[var(--v2-muted)]">
-            {data.activity.map((item) => (
-              <li
-                key={item}
-                className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3.5 py-2.5"
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-[#6fa0ff]" />
-                <span className="line-clamp-1">{item}</span>
-              </li>
-            ))}
-            {data.activity.length === 0 ? <li className="rounded-xl px-3 py-2">No activity today</li> : null}
-          </ul>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-[#0f131a] px-5 py-4 shadow-[0_8px_30px_rgba(0,0,0,0.22)]">
-          <h2 className="text-base font-semibold tracking-tight">Quick Actions</h2>
-          <div className="mt-3 grid gap-2">
-            <button className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-left text-sm text-[var(--v2-muted)] transition hover:border-white/20 hover:bg-white/[0.05]">
-              Open unassigned conversations
-            </button>
-            <button className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-left text-sm text-[var(--v2-muted)] transition hover:border-white/20 hover:bg-white/[0.05]">
-              Review pending payments
-            </button>
-            <button className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-left text-sm text-[var(--v2-muted)] transition hover:border-white/20 hover:bg-white/[0.05]">
-              Invite new team member
-            </button>
-          </div>
-        </div>
-      </div>
+      <DashboardCanvas metrics={data.metrics} activity={data.activity} />
     </section>
   );
 }

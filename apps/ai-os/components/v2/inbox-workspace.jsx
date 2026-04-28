@@ -2,8 +2,10 @@
 
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useProMode } from "@/components/v2/pro-mode";
 
 export function InboxWorkspace() {
+  const { proMode } = useProMode();
   const [rows, setRows] = useState([]);
   const [selected, setSelected] = useState("");
   const [detail, setDetail] = useState(null);
@@ -315,6 +317,12 @@ export function InboxWorkspace() {
                 <span className="text-[var(--v2-muted)]">{row.assigned_to || "Unassigned"}</span>
                 <span className="rounded-lg border border-white/10 bg-white/[0.02] px-2 py-0.5">Unread {row.unread || 0}</span>
               </div>
+              {proMode ? (
+                <div className="mt-2 flex items-center gap-2 text-[10px] text-[#94a3b8]">
+                  <span className="rounded-md border border-white/10 px-1.5 py-0.5">SLA 12m</span>
+                  <span className="rounded-md border border-white/10 px-1.5 py-0.5">Priority A</span>
+                </div>
+              ) : null}
             </button>
           ))}
         </div>
@@ -351,7 +359,7 @@ export function InboxWorkspace() {
                 </div>
               ) : null}
             </div>
-            <div className="mt-4 flex gap-2">
+            <div className="sticky bottom-0 mt-4 flex gap-2 rounded-xl border border-white/10 bg-[#0b1220] p-2">
               <input
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}

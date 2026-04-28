@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { ModeSwitch } from "@/components/v2/mode-switch";
 import { NotificationCenter } from "@/components/v2/notification-center";
 
 const ICONS = {
@@ -53,14 +54,14 @@ export function AppShell({ user, role, navItems, logoutAction, children }) {
   }, [user]);
 
   return (
-    <div className="min-h-screen bg-[#07090d] text-[var(--v2-text)] transition-colors duration-200">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1700px]">
+    <div className="min-h-screen bg-[#05070b] text-[var(--v2-text)] transition-colors duration-200">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1680px]">
         <motion.aside
           initial={{ x: -12, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className={`hidden shrink-0 border-r border-white/10 bg-[#0b0e13]/95 p-4 transition-all duration-200 lg:block ${
-            collapsed ? "w-20" : "w-72"
+          className={`hidden shrink-0 border-r border-white/10 bg-[#0a0f19] p-4 transition-all duration-200 lg:block ${
+            collapsed ? "w-[76px]" : "w-[236px]"
           }`}
         >
           <div className="mb-4 flex items-center justify-between">
@@ -81,7 +82,7 @@ export function AppShell({ user, role, navItems, logoutAction, children }) {
             </button>
           </div>
 
-          <nav className="mt-4 space-y-1.5">
+          <nav className="mt-4 space-y-2">
             {navItems.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
@@ -89,10 +90,10 @@ export function AppShell({ user, role, navItems, logoutAction, children }) {
                   key={item.href}
                   href={item.href}
                   title={collapsed ? item.label : ""}
-                  className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
+                  className={`group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
                     active
-                      ? "border border-[#3b82f6]/35 bg-[#3b82f6]/16 text-white"
-                      : "border border-transparent text-[var(--v2-muted)] hover:border-white/10 hover:bg-white/[0.04] hover:text-white"
+                      ? "border border-[#1d4ed8]/45 bg-[#1d4ed8]/22 text-white shadow-[0_0_0_1px_rgba(29,78,216,0.18)]"
+                      : "border border-transparent text-[#94a3b8] hover:border-white/10 hover:bg-white/[0.03] hover:text-white"
                   }`}
                 >
                   <span className={`text-xs ${active ? "text-[#90b4ff]" : "text-white/70 group-hover:text-white"}`}>
@@ -103,10 +104,29 @@ export function AppShell({ user, role, navItems, logoutAction, children }) {
               );
             })}
           </nav>
+          <div className="mt-6 border-t border-white/10 pt-4">
+            {!collapsed ? (
+              <>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-[#94a3b8]">System</p>
+                <p className="mt-2 text-xs text-white">Operational</p>
+                <p className="text-[11px] text-[#94a3b8]">Version 2.0.0</p>
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[#94a3b8] transition hover:border-white/20 hover:bg-white/[0.05]"
+                  >
+                    Theme Control
+                  </button>
+                </div>
+              </>
+            ) : (
+              <span className="mx-auto block h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            )}
+          </div>
         </motion.aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0b0e13]/85 px-4 py-3 backdrop-blur md:px-8">
+          <header className="sticky top-0 z-20 border-b border-white/10 bg-[#070c15]/92 px-4 py-3 backdrop-blur md:px-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-[220px] flex-1">
                 <div className="flex max-w-xl items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
@@ -122,12 +142,13 @@ export function AppShell({ user, role, navItems, logoutAction, children }) {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  className="rounded-xl border border-[#3b82f6]/35 bg-[#3b82f6]/12 px-3 py-2 text-xs font-medium text-[#bdd2ff] transition hover:bg-[#3b82f6]/18"
+                  className="rounded-xl border border-[#1d4ed8]/45 bg-[#1d4ed8]/22 px-3 py-2 text-xs font-medium text-[#c8d9ff] transition hover:bg-[#1d4ed8]/28"
                 >
                   + Quick Add
                 </button>
                 <NotificationCenter />
                 <ThemeToggle />
+                <ModeSwitch />
                 <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs">
                   <p className="font-medium text-white">{userName}</p>
                   <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--v2-muted)]">{role}</p>
@@ -144,7 +165,9 @@ export function AppShell({ user, role, navItems, logoutAction, children }) {
             </div>
           </header>
 
-          <main className="flex-1 bg-gradient-to-b from-[#0a0d12] to-[#090b10] px-4 py-6 md:px-8">{children}</main>
+          <main className="flex-1 bg-[#05070b] px-4 py-6 md:px-8">
+            <div className="mx-auto w-full max-w-[1320px]">{children}</div>
+          </main>
         </div>
       </div>
     </div>
