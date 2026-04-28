@@ -15,6 +15,7 @@ export function TeamManager() {
     role: "support",
   });
   const [saving, setSaving] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   async function loadUsers() {
     setLoading(true);
@@ -88,12 +89,23 @@ export function TeamManager() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="overflow-x-auto rounded-2xl border border-black/10 bg-[var(--v2-surface)] shadow-sm dark:border-white/10">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-[var(--v2-muted)]">Manage operators, access, and permissions from one place.</p>
+        <button
+          type="button"
+          onClick={() => setInviteOpen(true)}
+          className="rounded-xl border border-[#3b82f6]/35 bg-[#3b82f6]/14 px-3 py-2 text-xs text-[#bdd2ff] transition hover:bg-[#3b82f6]/20"
+        >
+          Invite User
+        </button>
+      </div>
+
+      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#0f131a] shadow-[0_8px_30px_rgba(0,0,0,0.22)]">
         {loading ? <p className="p-4 text-sm text-[var(--v2-muted)]">Loading team...</p> : null}
         {error ? <p className="p-4 text-sm text-rose-500">{error}</p> : null}
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-black/10 text-[var(--v2-muted)] dark:border-white/10">
+          <thead className="border-b border-white/10 text-[var(--v2-muted)]">
             <tr>
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Email</th>
@@ -104,13 +116,13 @@ export function TeamManager() {
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id} className="border-b border-black/5 dark:border-white/5">
+              <tr key={user.id} className="border-b border-white/5">
                 <td className="px-4 py-3">{user.full_name || "User"}</td>
                 <td className="px-4 py-3 text-[var(--v2-muted)]">{user.email}</td>
                 <td className="px-4 py-3">
                   <select
                     value={user.role}
-                    className="rounded-lg border border-black/10 bg-transparent px-2 py-1 text-xs dark:border-white/15"
+                    className="rounded-lg border border-white/10 bg-white/[0.02] px-2 py-1 text-xs"
                     onChange={async (e) => {
                       const role = e.target.value;
                       const ok = await updateUser(user.id, { role });
@@ -129,10 +141,10 @@ export function TeamManager() {
                 <td className="px-4 py-3">
                   <button
                     type="button"
-                    className={`rounded-lg px-2 py-1 text-xs ${
+                    className={`rounded-lg border px-2 py-1 text-xs ${
                       user.is_active
-                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
-                        : "bg-slate-500/15 text-slate-600 dark:text-slate-300"
+                        ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-200"
+                        : "border-slate-400/30 bg-slate-500/15 text-slate-200"
                     }`}
                     onClick={async () => {
                       const is_active = !user.is_active;
@@ -149,7 +161,7 @@ export function TeamManager() {
                   <button
                     type="button"
                     onClick={() => resetPassword(user.id)}
-                    className="rounded-lg border border-black/10 px-2 py-1 text-xs dark:border-white/15"
+                    className="rounded-lg border border-white/10 bg-white/[0.02] px-2 py-1 text-xs"
                   >
                     Reset Password
                   </button>
@@ -167,17 +179,18 @@ export function TeamManager() {
         </table>
       </div>
 
-      <aside className="rounded-2xl border border-black/10 bg-[var(--v2-surface)] p-4 shadow-sm dark:border-white/10">
+      {inviteOpen ? (
+        <aside className="rounded-2xl border border-white/10 bg-[#0f131a] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.22)]">
         <h2 className="text-base font-semibold">Create User</h2>
         <form className="mt-3 space-y-3" onSubmit={createUser}>
           <input
-            className="w-full rounded-xl border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/15"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm"
             placeholder="Full name"
             value={createForm.full_name}
             onChange={(e) => setCreateForm((prev) => ({ ...prev, full_name: e.target.value }))}
           />
           <input
-            className="w-full rounded-xl border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/15"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm"
             type="email"
             placeholder="Email address"
             required
@@ -185,7 +198,7 @@ export function TeamManager() {
             onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))}
           />
           <input
-            className="w-full rounded-xl border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/15"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm"
             type="password"
             minLength={8}
             required
@@ -194,7 +207,7 @@ export function TeamManager() {
             onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))}
           />
           <select
-            className="w-full rounded-xl border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/15"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm"
             value={createForm.role}
             onChange={(e) => setCreateForm((prev) => ({ ...prev, role: e.target.value }))}
           >
@@ -206,12 +219,20 @@ export function TeamManager() {
           </select>
           <button
             disabled={saving}
-            className="w-full rounded-xl bg-[#2563eb] px-3 py-2 text-sm font-medium text-white hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-70"
+            className="w-full rounded-xl border border-[#3b82f6]/35 bg-[#3b82f6]/16 px-3 py-2 text-sm font-medium text-white hover:bg-[#3b82f6]/22 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {saving ? "Saving..." : "Save User"}
           </button>
+          <button
+            type="button"
+            onClick={() => setInviteOpen(false)}
+            className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-[var(--v2-muted)] transition hover:bg-white/[0.06]"
+          >
+            Cancel
+          </button>
         </form>
       </aside>
+      ) : null}
     </div>
   );
 }

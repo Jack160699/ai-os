@@ -4,7 +4,7 @@ import { TeamManager } from "@/components/v2/team-manager";
 export default function TeamPage() {
   return (
     <section>
-      <PageHeader title="Team" subtitle="Create users, assign roles, reset passwords, and deactivate access." />
+      <PageHeader title="Team" subtitle="Manage operators, roles, and permissions with precision." />
       <TeamManager />
     </section>
   );

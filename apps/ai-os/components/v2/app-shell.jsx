@@ -7,11 +7,10 @@ import { useEffect, useMemo, useState } from "react";
 import { NotificationCenter } from "@/components/v2/notification-center";
 
 const ICONS = {
-  grid: "◻",
-  chat: "◉",
-  coins: "◎",
-  chart: "◍",
-  users: "◌",
+  grid: "▦",
+  chat: "◍",
+  coins: "◒",
+  users: "◎",
   settings: "◈",
 };
 
@@ -33,16 +32,17 @@ function ThemeToggle() {
   return (
     <button
       type="button"
-      className="rounded-xl border border-black/10 bg-black/3 px-3 py-2 text-xs font-medium text-[var(--v2-muted)] transition hover:bg-black/6 dark:border-white/15 dark:bg-white/5"
+      className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs font-medium text-[var(--v2-muted)] transition hover:border-white/20 hover:bg-white/[0.05]"
       onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
     >
-      {theme === "dark" ? "Light Mode" : "Dark Mode"}
+      {theme === "dark" ? "Light" : "Dark"}
     </button>
   );
 }
 
 export function AppShell({ user, role, navItems, logoutAction, children }) {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
   const userName = useMemo(() => {
     return (
       user?.user_metadata?.full_name ||
@@ -53,35 +53,52 @@ export function AppShell({ user, role, navItems, logoutAction, children }) {
   }, [user]);
 
   return (
-    <div className="min-h-screen bg-[var(--v2-bg)] text-[var(--v2-text)] transition-colors duration-200">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1600px]">
+    <div className="min-h-screen bg-[#07090d] text-[var(--v2-text)] transition-colors duration-200">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1700px]">
         <motion.aside
           initial={{ x: -12, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="hidden w-72 shrink-0 border-r border-black/8 bg-[var(--v2-surface)] p-6 shadow-sm dark:border-white/10 lg:block"
+          className={`hidden shrink-0 border-r border-white/10 bg-[#0b0e13]/95 p-4 transition-all duration-200 lg:block ${
+            collapsed ? "w-20" : "w-72"
+          }`}
         >
-          <p className="text-xs uppercase tracking-[0.2em] text-[#60a5fa]">
-            StratXcel V2
-          </p>
-          <p className="mt-2 text-lg font-semibold text-[var(--v2-text)]">Admin Dashboard</p>
+          <div className="mb-4 flex items-center justify-between">
+            {!collapsed ? (
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.22em] text-[#7ea6ff]">Operations</p>
+                <p className="mt-1 text-sm font-semibold text-white">Admin Console</p>
+              </div>
+            ) : (
+              <p className="mx-auto text-sm font-semibold text-[#7ea6ff]">V2</p>
+            )}
+            <button
+              type="button"
+              onClick={() => setCollapsed((prev) => !prev)}
+              className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1 text-[11px] text-[var(--v2-muted)] transition hover:border-white/20 hover:bg-white/[0.06]"
+            >
+              {collapsed ? "»" : "«"}
+            </button>
+          </div>
 
-          <nav className="mt-8 space-y-2">
+          <nav className="mt-4 space-y-1.5">
             {navItems.map((item) => {
-              const active =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
+                  title={collapsed ? item.label : ""}
+                  className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
                     active
-                      ? "bg-[#2563eb] text-white"
-                      : "text-[var(--v2-muted)] hover:bg-black/5 hover:text-[var(--v2-text)] dark:hover:bg-white/10"
+                      ? "border border-[#3b82f6]/35 bg-[#3b82f6]/16 text-white"
+                      : "border border-transparent text-[var(--v2-muted)] hover:border-white/10 hover:bg-white/[0.04] hover:text-white"
                   }`}
                 >
-                  <span className="text-xs">{ICONS[item.icon] || "•"}</span>
-                  <span>{item.label}</span>
+                  <span className={`text-xs ${active ? "text-[#90b4ff]" : "text-white/70 group-hover:text-white"}`}>
+                    {ICONS[item.icon] || "•"}
+                  </span>
+                  {!collapsed ? <span>{item.label}</span> : null}
                 </Link>
               );
             })}
@@ -89,47 +106,45 @@ export function AppShell({ user, role, navItems, logoutAction, children }) {
         </motion.aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-black/8 bg-[var(--v2-surface)]/90 px-4 py-4 backdrop-blur dark:border-white/10 md:px-8">
-            <div>
-              <p className="text-sm text-[var(--v2-muted)]">Signed in as</p>
-              <p className="text-sm font-semibold">
-                {userName} <span className="text-[var(--v2-muted)]">({role})</span>
-              </p>
-            </div>
+          <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0b0e13]/85 px-4 py-3 backdrop-blur md:px-8">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-[220px] flex-1">
+                <div className="flex max-w-xl items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
+                  <span className="text-xs text-white/50">⌘K</span>
+                  <input
+                    readOnly
+                    value="Search dashboard, conversations, payments..."
+                    className="w-full bg-transparent text-xs text-[var(--v2-muted)] outline-none"
+                  />
+                </div>
+              </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <nav className="flex items-center gap-1 rounded-xl border border-black/10 p-1 dark:border-white/10 lg:hidden">
-                {navItems.slice(0, 4).map((item) => {
-                  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`rounded-lg px-2 py-1 text-xs ${
-                        active
-                          ? "bg-[#2563eb] text-white"
-                          : "text-[var(--v2-muted)] hover:bg-black/5 dark:hover:bg-white/10"
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </nav>
-              <NotificationCenter />
-              <ThemeToggle />
-              <form action={logoutAction}>
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  type="submit"
-                  className="rounded-xl border border-black/10 bg-black/3 px-3 py-2 text-xs font-medium text-[var(--v2-muted)] transition hover:bg-black/6 dark:border-white/15 dark:bg-white/5"
+                  type="button"
+                  className="rounded-xl border border-[#3b82f6]/35 bg-[#3b82f6]/12 px-3 py-2 text-xs font-medium text-[#bdd2ff] transition hover:bg-[#3b82f6]/18"
                 >
-                  Logout
+                  + Quick Add
                 </button>
-              </form>
+                <NotificationCenter />
+                <ThemeToggle />
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs">
+                  <p className="font-medium text-white">{userName}</p>
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--v2-muted)]">{role}</p>
+                </div>
+                <form action={logoutAction}>
+                  <button
+                    type="submit"
+                    className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs font-medium text-[var(--v2-muted)] transition hover:border-white/20 hover:bg-white/[0.05]"
+                  >
+                    Logout
+                  </button>
+                </form>
+              </div>
             </div>
           </header>
 
-          <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
+          <main className="flex-1 bg-gradient-to-b from-[#0a0d12] to-[#090b10] px-4 py-6 md:px-8">{children}</main>
         </div>
       </div>
     </div>

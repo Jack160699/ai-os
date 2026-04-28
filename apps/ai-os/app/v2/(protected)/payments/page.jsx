@@ -6,7 +6,7 @@ export default function PaymentsPage() {
     <section>
       <PageHeader
         title="Payments"
-        subtitle="Recent payment records with clear status visibility."
+        subtitle="Finance-grade records with fast filters, search, and status clarity."
       />
       <PaymentsRecords />
     </section>

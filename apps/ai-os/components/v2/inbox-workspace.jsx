@@ -257,7 +257,7 @@ export function InboxWorkspace() {
   }
 
   return (
-    <div className="grid min-h-[calc(100vh-220px)] gap-3 lg:grid-cols-[320px_minmax(0,1fr)_300px]">
+    <div className="grid min-h-[calc(100vh-220px)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
       <div className="flex gap-2 lg:hidden">
         {["list", "chat", "actions"].map((tab) => (
           <button
@@ -271,7 +271,7 @@ export function InboxWorkspace() {
         ))}
       </div>
       <section
-        className={`rounded-2xl border border-black/10 bg-[var(--v2-surface)] p-3 shadow-sm dark:border-white/10 ${
+        className={`rounded-2xl border border-white/10 bg-[#0f131a] p-3 shadow-[0_8px_30px_rgba(0,0,0,0.22)] ${
           mobileTab !== "list" ? "hidden lg:block" : ""
         }`}
       >
@@ -283,7 +283,7 @@ export function InboxWorkspace() {
             if (e.key === "Enter") loadConversations(e.currentTarget.value);
           }}
           placeholder="Search by phone or text"
-          className="mb-3 w-full rounded-xl border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/15"
+          className="mb-3 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm outline-none transition focus:border-[#3b82f6]/40"
         />
         {loading ? (
           <div className="space-y-2">
@@ -305,15 +305,15 @@ export function InboxWorkspace() {
               onClick={() => setSelected(row.phone)}
               className={`w-full rounded-xl border p-3 text-left transition ${
                 selected === row.phone
-                  ? "border-[#2563eb] bg-[#2563eb]/10"
-                  : "border-black/10 hover:bg-black/3 dark:border-white/10 dark:hover:bg-white/6"
+                  ? "border-[#3b82f6]/40 bg-[#3b82f6]/12"
+                  : "border-white/10 bg-white/[0.01] hover:border-white/20 hover:bg-white/[0.04]"
               }`}
             >
               <p className="text-sm font-semibold">{row.name || row.phone}</p>
               <p className="mt-1 line-clamp-1 text-xs text-[var(--v2-muted)]">{row.last_message || "No message"}</p>
               <div className="mt-2 flex items-center justify-between text-[11px]">
                 <span className="text-[var(--v2-muted)]">{row.assigned_to || "Unassigned"}</span>
-                <span className="rounded-lg bg-black/5 px-2 py-0.5 dark:bg-white/10">Unread {row.unread || 0}</span>
+                <span className="rounded-lg border border-white/10 bg-white/[0.02] px-2 py-0.5">Unread {row.unread || 0}</span>
               </div>
             </button>
           ))}
@@ -324,7 +324,7 @@ export function InboxWorkspace() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        className={`rounded-2xl border border-black/10 bg-[var(--v2-surface)] p-4 shadow-sm dark:border-white/10 ${
+        className={`rounded-2xl border border-white/10 bg-[#0f131a] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.22)] ${
           mobileTab !== "chat" ? "hidden lg:block" : ""
         }`}
       >
@@ -338,8 +338,8 @@ export function InboxWorkspace() {
                   key={message.id}
                   className={`max-w-[82%] rounded-xl px-3 py-2 text-sm ${
                     message.sender === "user"
-                      ? "bg-black/5 text-[var(--v2-text)] dark:bg-white/10"
-                      : "ml-auto bg-[#2563eb] text-white"
+                      ? "border border-white/10 bg-white/[0.03] text-[var(--v2-text)]"
+                      : "ml-auto border border-[#3b82f6]/35 bg-[#3b82f6]/18 text-white"
                   }`}
                 >
                   {message.text}
@@ -356,12 +356,12 @@ export function InboxWorkspace() {
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Type reply..."
-                className="flex-1 rounded-xl border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/15"
+                className="flex-1 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm outline-none transition focus:border-[#3b82f6]/40"
               />
               <button
                 onClick={sendReply}
                 disabled={!selected || saving}
-                className="rounded-xl bg-[#2563eb] px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl border border-[#3b82f6]/40 bg-[#3b82f6]/18 px-3 py-2 text-sm text-white transition hover:bg-[#3b82f6]/26 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Sending..." : "Send"}
               </button>
@@ -371,7 +371,7 @@ export function InboxWorkspace() {
       </motion.section>
 
       <section
-        className={`rounded-2xl border border-black/10 bg-[var(--v2-surface)] p-4 shadow-sm dark:border-white/10 ${
+        className={`rounded-2xl border border-white/10 bg-[#0f131a] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.22)] ${
           mobileTab !== "actions" ? "hidden lg:block" : ""
         }`}
       >
@@ -380,7 +380,7 @@ export function InboxWorkspace() {
           value={detail?.assignment?.assigned_user_id || selectedRow?.assigned_user_id || ""}
           onChange={(e) => assignUser(e.target.value)}
           disabled={!selected || saving}
-          className="mt-2 w-full rounded-xl border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/15"
+          className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm"
         >
           <option value="">Unassigned</option>
           {teamUsers.map((user) => (
@@ -403,12 +403,12 @@ export function InboxWorkspace() {
             value={tag}
             onChange={(e) => setTag(e.target.value)}
             placeholder="add tag"
-            className="flex-1 rounded-xl border border-black/10 bg-transparent px-3 py-2 text-xs dark:border-white/15"
+            className="flex-1 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs"
           />
           <button
             onClick={addTag}
             disabled={!selected || saving}
-            className="rounded-xl border border-black/10 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15"
+            className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
           >
             Add
           </button>
@@ -427,12 +427,12 @@ export function InboxWorkspace() {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Add note..."
-            className="h-20 w-full rounded-xl border border-black/10 bg-transparent px-3 py-2 text-xs dark:border-white/15"
+            className="h-20 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs"
           />
           <button
             onClick={addNote}
             disabled={!selected || saving}
-            className="mt-2 w-full rounded-xl border border-black/10 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15"
+            className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? "Saving..." : "Save Note"}
           </button>
@@ -441,7 +441,7 @@ export function InboxWorkspace() {
         <button
           type="button"
           onClick={() => setRetryKey((v) => v + 1)}
-          className="mt-3 w-full rounded-xl border border-black/10 px-3 py-2 text-xs dark:border-white/15"
+          className="mt-3 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs"
         >
           Retry Sync
         </button>

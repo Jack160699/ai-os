@@ -18,6 +18,8 @@ export function PaymentsRecords() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   async function loadRecords() {
     setLoading(true);
@@ -40,15 +42,48 @@ export function PaymentsRecords() {
     loadRecords();
   }, []);
 
+  const filtered = rows.filter((row) => {
+    const status = String(row?.status || "").toLowerCase();
+    const matchesStatus = statusFilter === "all" ? true : status.includes(statusFilter);
+    const haystack = `${row?.payment_id || ""} ${row?.customer_name || ""} ${row?.customer_phone || ""} ${row?.reason || ""}`.toLowerCase();
+    const matchesQuery = query.trim() ? haystack.includes(query.trim().toLowerCase()) : true;
+    return matchesStatus && matchesQuery;
+  });
+
+  function statusClass(status) {
+    const s = String(status || "").toLowerCase();
+    if (s.includes("paid") || s.includes("captured")) return "border-emerald-400/30 bg-emerald-500/15 text-emerald-200";
+    if (s.includes("fail")) return "border-rose-400/30 bg-rose-500/15 text-rose-200";
+    if (s.includes("pending") || s.includes("created")) return "border-amber-400/30 bg-amber-500/15 text-amber-200";
+    return "border-white/15 bg-white/[0.03] text-[var(--v2-muted)]";
+  }
+
   return (
-    <div className="rounded-2xl border border-black/10 bg-[var(--v2-surface)] p-4 shadow-sm dark:border-white/10">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="text-sm text-[var(--v2-muted)]">Recent payment records</p>
+    <div className="rounded-2xl border border-white/10 bg-[#0f131a] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.22)]">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search payment, customer, reason..."
+            className="w-[260px] rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs outline-none transition focus:border-[#3b82f6]/40"
+          />
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs outline-none"
+          >
+            <option value="all">All Status</option>
+            <option value="paid">Paid</option>
+            <option value="pending">Pending</option>
+            <option value="fail">Failed</option>
+          </select>
+        </div>
         <button
           type="button"
           onClick={loadRecords}
           disabled={loading}
-          className="rounded-xl border border-black/10 px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15"
+          className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[var(--v2-muted)] transition hover:border-white/20 hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Refreshing..." : "Refresh"}
         </button>
@@ -57,7 +92,7 @@ export function PaymentsRecords() {
       {error ? <p className="text-sm text-rose-500">{error}</p> : null}
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-black/10 text-[var(--v2-muted)] dark:border-white/10">
+          <thead className="border-b border-white/10 text-[var(--v2-muted)]">
             <tr>
               <th className="px-3 py-2 font-medium">Time</th>
               <th className="px-3 py-2 font-medium">Status</th>
@@ -68,10 +103,23 @@ export function PaymentsRecords() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={`${row.payment_id}-${row.recorded_at_utc}`} className="border-b border-black/5 dark:border-white/5">
+            {loading
+              ? Array.from({ length: 6 }).map((_, index) => (
+                  <tr key={`skeleton-${index}`} className="border-b border-white/5">
+                    <td className="px-3 py-3" colSpan={6}>
+                      <div className="h-4 animate-pulse rounded bg-white/[0.06]" />
+                    </td>
+                  </tr>
+                ))
+              : null}
+            {filtered.map((row) => (
+              <tr key={`${row.payment_id}-${row.recorded_at_utc}`} className="border-b border-white/5">
                 <td className="px-3 py-2">{formatTime(row.recorded_at_utc)}</td>
-                <td className="px-3 py-2">{row.status || "-"}</td>
+                <td className="px-3 py-2">
+                  <span className={`rounded-full border px-2 py-1 text-[11px] ${statusClass(row.status)}`}>
+                    {row.status || "-"}
+                  </span>
+                </td>
                 <td className="px-3 py-2 font-mono text-xs">{row.payment_id || "-"}</td>
                 <td className="px-3 py-2">{formatAmount(row.amount_rupees)}</td>
                 <td className="px-3 py-2">{row.customer_name || row.customer_phone || "-"}</td>
@@ -80,10 +128,10 @@ export function PaymentsRecords() {
                 </td>
               </tr>
             ))}
-            {!loading && rows.length === 0 ? (
+            {!loading && filtered.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-3 py-4 text-[var(--v2-muted)]">
-                  No payment records available.
+                  No payment records match the current filters.
                 </td>
               </tr>
             ) : null}
