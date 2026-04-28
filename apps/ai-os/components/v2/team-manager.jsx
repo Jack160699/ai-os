@@ -22,7 +22,7 @@ export function TeamManager() {
     try {
       const res = await fetch("/api/v2/team", { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "Could not load team");
+      if (!res.ok) throw new Error(data?.message || data?.error || "Could not load team");
       setUsers(Array.isArray(data?.users) ? data.users : []);
     } catch (err) {
       setError(err.message || "Could not load team");

@@ -74,10 +74,15 @@ export function InboxWorkspace() {
   }, []);
 
   async function loadTeamUsers() {
-    const res = await fetch("/api/v2/team", { cache: "no-store" });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok) {
-      setTeamUsers((data?.users || []).filter((user) => user.is_active));
+    try {
+      const res = await fetch("/api/v2/team", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setTeamUsers((data?.users || []).filter((user) => user.is_active));
+      }
+    } catch {
+      // Keep inbox usable even if team API is temporarily unavailable.
+      setTeamUsers([]);
     }
   }
 
@@ -372,7 +377,7 @@ export function InboxWorkspace() {
       >
         <h3 className="text-sm font-semibold">Assignment</h3>
         <select
-          value={detail?.assignment?.assigned_user_id || ""}
+          value={detail?.assignment?.assigned_user_id || selectedRow?.assigned_user_id || ""}
           onChange={(e) => assignUser(e.target.value)}
           disabled={!selected || saving}
           className="mt-2 w-full rounded-xl border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/15"

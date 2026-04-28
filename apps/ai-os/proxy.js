@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
+import { AUTH_COOKIE } from "@/app/admin/_lib/auth";
 import { canAccessRoute } from "@/lib/v2/rbac";
 
 function getUserRole(user) {
@@ -9,6 +10,9 @@ function getUserRole(user) {
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
   const hasSupabase = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  const expectedPassword = process.env.ADMIN_DASHBOARD_PASSWORD || "";
+  const legacyCookie = request.cookies.get(AUTH_COOKIE)?.value || "";
+  const legacyAuthed = !expectedPassword || legacyCookie === expectedPassword;
 
   const routeMap = new Map([
     ["/admin", "/v2"],
@@ -77,16 +81,16 @@ export async function proxy(request) {
     return NextResponse.next();
   }
 
-  if (!user && pathname !== "/v2/login") {
+  if (!user && !legacyAuthed && pathname !== "/v2/login") {
     return NextResponse.redirect(new URL("/v2/login", request.url));
   }
 
-  if (user && pathname === "/v2/login") {
+  if ((user || legacyAuthed) && pathname === "/v2/login") {
     return NextResponse.redirect(new URL("/v2", request.url));
   }
 
-  if (user && pathname !== "/v2/login") {
-    const role = getUserRole(user);
+  if ((user || legacyAuthed) && pathname !== "/v2/login") {
+    const role = user ? getUserRole(user) : "super_admin";
     if (!canAccessRoute(role, pathname)) {
       return NextResponse.redirect(new URL("/v2?access=denied", request.url));
     }

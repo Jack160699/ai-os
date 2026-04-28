@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { adminApiHeaders, backendBase } from "@/app/admin/_lib/backendFetch";
-import { routeErrorResponse } from "@/lib/v2/diagnostics";
 import { V2_ROLES } from "@/lib/v2/rbac";
 import { requireApiUser, requireRateLimit, requireRole } from "@/lib/v2/server-guard";
 
@@ -38,6 +37,9 @@ export async function GET(request) {
 
     return NextResponse.json({ records }, { status: 200 });
   } catch (error) {
-    return routeErrorResponse("api.v2.payments.records", error);
+    return NextResponse.json(
+      { error: "service_unavailable", message: error?.message || "Could not load payment records" },
+      { status: 503 },
+    );
   }
 }

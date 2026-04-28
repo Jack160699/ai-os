@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { routeErrorResponse } from "@/lib/v2/diagnostics";
 import { V2_ROLES } from "@/lib/v2/rbac";
 import { requireApiUser, requireRateLimit, requireRole } from "@/lib/v2/server-guard";
 
@@ -89,6 +88,9 @@ export async function GET(request) {
 
     return NextResponse.json({ conversations, updated_at: payload?.updated_at || new Date().toISOString() }, { status: 200 });
   } catch (error) {
-    return routeErrorResponse("api.v2.inbox.conversations", error);
+    return NextResponse.json(
+      { error: "service_unavailable", message: error?.message || "Could not fetch conversations" },
+      { status: 503 },
+    );
   }
 }

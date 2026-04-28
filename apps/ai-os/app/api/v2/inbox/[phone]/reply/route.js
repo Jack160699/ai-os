@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { adminApiHeaders, backendBase } from "@/app/admin/_lib/backendFetch";
-import { routeErrorResponse } from "@/lib/v2/diagnostics";
 import { createNotification } from "@/lib/v2/notify";
 import { V2_ROLES } from "@/lib/v2/rbac";
 import { writeAuditLog } from "@/lib/v2/audit";
@@ -64,6 +63,9 @@ export async function POST(request, { params }) {
 
     return NextResponse.json(payload, { status: response.status });
   } catch (error) {
-    return routeErrorResponse("api.v2.inbox.reply", error);
+    return NextResponse.json(
+      { error: "service_unavailable", message: error?.message || "Could not send reply" },
+      { status: 503 },
+    );
   }
 }

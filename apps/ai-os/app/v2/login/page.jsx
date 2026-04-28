@@ -1,4 +1,5 @@
 import { loginAction } from "@/app/v2/login/actions";
+import { LoginSubmitButton } from "@/components/v2/login-submit-button";
 
 const ERROR_TEXT = {
   missing_credentials: "Email and password are required.",
@@ -47,12 +48,7 @@ export default async function LoginPage({ searchParams }) {
             />
           </label>
 
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1d4ed8]"
-          >
-            Sign In
-          </button>
+          <LoginSubmitButton />
         </form>
       </section>
     </main>

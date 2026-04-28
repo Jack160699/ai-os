@@ -47,9 +47,10 @@ export function PaymentsRecords() {
         <button
           type="button"
           onClick={loadRecords}
-          className="rounded-xl border border-black/10 px-3 py-1.5 text-xs dark:border-white/15"
+          disabled={loading}
+          className="rounded-xl border border-black/10 px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15"
         >
-          Refresh
+          {loading ? "Refreshing..." : "Refresh"}
         </button>
       </div>
       {loading ? <p className="text-sm text-[var(--v2-muted)]">Loading records...</p> : null}
