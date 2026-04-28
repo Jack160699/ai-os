@@ -72,6 +72,52 @@ export async function saveMessage(phone, text, sender) {
   }
 }
 
+export async function backfillMessagesFromLeadSummaries(limit = 200, dryRun = false) {
+  if (!supabase) return { ok: false, inserted: 0, scanned: 0, reason: "no_supabase" };
+  const n = Math.min(2000, Math.max(1, Number.parseInt(String(limit), 10) || 200));
+  try {
+    const { data: rows, error } = await supabase
+      .from("lead_memory")
+      .select("phone,last_summary,updated_at,created_at,last_contacted_at")
+      .not("last_summary", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(n);
+    if (error) throw error;
+    const sourceRows = Array.isArray(rows) ? rows : [];
+    let inserted = 0;
+    for (const row of sourceRows) {
+      const phone = String(row?.phone || "").trim();
+      const text = String(row?.last_summary || "").trim();
+      if (!phone || !text) continue;
+      const createdAt = row?.last_contacted_at || row?.updated_at || row?.created_at || new Date().toISOString();
+      const { data: existing, error: checkErr } = await supabase
+        .from("messages")
+        .select("id")
+        .eq("phone", phone)
+        .eq("text", text)
+        .limit(1);
+      if (checkErr) throw checkErr;
+      if (Array.isArray(existing) && existing.length > 0) continue;
+      if (!dryRun) {
+        const { error: insErr } = await supabase.from("messages").insert([
+          {
+            phone,
+            text,
+            sender: "bot",
+            created_at: createdAt,
+          },
+        ]);
+        if (insErr) throw insErr;
+      }
+      inserted += 1;
+    }
+    return { ok: true, inserted, scanned: sourceRows.length, dry_run: Boolean(dryRun) };
+  } catch (err) {
+    log.error("backfillMessagesFromLeadSummaries failed", { err: err?.message || String(err) });
+    return { ok: false, inserted: 0, scanned: 0, reason: err?.message || "backfill_failed" };
+  }
+}
+
 /**
  * Last N messages for phone, oldest → newest.
  * Expects `messages` rows: phone, text, sender, and order column (created_at or id).

@@ -8,6 +8,7 @@ import aiopsRoute from "./routes/domains/aiops.js";
 import { ENV, validateStartupConfig } from "./config/env.js";
 import { startFollowupScheduler } from "./services/followupScheduler.js";
 import {
+  backfillMessagesFromLeadSummaries,
   fetchMessages,
   fetchLeads,
   fetchLeadMemoryRows,
@@ -341,14 +342,26 @@ app.post("/inbox/reply", async (req, res) => {
   const text = String(req.body?.message || req.body?.text || "").trim();
   if (!phone || !text) return res.status(400).json({ ok: false, error: "invalid_payload" });
   try {
+    await saveMessage(phone, text, "admin");
+    console.log("saved outgoing message", { phone, sender: "admin", context: "inbox_reply" });
     const ok = await sendWhatsApp(phone, text);
-    if (ok) {
-      await saveMessage(phone, text, "admin");
-    }
     return res.status(ok ? 200 : 502).json({ ok });
   } catch (err) {
     log.error("inbox.reply failed", { err: err?.message || String(err), phone });
     return res.status(500).json({ ok: false, error: "reply_failed" });
+  }
+});
+
+app.post("/api/messages/backfill-summaries", async (req, res) => {
+  if (!assertDashboardAccess(req, res)) return;
+  const limit = Number.parseInt(String(req.body?.limit || req.query?.limit || "300"), 10) || 300;
+  const dryRun = String(req.body?.dry_run ?? req.query?.dry_run ?? "0") === "1";
+  try {
+    const out = await backfillMessagesFromLeadSummaries(limit, dryRun);
+    return res.status(out.ok ? 200 : 500).json(out);
+  } catch (err) {
+    log.error("api.messages.backfill failed", { err: err?.message || String(err) });
+    return res.status(500).json({ ok: false, error: "messages_backfill_failed" });
   }
 });
 

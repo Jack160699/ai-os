@@ -51,6 +51,15 @@ import { log } from "../utils/logger.js";
 
 const router = express.Router();
 
+async function persistMessageWithLog(phone, text, sender, context = "unknown") {
+  await saveMessage(phone, text, sender);
+  if (sender === "user") {
+    console.log("saved incoming message", { phone, sender, context });
+    return;
+  }
+  console.log("saved outgoing message", { phone, sender, context });
+}
+
 function wantsExplicitCall(message) {
   return /\b(book|schedule)\s+(a\s+)?call\b|\bcall me\b|\bzoom\b|\bgoogle meet\b|\bvoice call\b/i.test(
     String(message || "")
@@ -166,11 +175,11 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       len: message.length,
     });
 
-    await saveMessage(phone, message, "user");
+    await persistMessageWithLog(phone, message, "user", "webhook_incoming");
     const owner = await isOwnerNumber(phone);
     if (owner) {
       const out = await executeCeoCommand({ command: message, phone, source: founderSource });
-      await saveMessage(phone, out.response, "bot");
+      await persistMessageWithLog(phone, out.response, "bot", "ceo_command");
       await sendFounderOutreach(phone, { text: out.response, interactive: out.interactive });
       return res.sendStatus(200);
     }
@@ -180,7 +189,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       )
     ) {
       const denied = "This command channel is restricted to authorized owner numbers.";
-      await saveMessage(phone, denied, "bot");
+      await persistMessageWithLog(phone, denied, "bot", "ceo_denied");
       await sendWhatsApp(phone, denied);
       return res.sendStatus(200);
     }
@@ -214,7 +223,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
             );
           }
         }
-        await saveMessage(phone, paymentReply.text, "bot");
+        await persistMessageWithLog(phone, paymentReply.text, "bot", "payment_confirmation");
         const sentPay = await sendWhatsApp(phone, paymentReply.text);
         if (!sentPay) {
           log.error("Outbound payment confirmation reply failed to send after retries", { phone, waMessageId });
@@ -290,13 +299,13 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
           "Great to hear that. If you're open, share a 1-2 line testimonial on your experience so far — it helps us a lot.";
         const nextSummary = [summary.trim(), "[testimonial_requested:1]"].filter(Boolean).join(" ").trim();
         await upsertLeadMemory(phone, { last_summary: nextSummary || null, last_contacted_at: new Date().toISOString() });
-        await saveMessage(phone, testimonialReply, "bot");
+        await persistMessageWithLog(phone, testimonialReply, "bot", "testimonial_request");
         await sendWhatsApp(phone, testimonialReply);
         return res.sendStatus(200);
       }
       const paidSupportReply =
         "You're on the VIP client track. Share any update or blocker, and I'll move setup/support forward on priority.";
-      await saveMessage(phone, paidSupportReply, "bot");
+      await persistMessageWithLog(phone, paidSupportReply, "bot", "paid_support");
       await sendWhatsApp(phone, paidSupportReply);
       return res.sendStatus(200);
     }
@@ -314,6 +323,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
         },
       });
       await updateLead(phone, "human_requested");
+      await persistMessageWithLog(phone, "Connecting you to a strategist now. You'll get a reply shortly.", "bot", "human_handoff");
       const ok = await sendWhatsApp(
         phone,
         "Connecting you to a strategist now. You'll get a reply shortly."
@@ -357,7 +367,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
         servicePkg,
         serviceKey: bundle.primaryService || serviceKey,
       });
-      await saveMessage(phone, closeReply, "bot");
+      await persistMessageWithLog(phone, closeReply, "bot", "close_mode");
       const sentClose = await sendWhatsApp(phone, closeReply);
       if (!sentClose) {
         log.error("Outbound close-mode reply failed to send after retries", { phone, waMessageId, intent });
@@ -383,7 +393,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       returningClient: isReturningLead(effectiveLeadMem),
     });
     if (bundleReply && isSalesContext) {
-      await saveMessage(phone, bundleReply, "bot");
+      await persistMessageWithLog(phone, bundleReply, "bot", "bundle_recommendation");
       const sentBundle = await sendWhatsApp(phone, bundleReply);
       if (!sentBundle) {
         log.error("Outbound bundle recommendation failed to send after retries", { phone, waMessageId, intent });
@@ -408,7 +418,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       serviceKey: bundle.primaryService || serviceKey,
     });
     if (objectionReply) {
-      await saveMessage(phone, objectionReply, "bot");
+      await persistMessageWithLog(phone, objectionReply, "bot", "objection_router");
       const sentObj = await sendWhatsApp(phone, objectionReply);
       if (!sentObj) {
         log.error("Outbound objection reply failed to send after retries", { phone, waMessageId, intent });
@@ -434,7 +444,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
       previousNeed,
     });
     if (intentRoutedReply && (isSalesContext || intent !== "general")) {
-      await saveMessage(phone, intentRoutedReply, "bot");
+      await persistMessageWithLog(phone, intentRoutedReply, "bot", "intent_router");
       const sentRouted = await sendWhatsApp(phone, intentRoutedReply);
       if (!sentRouted) {
         log.error("Outbound intent-routed reply failed to send after retries", { phone, waMessageId, intent });
@@ -454,7 +464,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
 
     const direct = directIntentReply(intent, lang);
     if (direct) {
-      await saveMessage(phone, direct, "bot");
+      await persistMessageWithLog(phone, direct, "bot", "direct_intent");
       const sentDirect = await sendWhatsApp(phone, direct);
       if (!sentDirect) {
         log.error("Outbound direct reply failed to send after retries", { phone, waMessageId, intent });
@@ -482,7 +492,7 @@ router.post("/", assertMetaWebhookSignature, async (req, res) => {
     });
     const reply = await getAIResponse(prompt);
 
-    await saveMessage(phone, reply, "bot");
+    await persistMessageWithLog(phone, reply, "bot", "ai_reply");
     await refreshLeadMemoryAfterAiTurn(phone);
     await recordPhaseDBotTurn({
       phone,
