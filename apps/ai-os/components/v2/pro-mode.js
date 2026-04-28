@@ -16,10 +16,9 @@ export function writeProMode(value) {
 }
 
 export function useProMode() {
-  const [proMode, setProMode] = useState(false);
+  const [proMode, setProMode] = useState(() => readProMode());
 
   useEffect(() => {
-    setProMode(readProMode());
     const onMode = (event) => setProMode(Boolean(event?.detail?.value));
     window.addEventListener("v2:pro-mode", onMode);
     return () => window.removeEventListener("v2:pro-mode", onMode);
