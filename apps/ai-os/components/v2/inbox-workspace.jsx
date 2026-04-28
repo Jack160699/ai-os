@@ -17,6 +17,7 @@ export function InboxWorkspace() {
   const [toast, setToast] = useState("");
   const [mobileTab, setMobileTab] = useState("list");
   const [retryKey, setRetryKey] = useState(0);
+  const [saving, setSaving] = useState(false);
   const prevUnreadRef = useRef(0);
   const searchRef = useRef(null);
   const sendReplyRef = useRef(() => {});
@@ -112,30 +113,35 @@ export function InboxWorkspace() {
   const sendReply = useCallback(async () => {
     const text = reply.trim();
     if (!text || !selected) return;
-    const res = await fetch(`/api/v2/inbox/${encodeURIComponent(selected)}/reply`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data?.ok === false) {
-      setError(data?.error || "Could not send reply");
-      return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/v2/inbox/${encodeURIComponent(selected)}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.ok === false) {
+        setError(data?.message || data?.error || "Could not send reply");
+        return;
+      }
+      setDetail((prev) => {
+        if (!prev) return prev;
+        const optimistic = {
+          id: `tmp-${Date.now()}`,
+          sender: "admin",
+          text,
+          created_at: new Date().toISOString(),
+        };
+        return { ...prev, messages: [...(prev.messages || []), optimistic] };
+      });
+      setReply("");
+      setToast("Reply sent");
+      await loadDetail(selected);
+      await loadConversations(query);
+    } finally {
+      setSaving(false);
     }
-    setDetail((prev) => {
-      if (!prev) return prev;
-      const optimistic = {
-        id: `tmp-${Date.now()}`,
-        sender: "admin",
-        text,
-        created_at: new Date().toISOString(),
-      };
-      return { ...prev, messages: [...(prev.messages || []), optimistic] };
-    });
-    setReply("");
-    setToast("Reply sent");
-    await loadDetail(selected);
-    await loadConversations(query);
   }, [reply, selected, loadDetail, loadConversations, query]);
 
   useEffect(() => {
@@ -165,69 +171,84 @@ export function InboxWorkspace() {
   async function addTag() {
     const value = tag.trim().toLowerCase();
     if (!value || !selected) return;
-    const res = await fetch(`/api/v2/inbox/${encodeURIComponent(selected)}/tags`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tag: value }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(data?.error || "Could not add tag");
-      return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/v2/inbox/${encodeURIComponent(selected)}/tags`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tag: value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data?.message || data?.error || "Could not add tag");
+        return;
+      }
+      setDetail((prev) => ({ ...prev, tags: Array.from(new Set([...(prev?.tags || []), value])) }));
+      setTag("");
+      setToast("Tag added");
+      await loadConversations(query);
+      await loadDetail(selected);
+    } finally {
+      setSaving(false);
     }
-    setDetail((prev) => ({ ...prev, tags: Array.from(new Set([...(prev?.tags || []), value])) }));
-    setTag("");
-    setToast("Tag added");
-    await loadConversations(query);
-    await loadDetail(selected);
   }
 
   async function addNote() {
     const value = note.trim();
     if (!value || !selected) return;
-    const res = await fetch(`/api/v2/inbox/${encodeURIComponent(selected)}/notes`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ note: value }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(data?.error || "Could not save note");
-      return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/v2/inbox/${encodeURIComponent(selected)}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data?.message || data?.error || "Could not save note");
+        return;
+      }
+      setDetail((prev) => ({
+        ...prev,
+        notes: [{ id: `tmp-${Date.now()}`, note: value, created_at: new Date().toISOString() }, ...(prev?.notes || [])],
+      }));
+      setNote("");
+      setToast("Note saved");
+      await loadDetail(selected);
+    } finally {
+      setSaving(false);
     }
-    setDetail((prev) => ({
-      ...prev,
-      notes: [{ id: `tmp-${Date.now()}`, note: value, created_at: new Date().toISOString() }, ...(prev?.notes || [])],
-    }));
-    setNote("");
-    setToast("Note saved");
-    await loadDetail(selected);
   }
 
   async function assignUser(value) {
     if (!selected) return;
     const user = teamUsers.find((row) => row.id === value);
-    const res = await fetch(`/api/v2/inbox/${encodeURIComponent(selected)}/assign`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        assigned_user_id: user?.id || null,
-        assigned_name: user?.full_name || "Unassigned",
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(data?.error || "Could not assign chat");
-      return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/v2/inbox/${encodeURIComponent(selected)}/assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assigned_user_id: user?.id || null,
+          assigned_name: user?.full_name || "Unassigned",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data?.message || data?.error || "Could not assign chat");
+        return;
+      }
+      setRows((prev) =>
+        prev.map((row) =>
+          row.phone === selected ? { ...row, assigned_to: user?.full_name || "Unassigned", assigned_user_id: user?.id || null } : row,
+        ),
+      );
+      setToast("Conversation assigned");
+      await loadConversations(query);
+      await loadDetail(selected);
+    } finally {
+      setSaving(false);
     }
-    setRows((prev) =>
-      prev.map((row) =>
-        row.phone === selected ? { ...row, assigned_to: user?.full_name || "Unassigned", assigned_user_id: user?.id || null } : row,
-      ),
-    );
-    setToast("Conversation assigned");
-    await loadConversations(query);
-    await loadDetail(selected);
   }
 
   return (
@@ -332,8 +353,12 @@ export function InboxWorkspace() {
                 placeholder="Type reply..."
                 className="flex-1 rounded-xl border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/15"
               />
-              <button onClick={sendReply} className="rounded-xl bg-[#2563eb] px-3 py-2 text-sm text-white">
-                Send
+              <button
+                onClick={sendReply}
+                disabled={!selected || saving}
+                className="rounded-xl bg-[#2563eb] px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? "Sending..." : "Send"}
               </button>
             </div>
           </>
@@ -349,6 +374,7 @@ export function InboxWorkspace() {
         <select
           value={detail?.assignment?.assigned_user_id || ""}
           onChange={(e) => assignUser(e.target.value)}
+          disabled={!selected || saving}
           className="mt-2 w-full rounded-xl border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/15"
         >
           <option value="">Unassigned</option>
@@ -374,7 +400,11 @@ export function InboxWorkspace() {
             placeholder="add tag"
             className="flex-1 rounded-xl border border-black/10 bg-transparent px-3 py-2 text-xs dark:border-white/15"
           />
-          <button onClick={addTag} className="rounded-xl border border-black/10 px-3 py-2 text-xs dark:border-white/15">
+          <button
+            onClick={addTag}
+            disabled={!selected || saving}
+            className="rounded-xl border border-black/10 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15"
+          >
             Add
           </button>
         </div>
@@ -394,8 +424,12 @@ export function InboxWorkspace() {
             placeholder="Add note..."
             className="h-20 w-full rounded-xl border border-black/10 bg-transparent px-3 py-2 text-xs dark:border-white/15"
           />
-          <button onClick={addNote} className="mt-2 w-full rounded-xl border border-black/10 px-3 py-2 text-xs dark:border-white/15">
-            Save Note
+          <button
+            onClick={addNote}
+            disabled={!selected || saving}
+            className="mt-2 w-full rounded-xl border border-black/10 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15"
+          >
+            {saving ? "Saving..." : "Save Note"}
           </button>
         </div>
         {error ? <p className="mt-3 text-xs text-rose-500">{error}</p> : null}

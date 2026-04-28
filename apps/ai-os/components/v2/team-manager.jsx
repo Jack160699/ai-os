@@ -14,6 +14,7 @@ export function TeamManager() {
     password: "",
     role: "support",
   });
+  const [saving, setSaving] = useState(false);
 
   async function loadUsers() {
     setLoading(true);
@@ -37,18 +38,23 @@ export function TeamManager() {
   async function createUser(event) {
     event.preventDefault();
     setError("");
-    const res = await fetch("/api/v2/team", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(createForm),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(data?.error || "Could not create user");
-      return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/v2/team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data?.message || data?.error || "Could not create user");
+        return;
+      }
+      setCreateForm({ full_name: "", email: "", password: "", role: "support" });
+      await loadUsers();
+    } finally {
+      setSaving(false);
     }
-    setCreateForm({ full_name: "", email: "", password: "", role: "support" });
-    await loadUsers();
   }
 
   async function updateUser(userId, patch) {
@@ -198,8 +204,11 @@ export function TeamManager() {
               </option>
             ))}
           </select>
-          <button className="w-full rounded-xl bg-[#2563eb] px-3 py-2 text-sm font-medium text-white hover:bg-[#1d4ed8]">
-            Save User
+          <button
+            disabled={saving}
+            className="w-full rounded-xl bg-[#2563eb] px-3 py-2 text-sm font-medium text-white hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {saving ? "Saving..." : "Save User"}
           </button>
         </form>
       </aside>
