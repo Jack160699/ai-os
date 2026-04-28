@@ -74,12 +74,12 @@ export function PaymentsRecords() {
   );
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0f131a] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.22)]">
+    <div className="rounded-2xl border border-[var(--v2-border)] bg-[var(--v2-panel)] p-4 shadow-[0_10px_20px_rgba(0,0,0,0.2)]">
       <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[#94a3b8]">Total: {formatAmount(totals.totalAmount)}</div>
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[#94a3b8]">Paid: {totals.paid}</div>
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[#94a3b8]">Pending: {totals.pending}</div>
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[#94a3b8]">Failed: {totals.failed}</div>
+        <div className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Total: {formatAmount(totals.totalAmount)}</div>
+        <div className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Paid: {totals.paid}</div>
+        <div className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Pending: {totals.pending}</div>
+        <div className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Failed: {totals.failed}</div>
       </div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -87,12 +87,12 @@ export function PaymentsRecords() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search payment, customer, reason..."
-            className="w-[260px] rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs outline-none transition focus:border-[#3b82f6]/40"
+            className="w-[260px] rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-text)] outline-none transition focus:border-[var(--v2-focus)]"
           />
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs outline-none"
+            className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-text)] outline-none"
           >
             <option value="all">All Status</option>
             <option value="paid">Paid</option>
@@ -104,7 +104,7 @@ export function PaymentsRecords() {
           type="button"
           onClick={loadRecords}
           disabled={loading}
-          className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[var(--v2-muted)] transition hover:border-white/20 hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)] transition hover:border-[var(--v2-focus)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Refreshing..." : "Refresh"}
         </button>
@@ -113,7 +113,7 @@ export function PaymentsRecords() {
       {error ? <p className="text-sm text-rose-500">{error}</p> : null}
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="sticky top-0 border-b border-white/10 bg-[#0f131a] text-[var(--v2-muted)]">
+          <thead className="sticky top-0 border-b border-[var(--v2-border)] bg-[var(--v2-panel)] text-[var(--v2-muted)]">
             <tr>
               <th className="px-3 py-2 font-medium">Time</th>
               <th className="px-3 py-2 font-medium">Status</th>
@@ -134,7 +134,7 @@ export function PaymentsRecords() {
                 ))
               : null}
             {filtered.map((row) => (
-              <tr key={`${row.payment_id}-${row.recorded_at_utc}`} className="border-b border-white/5">
+              <tr key={`${row.payment_id}-${row.recorded_at_utc}`} className="border-b border-[var(--v2-border)] transition hover:bg-[var(--v2-elevated)]">
                 <td className="px-3 py-2">{formatTime(row.recorded_at_utc)}</td>
                 <td className="px-3 py-2">
                   <span className={`rounded-full border px-2 py-1 text-[11px] ${statusClass(row.status)}`}>

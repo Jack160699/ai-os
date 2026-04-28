@@ -48,17 +48,25 @@ body {
 }
 
 :root {
-  --v2-bg: #0b1020;
-  --v2-surface: rgba(15, 23, 42, 0.72);
-  --v2-text: #e2e8f0;
-  --v2-muted: #94a3b8;
+  --v2-bg: #000000;
+  --v2-panel: #111111;
+  --v2-surface: var(--v2-panel);
+  --v2-elevated: #171717;
+  --v2-border: #1a1a1a;
+  --v2-text: #ffffff;
+  --v2-muted: #888888;
+  --v2-focus: #3a3a3a;
 }
 
 html[data-v2-theme="light"] {
-  --v2-bg: #f8fafc;
-  --v2-surface: #ffffff;
-  --v2-text: #0f172a;
-  --v2-muted: #475569;
+  --v2-bg: #ffffff;
+  --v2-panel: #fafafa;
+  --v2-surface: var(--v2-panel);
+  --v2-elevated: #f3f3f3;
+  --v2-border: #e5e5e5;
+  --v2-text: #111111;
+  --v2-muted: #666666;
+  --v2-focus: #d4d4d4;
 }
 
 /* Dashboard mock — calm float */

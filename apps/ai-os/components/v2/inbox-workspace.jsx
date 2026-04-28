@@ -25,6 +25,12 @@ export function InboxWorkspace() {
   const sendReplyRef = useRef(() => {});
 
   const selectedRow = useMemo(() => rows.find((row) => row.phone === selected) || null, [rows, selected]);
+  const formatTag = (value) =>
+    String(value || "")
+      .replace(/[\[\]]/g, "")
+      .replace(/^[a-z]+:/i, "")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
 
   const loadConversations = useCallback(async (search = "") => {
     setLoading(true);
@@ -285,7 +291,7 @@ export function InboxWorkspace() {
             if (e.key === "Enter") loadConversations(e.currentTarget.value);
           }}
           placeholder="Search by phone or text"
-          className="mb-3 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm outline-none transition focus:border-[#3b82f6]/40"
+            className="mb-3 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-sm text-[var(--v2-text)] outline-none transition focus:border-[var(--v2-focus)]"
         />
         {loading ? (
           <div className="space-y-2">
@@ -315,7 +321,7 @@ export function InboxWorkspace() {
               <p className="mt-1 line-clamp-1 text-xs text-[var(--v2-muted)]">{row.last_message || "No message"}</p>
               <div className="mt-2 flex items-center justify-between text-[11px]">
                 <span className="text-[var(--v2-muted)]">{row.assigned_to || "Unassigned"}</span>
-                <span className="rounded-lg border border-white/10 bg-white/[0.02] px-2 py-0.5">Unread {row.unread || 0}</span>
+                <span className="rounded-lg border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-2 py-0.5">Unread {row.unread || 0}</span>
               </div>
               {proMode ? (
                 <div className="mt-2 flex items-center gap-2 text-[10px] text-[#94a3b8]">
@@ -364,12 +370,12 @@ export function InboxWorkspace() {
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Type reply..."
-                className="flex-1 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm outline-none transition focus:border-[#3b82f6]/40"
+                className="flex-1 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-sm text-[var(--v2-text)] outline-none transition focus:border-[var(--v2-focus)]"
               />
               <button
                 onClick={sendReply}
                 disabled={!selected || saving}
-                className="rounded-xl border border-[#3b82f6]/40 bg-[#3b82f6]/18 px-3 py-2 text-sm text-white transition hover:bg-[#3b82f6]/26 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-sm text-[var(--v2-text)] transition hover:border-[var(--v2-focus)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Sending..." : "Send"}
               </button>
@@ -401,8 +407,8 @@ export function InboxWorkspace() {
         <h3 className="mt-5 text-sm font-semibold">Tags</h3>
         <div className="mt-2 flex flex-wrap gap-2">
           {(detail?.tags || []).map((row) => (
-            <span key={row} className="rounded-lg bg-black/6 px-2 py-1 text-xs dark:bg-white/10">
-              {row}
+            <span key={row} className="rounded-full border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-2.5 py-1 text-[11px] text-[var(--v2-muted)]">
+              {formatTag(row)}
             </span>
           ))}
         </div>
@@ -411,12 +417,12 @@ export function InboxWorkspace() {
             value={tag}
             onChange={(e) => setTag(e.target.value)}
             placeholder="add tag"
-            className="flex-1 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs"
+            className="flex-1 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-text)]"
           />
           <button
             onClick={addTag}
             disabled={!selected || saving}
-            className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Add
           </button>
@@ -435,7 +441,7 @@ export function InboxWorkspace() {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Add note..."
-            className="h-20 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs"
+            className="h-20 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-text)]"
           />
           <button
             onClick={addNote}
