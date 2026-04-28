@@ -24,6 +24,18 @@ function backendHeaders() {
   return headers;
 }
 
+function collapseWhitespace(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function sanitizeInsight(value) {
+  const cleaned = collapseWhitespace(value).replace(/\[(need|objection|stage|summary):[^\]]+\]/gi, "").trim();
+  if (!cleaned) return "";
+  const firstSentence = cleaned.split(/[.!?]/)[0]?.trim() || cleaned;
+  const oneLine = firstSentence.length > 110 ? `${firstSentence.slice(0, 107)}...` : firstSentence;
+  return oneLine;
+}
+
 export async function getV2DashboardData() {
   const since = startOfTodayIso();
   let paymentLogs = {};
@@ -66,15 +78,20 @@ export async function getV2DashboardData() {
 
   const recentActivity = (Array.isArray(paymentLogs?.recent_pipeline) ? paymentLogs.recent_pipeline : [])
     .slice(0, 4)
-    .map((row) => row?.summary || row?.pain_point || "Lead activity updated")
+    .map((row) => sanitizeInsight(row?.summary || row?.pain_point || "Lead activity updated"))
     .filter(Boolean);
+
+  function metricValue(count) {
+    const normalized = Number(count || 0);
+    return normalized > 0 ? String(normalized) : "No activity today";
+  }
 
   return {
     metrics: [
-      { label: "Chats Today", value: String(messagesTodayCount) },
-      { label: "Pending Tasks", value: String(notesPendingCount) },
-      { label: "Payments Due", value: String(pendingPayments) },
-      { label: "Active Team Members", value: String(teamActiveCount) },
+      { label: "Chats Today", value: metricValue(messagesTodayCount) },
+      { label: "Pending Tasks", value: metricValue(notesPendingCount) },
+      { label: "Payments Due", value: metricValue(pendingPayments) },
+      { label: "Active Team Members", value: metricValue(teamActiveCount) },
     ],
     activity: recentActivity,
     degraded: Boolean(degradedReason),

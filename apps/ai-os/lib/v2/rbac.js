@@ -6,8 +6,8 @@ export const V2_ROLES = {
 };
 
 const ROUTE_ACCESS = {
-  [V2_ROLES.SUPER_ADMIN]: ["*"],
-  [V2_ROLES.MANAGER]: ["/v2", "/v2/inbox", "/v2/payments", "/v2/analytics"],
+  [V2_ROLES.SUPER_ADMIN]: ["/v2", "/v2/inbox", "/v2/payments", "/v2/team", "/v2/settings"],
+  [V2_ROLES.MANAGER]: ["/v2", "/v2/inbox", "/v2/payments"],
   [V2_ROLES.SUPPORT]: ["/v2/inbox"],
   [V2_ROLES.FINANCE]: ["/v2/payments"],
 };
@@ -42,10 +42,7 @@ export function getRoleNavItems(role) {
     { label: "Dashboard", href: "/v2", icon: "grid" },
     { label: "Inbox", href: "/v2/inbox", icon: "chat" },
     { label: "Payments", href: "/v2/payments", icon: "coins" },
-    { label: "Analytics", href: "/v2/analytics", icon: "chart" },
     { label: "Team", href: "/v2/team", icon: "users" },
-    { label: "Audit", href: "/v2/audit", icon: "chart" },
-    { label: "QA", href: "/v2/qa", icon: "settings" },
     { label: "Settings", href: "/v2/settings", icon: "settings" },
   ];
 
