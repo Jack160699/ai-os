@@ -14,6 +14,179 @@ const leadConflict = process.env.SUPABASE_LEADS_ON_CONFLICT || "phone";
 const messagesOrderColumn =
   (process.env.SUPABASE_MESSAGES_ORDER || "created_at").trim() || "created_at";
 
+const DEFAULT_RESET_BATCH_ID = "00000000-0000-0000-0000-000000000001";
+
+function isConversationsPhoneLookupUnsupported(err) {
+  const m = String(err?.message || "").toLowerCase();
+  return (
+    (m.includes("phone") && (m.includes("schema cache") || m.includes("does not exist"))) ||
+    (m.includes("column") && m.includes("phone") && m.includes("not"))
+  );
+}
+
+async function getPipelineStageIdForBatch(batchId, stageKey = "new") {
+  const { data, error } = await supabase
+    .from("pipeline_stages")
+    .select("id")
+    .eq("reset_batch_id", batchId)
+    .eq("stage_key", stageKey)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw Object.assign(new Error(error.message), { supabaseError: error });
+  return data?.id || null;
+}
+
+/**
+ * Ensures lead + conversation exist for this phone (single reset_batch_id for the org).
+ * 1) Optional: `conversations.phone` match.
+ * 2) Else Stratxcel: get/create `leads` then `conversations` for batch + phone.
+ */
+async function ensureLeadAndConversationForPhone(rawPhone) {
+  const batchId = String(process.env.SUPABASE_RESET_BATCH_ID || "").trim() || DEFAULT_RESET_BATCH_ID;
+  const digits = normalizePhoneForMatch(rawPhone);
+  const trimmed = String(rawPhone || "").trim();
+  const variants = [...new Set([trimmed, digits, digits ? `+${digits}` : ""].filter(Boolean))];
+  const canonicalPhone = digits || trimmed;
+  if (!canonicalPhone) {
+    throw new Error("ensureLeadAndConversationForPhone: empty phone");
+  }
+
+  for (const v of variants) {
+    const { data, error } = await supabase
+      .from("conversations")
+      .select("id, reset_batch_id")
+      .eq("phone", v)
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      if (isConversationsPhoneLookupUnsupported(error)) break;
+      throw Object.assign(new Error(error.message), { supabaseError: error });
+    }
+    if (data?.id) {
+      return {
+        conversationId: data.id,
+        resetBatchId: data.reset_batch_id || batchId,
+        canonicalPhone,
+      };
+    }
+  }
+
+  const { data: leadRows, error: leadErr } = await supabase
+    .from("leads")
+    .select("id")
+    .eq("reset_batch_id", batchId)
+    .eq("archived", false)
+    .in("phone", variants)
+    .limit(1);
+  if (leadErr) throw Object.assign(new Error(leadErr.message), { supabaseError: leadErr });
+
+  let leadId = Array.isArray(leadRows) && leadRows[0]?.id ? leadRows[0].id : null;
+
+  if (!leadId) {
+    const stageId = await getPipelineStageIdForBatch(batchId, "new");
+    if (!stageId) {
+      throw new Error(
+        `ensureLeadAndConversationForPhone: missing pipeline_stages row for stage_key=new (reset_batch_id=${batchId})`,
+      );
+    }
+    const { data: newLead, error: nlErr } = await supabase
+      .from("leads")
+      .insert([
+        {
+          reset_batch_id: batchId,
+          pipeline_stage_id: stageId,
+          full_name: `Lead ${canonicalPhone.slice(-4) || "?"}`,
+          phone: canonicalPhone,
+          source: "whatsapp",
+          ai_score: 0,
+          temperature: "warm",
+          estimated_value_cents: 0,
+          has_unreplied: false,
+          archived: false,
+        },
+      ])
+      .select("id")
+      .single();
+    if (nlErr) throw Object.assign(new Error(nlErr.message), { supabaseError: nlErr });
+    leadId = newLead.id;
+  }
+
+  const { data: convRows, error: cFindErr } = await supabase
+    .from("conversations")
+    .select("id, reset_batch_id")
+    .eq("reset_batch_id", batchId)
+    .eq("lead_id", leadId)
+    .eq("channel", "whatsapp")
+    .eq("archived", false)
+    .limit(1);
+  if (cFindErr) throw Object.assign(new Error(cFindErr.message), { supabaseError: cFindErr });
+  const existingConv = Array.isArray(convRows) && convRows[0];
+  if (existingConv?.id) {
+    return {
+      conversationId: existingConv.id,
+      resetBatchId: existingConv.reset_batch_id || batchId,
+      canonicalPhone,
+    };
+  }
+
+  const { data: newConv, error: ncErr } = await supabase
+    .from("conversations")
+    .insert([
+      {
+        reset_batch_id: batchId,
+        lead_id: leadId,
+        channel: "whatsapp",
+        archived: false,
+        last_message_at: new Date().toISOString(),
+      },
+    ])
+    .select("id, reset_batch_id")
+    .single();
+  if (ncErr) throw Object.assign(new Error(ncErr.message), { supabaseError: ncErr });
+  if (!newConv?.id) {
+    throw new Error("ensureLeadAndConversationForPhone: conversation insert returned no id");
+  }
+  return {
+    conversationId: newConv.id,
+    resetBatchId: newConv.reset_batch_id || batchId,
+    canonicalPhone,
+  };
+}
+
+/**
+ * End-to-end: lead → conversation → message (no insert until parent rows exist).
+ * Uses one org `reset_batch_id` (env or default), not random UUIDs per row.
+ */
+export async function ensureConversationFlow(phone, text, direction, opts = {}) {
+  if (!supabase) {
+    throw new Error("ensureConversationFlow: Supabase not configured");
+  }
+  const dir = String(direction || "").trim().toLowerCase() === "out" ? "out" : "in";
+  const body = String(text ?? "");
+  const { conversationId, resetBatchId, canonicalPhone } = await ensureLeadAndConversationForPhone(phone);
+  if (!conversationId) {
+    throw new Error("ensureConversationFlow: missing conversation_id");
+  }
+
+  const createdAt = opts.createdAt || new Date().toISOString();
+  const row = {
+    reset_batch_id: resetBatchId,
+    conversation_id: conversationId,
+    body,
+    direction: dir,
+    created_at: createdAt,
+  };
+  if (canonicalPhone) row.phone = canonicalPhone;
+
+  const { data, error } = await supabase.from("messages").insert([row]).select("id");
+  if (error) {
+    console.error("PIPELINE ERROR:", error);
+    log.error("PIPELINE ERROR", { err: error.message, phone: canonicalPhone, direction: dir, code: error.code });
+    throw Object.assign(new Error(error.message), { supabaseError: error });
+  }
+  return { data, conversationId, resetBatchId, canonicalPhone };
+}
+
 function normalizePhoneForMatch(value) {
   return String(value || "").replace(/\D/g, "");
 }
@@ -72,39 +245,16 @@ export async function saveMessage(phone, text, sender) {
     return;
   }
   const direction = coerceMessagesDirection(sender);
-  const body = String(text ?? "");
-  try {
-    await withRetry(
-      async () => {
-        const { error } = await supabase.from("messages").insert([
-          {
-            phone,
-            body,
-            direction: direction === "out" ? "out" : "in",
-            created_at: new Date().toISOString(),
-          },
-        ]);
-        if (error) {
-          console.error("SUPABASE INSERT ERROR:", error);
-          log.error("SUPABASE INSERT ERROR", { err: error.message, phone, direction, code: error.code });
-          throw Object.assign(new Error(error.message), { supabaseError: error });
-        }
-      },
-      {
-        retries: Math.max(0, Number.parseInt(process.env.SUPABASE_RETRIES || "2", 10) || 2),
-        baseMs: 250,
-        maxMs: 5000,
-        label: "supabase.saveMessage",
-        isRetryable: isTransientSupabaseErr,
-      }
-    );
-  } catch (err) {
-    log.error("Supabase saveMessage failed", {
-      err: err?.message || String(err),
-      phone,
-      sender,
-    });
-  }
+  await withRetry(
+    async () => ensureConversationFlow(phone, text, direction),
+    {
+      retries: Math.max(0, Number.parseInt(process.env.SUPABASE_RETRIES || "2", 10) || 2),
+      baseMs: 250,
+      maxMs: 5000,
+      label: "supabase.saveMessage",
+      isRetryable: isTransientSupabaseErr,
+    }
+  );
 }
 
 export async function backfillMessagesFromLeadSummaries(limit = 200, dryRun = false) {
@@ -135,19 +285,7 @@ export async function backfillMessagesFromLeadSummaries(limit = 200, dryRun = fa
       if (Array.isArray(existing) && existing.length > 0) continue;
       if (!dryRun) {
         const direction = coerceMessagesDirection("out");
-        const { error: insErr } = await supabase.from("messages").insert([
-          {
-            phone,
-            body: text,
-            direction: direction === "out" ? "out" : "in",
-            created_at: createdAt,
-          },
-        ]);
-        if (insErr) {
-          console.error("SUPABASE INSERT ERROR:", insErr);
-          log.error("SUPABASE INSERT ERROR", { err: insErr.message, phone, context: "backfill" });
-          throw insErr;
-        }
+        await ensureConversationFlow(phone, text, direction, { createdAt });
       }
       inserted += 1;
     }
