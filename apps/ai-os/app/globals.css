@@ -20,10 +20,19 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--v2-font-main, var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif);
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.v2-theme-scope,
+.v2-theme-scope * {
+  transition:
+    background-color 250ms ease,
+    border-color 250ms ease,
+    color 250ms ease,
+    box-shadow 250ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
