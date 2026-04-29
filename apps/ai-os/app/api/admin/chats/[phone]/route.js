@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { assertAdminRequest } from "@/app/admin/_lib/adminApiGate";
-import { adminApiHeaders } from "@/app/admin/_lib/backendFetch";
-import { backendBase } from "@/app/admin/_lib/backendFetch";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchMessagesForPhoneThread } from "@/lib/admin/messagesDb";
 
 function isMetadataTagText(value) {
   const text = String(value || "").trim().toLowerCase();
@@ -44,57 +44,39 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: "invalid_phone" }, { status: 400 });
   }
 
-  const base = backendBase();
-  const headers = adminApiHeaders();
-  console.log("[admin/chats/[phone]] fetch_start", { phone: digits, endpoint: "/api/messages/:phone" });
-  const messagesRes = await fetch(`${base}/api/messages/${encodeURIComponent(digits)}`, { cache: "no-store", headers });
-  const messagesData = await messagesRes.json().catch(() => ({}));
-
-  const messagesRows = Array.isArray(messagesData?.messages) ? messagesData.messages : [];
-  const realMessages = messagesRows.filter((row) => !isMetadataTagText(row?.text || row?.message));
-  const shaped = toDetailShape({ phone: digits, messages: realMessages });
-  const realCount = Number(messagesData?.real_count || shaped.message_count || 0);
-  const hasReal = messagesRes.ok && realCount > 0 && shaped.message_count > 0;
-
-  if (hasReal) {
-    const payload = {
-      phone: digits,
-      source_used: "messages_table",
-      real_count: shaped.message_count,
-      fallback_count: 0,
-      messages: shaped.messages,
-    };
-    console.log("[admin/chats/[phone]] real_messages_found", {
-      phone: digits,
-      source_used: payload.source_used,
-      real_count: payload.real_count,
-      fallback_count: payload.fallback_count,
-      backend_status: messagesRes.status,
-    });
-    return NextResponse.json(payload, { status: 200 });
+  let supabase;
+  try {
+    supabase = createAdminClient();
+  } catch (e) {
+    return NextResponse.json(
+      {
+        error: "supabase_not_configured",
+        message: String(e?.message || e),
+        phone: digits,
+        source_used: "messages_table",
+        real_count: 0,
+        messages: [],
+      },
+      { status: 503 },
+    );
   }
 
-  const noRealMessage = [
-    {
-      id: `${digits}-no-real-messages`,
-      sender: "admin",
-      text: "No real WhatsApp messages found for this number",
-      created_at: new Date().toISOString(),
-    },
-  ];
-  const payload = {
-    phone: digits,
-    source_used: "no_real_messages",
-    real_count: 0,
-    fallback_count: 1,
-    messages: noRealMessage,
-  };
-  console.log("[admin/chats/[phone]] no_real_messages", {
-    phone: digits,
-    source_used: payload.source_used,
-    real_count: payload.real_count,
-    fallback_count: payload.fallback_count,
-    backend_status: messagesRes.status,
-  });
-  return NextResponse.json(payload, { status: 200 });
+  try {
+    const dbRows = await fetchMessagesForPhoneThread(supabase, digits);
+    const shaped = toDetailShape({ phone: digits, messages: dbRows });
+    return NextResponse.json(
+      {
+        phone: digits,
+        source_used: "messages_table",
+        real_count: shaped.message_count,
+        messages: shaped.messages,
+      },
+      { status: 200 },
+    );
+  } catch (err) {
+    return NextResponse.json(
+      { error: "messages_query_failed", message: String(err?.message || err), phone: digits },
+      { status: 500 },
+    );
+  }
 }
