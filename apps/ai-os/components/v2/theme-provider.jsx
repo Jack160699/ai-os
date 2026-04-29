@@ -6,6 +6,7 @@ import { DEFAULT_THEME_ID, getThemeById, THEME_STORAGE_KEY } from "@/lib/v2/them
 const ThemeStudioContext = createContext({
   themeId: DEFAULT_THEME_ID,
   theme: getThemeById(DEFAULT_THEME_ID),
+  immersion: getThemeById(DEFAULT_THEME_ID).immersion,
   setThemeId: () => {},
 });
 
@@ -68,8 +69,10 @@ export function ThemeProvider({ userKey = "", children }) {
     writeStorage(next);
   };
 
+  const immersion = theme.immersion;
+
   return (
-    <ThemeStudioContext.Provider value={{ themeId, theme, setThemeId }}>
+    <ThemeStudioContext.Provider value={{ themeId, theme, immersion, setThemeId }}>
       {children}
     </ThemeStudioContext.Provider>
   );

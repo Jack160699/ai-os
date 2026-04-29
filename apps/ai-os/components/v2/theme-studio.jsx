@@ -5,7 +5,7 @@ import { listThemes } from "@/lib/v2/themes";
 import { useThemeStudio } from "@/components/v2/theme-provider";
 
 export function ThemeStudio() {
-  const { themeId, theme, setThemeId } = useThemeStudio();
+  const { themeId, theme, immersion, setThemeId } = useThemeStudio();
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState("");
   const themes = listThemes();
@@ -22,7 +22,10 @@ export function ThemeStudio() {
         <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--v2-muted)]">Theme Studio</p>
         <p className="mt-1 text-xs text-[var(--v2-muted)]">Customize Workspace</p>
         <div className="mt-2 flex items-center justify-between gap-2">
-          <p className="text-xs font-medium text-[var(--v2-text)]">Current: {theme.name}</p>
+          <div>
+            <p className="text-xs font-medium text-[var(--v2-text)]">Current: {theme.name}</p>
+            <p className="mt-0.5 text-[10px] text-[color-mix(in_oklab,var(--v2-accent)_75%,var(--v2-muted))]">{immersion.statusLine}</p>
+          </div>
           <button
             type="button"
             onClick={() => setOpen((prev) => !prev)}

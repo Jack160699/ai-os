@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useProMode } from "@/components/v2/pro-mode";
+import { useThemeStudio } from "@/components/v2/theme-provider";
 
 const ROLES = ["super_admin", "manager", "support", "finance"];
 
@@ -16,6 +17,8 @@ function stableMetric(value, min, max) {
 
 export function TeamManager() {
   const { proMode } = useProMode();
+  const { immersion } = useThemeStudio();
+  const tm = immersion.team;
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -102,18 +105,18 @@ export function TeamManager() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-[var(--v2-muted)]">Manage operators, access, and permissions from one place.</p>
+        <p className="text-sm text-[var(--v2-muted)]">{tm.blurb}</p>
         <button
           type="button"
           onClick={() => setInviteOpen(true)}
-          className="rounded-xl border border-[#3b82f6]/35 bg-[#3b82f6]/14 px-3 py-2 text-xs text-[#bdd2ff] transition hover:bg-[#3b82f6]/20"
+          className="rounded-xl border border-[color-mix(in_oklab,var(--v2-accent)_40%,var(--v2-border))] bg-[color-mix(in_oklab,var(--v2-accent)_12%,var(--v2-elevated))] px-3 py-2 text-xs font-medium text-[var(--v2-text)] transition hover:border-[var(--v2-accent)]"
         >
-          Invite User
+          {tm.inviteUser}
         </button>
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#0f131a] shadow-[0_8px_30px_rgba(0,0,0,0.22)]">
-        {loading ? <p className="p-4 text-sm text-[var(--v2-muted)]">Loading team...</p> : null}
+        {loading ? <p className="p-4 text-sm text-[var(--v2-muted)]">{tm.loading}</p> : null}
         {error ? <p className="p-4 text-sm text-rose-500">{error}</p> : null}
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-white/10 text-[var(--v2-muted)]">

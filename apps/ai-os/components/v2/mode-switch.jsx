@@ -1,9 +1,11 @@
 "use client";
 
 import { useProMode } from "@/components/v2/pro-mode";
+import { useThemeStudio } from "@/components/v2/theme-provider";
 
 export function ModeSwitch() {
   const { proMode, setProMode } = useProMode();
+  const { immersion } = useThemeStudio();
 
   return (
     <button
@@ -15,7 +17,7 @@ export function ModeSwitch() {
           : "border-[var(--v2-border)] bg-[var(--v2-panel)] text-[var(--v2-muted)] hover:border-[var(--v2-focus)]"
       }`}
     >
-      <span className="font-semibold tracking-[0.08em]">PRO MODE</span>
+      <span className="font-semibold tracking-[0.08em]">{immersion.mode.label}</span>
       <span className={`h-2.5 w-2.5 rounded-full ${proMode ? "bg-[var(--v2-text)]" : "bg-[var(--v2-muted)]"}`} />
     </button>
   );

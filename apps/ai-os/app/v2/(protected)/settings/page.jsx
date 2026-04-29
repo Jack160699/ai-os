@@ -4,10 +4,7 @@ import { SettingsPanel } from "@/components/v2/settings-panel";
 export default function SettingsPage() {
   return (
     <section>
-      <PageHeader
-        title="Settings"
-        subtitle="Secure operational controls with minimal and focused sections."
-      />
+      <PageHeader page="settings" />
       <SettingsPanel />
     </section>
   );

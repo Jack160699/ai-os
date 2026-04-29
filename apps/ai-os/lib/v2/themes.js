@@ -1,3 +1,5 @@
+import { getImmersion } from "@/lib/v2/theme-immersion";
+
 export const DEFAULT_THEME_ID = "professional";
 export const THEME_STORAGE_KEY = "v2_theme_preference";
 
@@ -163,5 +165,7 @@ export function listThemes() {
 }
 
 export function getThemeById(themeId) {
-  return V2_THEMES[themeId] || V2_THEMES[DEFAULT_THEME_ID];
+  const base = V2_THEMES[themeId] || V2_THEMES[DEFAULT_THEME_ID];
+  const id = V2_THEMES[themeId] ? themeId : DEFAULT_THEME_ID;
+  return { ...base, immersion: getImmersion(id) };
 }

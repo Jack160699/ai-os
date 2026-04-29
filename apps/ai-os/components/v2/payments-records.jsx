@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useProMode } from "@/components/v2/pro-mode";
+import { useThemeStudio } from "@/components/v2/theme-provider";
 
 function formatAmount(value) {
   const n = Number(value || 0);
@@ -17,6 +18,8 @@ function formatTime(value) {
 
 export function PaymentsRecords() {
   const { proMode } = useProMode();
+  const { immersion } = useThemeStudio();
+  const pay = immersion.payments;
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -235,13 +238,19 @@ export function PaymentsRecords() {
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name / number / payment id" className="w-[260px] rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-text)]" />
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setModalOpen(true)} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-text)]">+ Generate Payment Link</button>
-          <button type="button" onClick={exportCsv} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Export CSV</button>
-          <button type="button" onClick={loadRecords} disabled={loading} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)] disabled:opacity-60">{loading ? "Refreshing..." : "Refresh"}</button>
+          <button type="button" onClick={() => setModalOpen(true)} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-text)]">
+            {pay.generateLink}
+          </button>
+          <button type="button" onClick={exportCsv} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">
+            {pay.exportCsv}
+          </button>
+          <button type="button" onClick={loadRecords} disabled={loading} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)] disabled:opacity-60">
+            {loading ? pay.refreshing : pay.refresh}
+          </button>
         </div>
       </div>
 
-      {loading ? <p className="text-sm text-[var(--v2-muted)]">Loading records...</p> : null}
+      {loading ? <p className="text-sm text-[var(--v2-muted)]">{pay.loading}</p> : null}
       {error ? <p className="text-sm text-rose-500">{error}</p> : null}
 
       <div className="overflow-x-auto">

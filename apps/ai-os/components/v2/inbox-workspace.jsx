@@ -3,9 +3,12 @@
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useProMode } from "@/components/v2/pro-mode";
+import { useThemeStudio } from "@/components/v2/theme-provider";
 
 export function InboxWorkspace() {
   const { proMode } = useProMode();
+  const { immersion } = useThemeStudio();
+  const ib = immersion.inbox;
   const [rows, setRows] = useState([]);
   const [activeFilter, setActiveFilter] = useState("all");
   const [selected, setSelected] = useState("");
@@ -58,7 +61,7 @@ export function InboxWorkspace() {
       const nextRows = Array.isArray(data?.conversations) ? data.conversations : [];
       const currentUnread = nextRows.reduce((acc, row) => acc + Number(row?.unread || 0), 0);
       if (prevUnreadRef.current > 0 && currentUnread > prevUnreadRef.current) {
-        setTimeout(() => setToast("New inbox message"), 0);
+        setTimeout(() => setToast(ib.newToast), 0);
       }
       prevUnreadRef.current = currentUnread;
       setRows(nextRows);
@@ -69,7 +72,7 @@ export function InboxWorkspace() {
       clearTimeout(timeoutId);
       setLoading(false);
     }
-  }, []);
+  }, [ib.newToast]);
 
   const loadDetail = useCallback(async (phone) => {
     if (!phone) return;
@@ -376,7 +379,7 @@ export function InboxWorkspace() {
             key={tab}
             type="button"
             onClick={() => setMobileTab(tab)}
-            className={`rounded-lg px-3 py-1.5 text-xs ${mobileTab === tab ? "bg-[#2563eb] text-white" : "bg-black/5 text-[var(--v2-muted)] dark:bg-white/10"}`}
+            className={`rounded-lg px-3 py-1.5 text-xs ${mobileTab === tab ? "border border-[var(--v2-focus)] bg-[var(--v2-elevated)] text-[var(--v2-text)]" : "border border-transparent bg-black/5 text-[var(--v2-muted)] dark:bg-white/10"}`}
           >
             {tab}
           </button>
@@ -394,7 +397,7 @@ export function InboxWorkspace() {
           onKeyDown={(e) => {
             if (e.key === "Enter") loadConversations(e.currentTarget.value);
           }}
-          placeholder="Search by phone or text"
+          placeholder={ib.searchPlaceholder}
             className="mb-3 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-sm text-[var(--v2-text)] outline-none transition focus:border-[var(--v2-focus)]"
         />
         <div className="mb-3 flex flex-wrap gap-1.5">
@@ -415,6 +418,7 @@ export function InboxWorkspace() {
         </div>
         {loading ? (
           <div className="space-y-2">
+            <p className="text-[11px] text-[var(--v2-muted)]">{ib.loadConversations}</p>
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="h-16 animate-pulse rounded-xl bg-black/5 dark:bg-white/10" />
             ))}
@@ -422,7 +426,7 @@ export function InboxWorkspace() {
         ) : null}
         {!loading && filteredRows.length === 0 ? (
           <div className="rounded-xl border border-dashed border-black/15 p-4 text-sm text-[var(--v2-muted)] dark:border-white/15">
-            No messages yet
+            {ib.emptyList}
           </div>
         ) : null}
         <div className="space-y-2">
@@ -433,12 +437,12 @@ export function InboxWorkspace() {
               onClick={() => setSelected(row.phone)}
               className={`w-full rounded-xl border p-3 text-left transition ${
                 selected === row.phone
-                  ? "border-[#3b82f6]/40 bg-[#3b82f6]/12"
+                  ? "border-[var(--v2-focus)] bg-[color-mix(in_oklab,var(--v2-accent)_10%,var(--v2-elevated))]"
                   : "border-white/10 bg-white/[0.01] hover:border-white/20 hover:bg-white/[0.04]"
               }`}
             >
               <p className="text-sm font-semibold">{row.name || row.phone}</p>
-              <p className="mt-1 line-clamp-1 text-xs text-[var(--v2-muted)]">{row.last_message || "No message"}</p>
+              <p className="mt-1 line-clamp-1 text-xs text-[var(--v2-muted)]">{row.last_message || ib.noMessagePreview}</p>
               <div className="mt-2 flex items-center justify-between text-[11px]">
                 <span className="text-[var(--v2-muted)]">{row.assigned_to || "Unassigned"}</span>
                 <span className="rounded-lg border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-2 py-0.5">Unread {row.unread || 0}</span>
@@ -463,7 +467,7 @@ export function InboxWorkspace() {
           mobileTab !== "chat" ? "hidden lg:block" : ""
         }`}
       >
-        {!selected ? <p className="text-sm text-[var(--v2-muted)]">Select a conversation</p> : null}
+        {!selected ? <p className="text-sm text-[var(--v2-muted)]">{ib.selectThread}</p> : null}
         {selected ? (
           <>
             <div className="flex items-center justify-between gap-2">
@@ -481,7 +485,7 @@ export function InboxWorkspace() {
               onClick={() => loadDetail(selected)}
               className="mt-2 rounded-lg border border-[var(--v2-border)] px-2 py-1 text-[11px] text-[var(--v2-muted)]"
             >
-              Load older messages
+              {ib.loadOlder}
             </button>
             <div className="mt-4 space-y-2">
               {(detail?.messages || []).map((message) => (
@@ -499,7 +503,7 @@ export function InboxWorkspace() {
               ))}
               {(detail?.messages || []).length === 0 ? (
                 <div className="rounded-xl border border-dashed border-black/15 px-3 py-2 text-xs text-[var(--v2-muted)] dark:border-white/15">
-                  No messages yet
+                  {ib.emptyThread}
                 </div>
               ) : null}
             </div>
@@ -508,7 +512,7 @@ export function InboxWorkspace() {
               <input
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
-                placeholder="Type reply..."
+                placeholder={ib.replyPlaceholder}
                 className="flex-1 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-sm text-[var(--v2-text)] outline-none transition focus:border-[var(--v2-focus)]"
               />
               <button
@@ -516,7 +520,7 @@ export function InboxWorkspace() {
                 disabled={!selected || saving}
                 className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-sm text-[var(--v2-text)] transition hover:border-[var(--v2-focus)] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {saving ? "Sending..." : "Send"}
+                {saving ? ib.sending : ib.send}
               </button>
               <button
                 type="button"
@@ -524,7 +528,7 @@ export function InboxWorkspace() {
                 disabled={!selected}
                 className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-sm text-[var(--v2-muted)] disabled:opacity-60"
               >
-                Pay
+                {ib.pay}
               </button>
             </div>
           </>
@@ -536,7 +540,7 @@ export function InboxWorkspace() {
           mobileTab !== "actions" ? "hidden lg:block" : ""
         }`}
       >
-        <h3 className="text-sm font-semibold">Customer Details</h3>
+        <h3 className="text-sm font-semibold">{ib.customerDetails}</h3>
         <div className="mt-2 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] p-3 text-xs text-[var(--v2-muted)]">
           <p className="font-medium text-[var(--v2-text)]">{customerDetails.name}</p>
           <p className="mt-1">{customerDetails.phone}</p>
@@ -547,7 +551,7 @@ export function InboxWorkspace() {
           </div>
         </div>
 
-        <h3 className="text-sm font-semibold">Assignment</h3>
+        <h3 className="text-sm font-semibold">{ib.assignment}</h3>
         <select
           value={detail?.assignment?.assigned_user_id || selectedRow?.assigned_user_id || ""}
           onChange={(e) => assignUser(e.target.value)}
@@ -562,7 +566,7 @@ export function InboxWorkspace() {
           ))}
         </select>
 
-        <h3 className="mt-5 text-sm font-semibold">Tags</h3>
+        <h3 className="mt-5 text-sm font-semibold">{ib.tags}</h3>
         <div className="mt-2 flex flex-wrap gap-2">
           {(detail?.tags || []).map((row) => (
             <span key={row} className="rounded-full border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-2.5 py-1 text-[11px] text-[var(--v2-muted)]">
@@ -574,7 +578,7 @@ export function InboxWorkspace() {
           <input
             value={tag}
             onChange={(e) => setTag(e.target.value)}
-            placeholder="add tag"
+            placeholder={ib.tagPlaceholder}
             className="flex-1 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-text)]"
           />
           <button
@@ -586,7 +590,7 @@ export function InboxWorkspace() {
           </button>
         </div>
 
-        <h3 className="mt-5 text-sm font-semibold">Internal Notes</h3>
+        <h3 className="mt-5 text-sm font-semibold">{ib.internalNotes}</h3>
         <div className="mt-2 space-y-2">
           {(detail?.notes || []).map((row) => (
             <div key={row.id} className="rounded-lg border border-black/8 bg-black/3 px-2 py-1 text-xs dark:border-white/10 dark:bg-white/5">
@@ -598,7 +602,7 @@ export function InboxWorkspace() {
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Add note..."
+            placeholder={ib.notePlaceholder}
             className="h-20 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-text)]"
           />
           <button
@@ -606,18 +610,18 @@ export function InboxWorkspace() {
             disabled={!selected || saving}
             className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {saving ? "Saving..." : "Save Note"}
+            {saving ? ib.savingNote : ib.saveNote}
           </button>
         </div>
         {error ? <p className="mt-3 text-xs text-rose-500">{error}</p> : null}
-        <h3 className="mt-5 text-sm font-semibold">AI Suggested Reply</h3>
+        <h3 className="mt-5 text-sm font-semibold">{ib.aiSuggested}</h3>
         <button
           type="button"
           onClick={generateSuggestion}
           disabled={!selected || suggesting}
           className="mt-2 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)] disabled:opacity-60"
         >
-          {suggesting ? "Generating..." : "Generate Suggestion"}
+          {suggesting ? ib.generating : ib.generateSuggestion}
         </button>
         {suggestion ? <p className="mt-2 text-xs text-[var(--v2-muted)]">{suggestion}</p> : null}
         {suggestion ? (
@@ -626,11 +630,11 @@ export function InboxWorkspace() {
             onClick={() => setReply(suggestion)}
             className="mt-2 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]"
           >
-            Use Suggestion
+            {ib.useSuggestion}
           </button>
         ) : null}
 
-        <h3 className="mt-5 text-sm font-semibold">Event Takeover</h3>
+        <h3 className="mt-5 text-sm font-semibold">{ib.eventTakeover}</h3>
         <select
           value={eventStage}
           onChange={(e) => setEventStage(e.target.value)}

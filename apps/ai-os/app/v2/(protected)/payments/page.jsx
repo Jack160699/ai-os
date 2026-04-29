@@ -4,10 +4,7 @@ import { PaymentsRecords } from "@/components/v2/payments-records";
 export default function PaymentsPage() {
   return (
     <section>
-      <PageHeader
-        title="Payments"
-        subtitle="Finance-grade records with fast filters, search, and status clarity."
-      />
+      <PageHeader page="payments" />
       <PaymentsRecords />
     </section>
   );
