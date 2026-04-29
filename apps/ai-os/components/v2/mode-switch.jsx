@@ -11,7 +11,7 @@ export function ModeSwitch() {
     <button
       type="button"
       onClick={() => setProMode(!proMode)}
-      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs transition ${
+      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs transition active:scale-[0.98] ${
         proMode
           ? "border-[var(--v2-focus)] bg-[var(--v2-elevated)] text-[var(--v2-text)]"
           : "border-[var(--v2-border)] bg-[var(--v2-panel)] text-[var(--v2-muted)] hover:border-[var(--v2-focus)]"

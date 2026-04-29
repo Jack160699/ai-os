@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { addActiveMs } from "@/lib/v2/theme-analytics";
 import { DEFAULT_THEME_ID, getThemeById, THEME_STORAGE_KEY } from "@/lib/v2/themes";
 
 const ThemeStudioContext = createContext({
@@ -41,6 +42,8 @@ function applyThemeVars(theme) {
 
 export function ThemeProvider({ userKey = "", children }) {
   const [themeId, setThemeIdState] = useState(DEFAULT_THEME_ID);
+  const activeSegmentTheme = useRef(null);
+  const activeSince = useRef(typeof performance !== "undefined" ? performance.now() : Date.now());
 
   useEffect(() => {
     const storage = readStorage();
@@ -53,6 +56,50 @@ export function ThemeProvider({ userKey = "", children }) {
   useEffect(() => {
     applyThemeVars(theme);
   }, [theme]);
+
+  /** Cumulative time on each theme (retention proxy) — flush on theme change, tab hide, unload, and periodic chunk. */
+  useEffect(() => {
+    const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+
+    const creditElapsed = (theme) => {
+      const t = theme;
+      const elapsed = now() - activeSince.current;
+      if (t && elapsed > 50) addActiveMs(t, elapsed);
+      activeSince.current = now();
+    };
+
+    const prev = activeSegmentTheme.current;
+    creditElapsed(prev);
+    activeSegmentTheme.current = themeId;
+
+    const onHide = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        creditElapsed(activeSegmentTheme.current);
+      }
+    };
+    const onUnload = () => {
+      creditElapsed(activeSegmentTheme.current);
+    };
+
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", onUnload);
+
+    const tick = window.setInterval(() => {
+      const cur = activeSegmentTheme.current;
+      const elapsed = now() - activeSince.current;
+      if (cur && elapsed >= 120000) {
+        addActiveMs(cur, elapsed);
+        activeSince.current = now();
+      }
+    }, 120000);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", onUnload);
+      window.clearInterval(tick);
+      creditElapsed(activeSegmentTheme.current);
+    };
+  }, [themeId]);
 
   const setThemeId = (nextThemeId) => {
     const normalized = getThemeById(nextThemeId).id;

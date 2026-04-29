@@ -15,15 +15,15 @@ const ICONS = {
 export function Sidebar({ navItems, pathname, collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 shrink-0 border-r border-[var(--v2-border)] bg-[var(--v2-panel)] p-4 transition-all duration-200 lg:static ${
+      className={`fixed inset-y-0 left-0 z-40 shrink-0 border-r border-[var(--v2-border)] bg-[var(--v2-panel)] p-4 transition-all duration-200 touch-pan-y lg:static ${
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-      } ${collapsed ? "w-[76px]" : "w-[236px]"}`}
+      } ${collapsed ? "w-[80px]" : "w-[248px]"}`}
     >
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-5 flex items-center justify-between">
         {!collapsed ? (
           <div>
             <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--v2-muted)]">Workspace</p>
-            <p className="mt-1 text-sm font-semibold text-[var(--v2-text)]">Admin</p>
+            <p className="v2-title-tight mt-1 text-sm font-semibold text-[var(--v2-text)]">Admin Console</p>
           </div>
         ) : (
           <p className="mx-auto text-sm font-semibold text-[var(--v2-text)]">V2</p>
@@ -37,7 +37,7 @@ export function Sidebar({ navItems, pathname, collapsed, setCollapsed, mobileOpe
         </button>
       </div>
 
-      <nav className="mt-4 space-y-2">
+      <nav className="mt-4 space-y-1.5">
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = ICONS[item.href] || CircleUserRound;
@@ -47,9 +47,9 @@ export function Sidebar({ navItems, pathname, collapsed, setCollapsed, mobileOpe
               href={item.href}
               onClick={() => setMobileOpen(false)}
               title={collapsed ? item.label : ""}
-              className={`group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
+              className={`group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition active:scale-[0.99] ${
                 active
-                  ? "border border-[var(--v2-focus)] bg-[var(--v2-elevated)] text-[var(--v2-text)]"
+                  ? "border border-[var(--v2-focus)] bg-[color-mix(in_oklab,var(--v2-elevated)_82%,var(--v2-accent)_8%)] text-[var(--v2-text)] shadow-[0_4px_10px_rgba(0,0,0,0.16)]"
                   : "border border-transparent text-[var(--v2-muted)] hover:border-[var(--v2-border)] hover:bg-[var(--v2-elevated)] hover:text-[var(--v2-text)]"
               }`}
             >
@@ -64,7 +64,7 @@ export function Sidebar({ navItems, pathname, collapsed, setCollapsed, mobileOpe
         {!collapsed ? (
           <>
             <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--v2-muted)]">System Status</p>
-            <p className="mt-1 text-xs text-[var(--v2-text)]">Operational</p>
+            <p className="mt-1 text-xs font-medium text-[var(--v2-text)]">Operational</p>
             <p className="text-[11px] text-[var(--v2-muted)]">Version 2.0.0</p>
             <div className="mt-3">
               <ThemeStudio />

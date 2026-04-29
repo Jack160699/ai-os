@@ -42,7 +42,7 @@ export function DashboardCanvas({ metrics = [], activity = [] }) {
               {cards.map((metric) => (
                 <div key={metric.label} className="space-y-2">
                   <div
-                    className="w-full rounded-md bg-[color-mix(in_oklab,var(--v2-accent)_78%,transparent)]"
+                    className="w-full rounded-md bg-[color-mix(in_oklab,var(--v2-accent)_78%,transparent)] transition-all"
                     style={{ height: `${Math.max(12, Math.min(100, metric.numeric * 8))}%` }}
                   />
                   <p className="line-clamp-1 text-[10px] text-[var(--v2-muted)]">{metric.label}</p>
@@ -78,7 +78,7 @@ export function DashboardCanvas({ metrics = [], activity = [] }) {
         ) : (
           <div className="space-y-2">
             {activity.map((item) => (
-              <div key={item} className="flex items-center gap-3 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2.5">
+              <div key={item} className="flex items-center gap-3 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2.5 transition hover:border-[var(--v2-focus)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[color-mix(in_oklab,var(--v2-accent)_85%,var(--v2-text))]" />
                 <span className="line-clamp-1 text-sm text-[var(--v2-text)]">{item}</span>
               </div>

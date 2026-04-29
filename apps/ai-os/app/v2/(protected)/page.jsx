@@ -1,12 +1,21 @@
 import { DashboardHeaderActions } from "@/components/v2/dashboard-header-actions";
 import { PageHeader } from "@/components/v2/page-header";
+import { PersonalHome } from "@/components/v2/personal-home";
 import { DashboardCanvas } from "@/components/v2/dashboard-canvas";
+import { requireAuth } from "@/lib/v2/auth";
 import { getV2DashboardData } from "@/lib/v2/dashboard-data";
 import { validateLaunchEnv } from "@/lib/v2/env";
 
 export default async function DashboardPage() {
   const env = validateLaunchEnv();
+  const { user, role } = await requireAuth();
   const data = await getV2DashboardData();
+  const userName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")?.[0] ||
+    "User";
+  const userKey = String(user?.id || user?.email || "").trim();
   return (
     <section className="space-y-6">
       <PageHeader page="dashboard" action={<DashboardHeaderActions />} />
@@ -21,6 +30,7 @@ export default async function DashboardPage() {
         </div>
       ) : null}
 
+      <PersonalHome userKey={userKey} userName={userName} role={role} metrics={data.metrics} />
       <DashboardCanvas metrics={data.metrics} activity={data.activity} />
     </section>
   );
