@@ -10,9 +10,12 @@ function isMetadataTagText(value) {
 }
 
 function normalizeMessage(row = {}, idx = 0, phone = "") {
-  const senderRaw = String(row.sender || row.role || "").toLowerCase();
+  let senderRaw = String(row.sender || row.role || "").toLowerCase();
+  if (!senderRaw) {
+    senderRaw = String(row.direction || "").toLowerCase() === "in" ? "user" : "admin";
+  }
   const sender = senderRaw === "user" ? "user" : "admin";
-  const text = String(row.text || row.message || "");
+  const text = String(row.body ?? row.text ?? row.message ?? "");
   const createdAt = row.created_at || row.timestamp_utc || row.timestamp || new Date().toISOString();
   return {
     id: row.id || `${phone}-${createdAt}-${idx}`,

@@ -38,22 +38,46 @@ function isTransientSupabaseErr(err) {
   );
 }
 
+/** DB uses `direction` in ('in','out') — align with apps/ai-os analytics queries. */
+function messageDirectionFromSender(sender) {
+  const s = String(sender || "").toLowerCase();
+  if (s === "user") return "in";
+  return "out";
+}
+
+/** Map stored rows (`body`, `direction`) to fields the rest of the backend expects (`text`, `sender`). */
+function normalizeStoredMessageRow(row) {
+  if (!row) return row;
+  const text = row.body != null ? String(row.body) : String(row.text || "");
+  let sender = String(row.sender || "").toLowerCase();
+  if (!sender) {
+    sender = String(row.direction || "").toLowerCase() === "in" ? "user" : "admin";
+  }
+  return { ...row, text, sender };
+}
+
 export async function saveMessage(phone, text, sender) {
   if (!supabase) {
     log.debug("Supabase not configured; skip saveMessage");
     return;
   }
+  const direction = messageDirectionFromSender(sender);
+  const body = String(text ?? "");
   try {
     await withRetry(
       async () => {
         const { error } = await supabase.from("messages").insert([
           {
             phone,
-            text,
-            sender,
+            body,
+            direction,
+            created_at: new Date().toISOString(),
           },
         ]);
-        if (error) throw Object.assign(new Error(error.message), { supabaseError: error });
+        if (error) {
+          log.error("SUPABASE INSERT ERROR", { err: error.message, phone, direction, code: error.code });
+          throw Object.assign(new Error(error.message), { supabaseError: error });
+        }
       },
       {
         retries: Math.max(0, Number.parseInt(process.env.SUPABASE_RETRIES || "2", 10) || 2),
@@ -94,7 +118,7 @@ export async function backfillMessagesFromLeadSummaries(limit = 200, dryRun = fa
         .from("messages")
         .select("id")
         .eq("phone", phone)
-        .eq("text", text)
+        .eq("body", text)
         .limit(1);
       if (checkErr) throw checkErr;
       if (Array.isArray(existing) && existing.length > 0) continue;
@@ -102,12 +126,15 @@ export async function backfillMessagesFromLeadSummaries(limit = 200, dryRun = fa
         const { error: insErr } = await supabase.from("messages").insert([
           {
             phone,
-            text,
-            sender: "bot",
+            body: text,
+            direction: "out",
             created_at: createdAt,
           },
         ]);
-        if (insErr) throw insErr;
+        if (insErr) {
+          log.error("SUPABASE INSERT ERROR", { err: insErr.message, phone, context: "backfill" });
+          throw insErr;
+        }
       }
       inserted += 1;
     }
@@ -120,7 +147,7 @@ export async function backfillMessagesFromLeadSummaries(limit = 200, dryRun = fa
 
 /**
  * Last N messages for phone, oldest → newest.
- * Expects `messages` rows: phone, text, sender, and order column (created_at or id).
+ * Reads `body` / `direction` from DB; normalizes to `text` / `sender` for callers.
  */
 export async function fetchRecentMessages(phone, limit = 10) {
   if (!supabase) return [];
@@ -133,7 +160,7 @@ export async function fetchRecentMessages(phone, limit = 10) {
       async () => {
         let query = supabase
           .from("messages")
-          .select("phone,text,sender,created_at,id")
+          .select("phone,body,sender,direction,created_at,id")
           .order("created_at", { ascending: true, nullsFirst: false })
           .limit(n);
         if (phoneVariants.length && last10) {
@@ -157,6 +184,7 @@ export async function fetchRecentMessages(phone, limit = 10) {
     );
     const rows = (Array.isArray(data) ? data : [])
       .filter((r) => phoneMatchesTarget(r?.phone, digits))
+      .map((r) => normalizeStoredMessageRow(r))
       .sort((a, b) => {
         const ta = Date.parse(String(a?.created_at || ""));
         const tb = Date.parse(String(b?.created_at || ""));
@@ -232,11 +260,11 @@ export async function fetchMessages(limit = 1000) {
   try {
     const { data, error } = await supabase
       .from("messages")
-      .select("phone,text,sender,created_at,id")
+      .select("phone,body,sender,direction,created_at,id")
       .order(messagesOrderColumn, { ascending: false, nullsFirst: false })
       .limit(n);
     if (error) throw error;
-    return Array.isArray(data) ? data : [];
+    return (Array.isArray(data) ? data : []).map((r) => normalizeStoredMessageRow(r));
   } catch (err) {
     log.warn("Supabase fetchMessages failed", { err: err?.message || String(err) });
     return [];
@@ -265,12 +293,12 @@ export async function fetchLatestMessageForPhone(phone) {
   try {
     const { data, error } = await supabase
       .from("messages")
-      .select("sender,text,created_at,id")
+      .select("sender,direction,body,created_at,id")
       .eq("phone", phone)
       .order(orderCol, { ascending: false })
       .limit(1);
     if (error) throw error;
-    return Array.isArray(data) && data[0] ? data[0] : null;
+    return Array.isArray(data) && data[0] ? normalizeStoredMessageRow(data[0]) : null;
   } catch (err) {
     log.warn("fetchLatestMessageForPhone failed", { err: err?.message || String(err), phone });
     return null;

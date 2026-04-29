@@ -25,6 +25,10 @@ export function messagesOrderColumn() {
   return (process.env.SUPABASE_MESSAGES_ORDER || "created_at").trim() || "created_at";
 }
 
+export function messageBodyFromRow(row) {
+  return String(row?.body ?? row?.text ?? "");
+}
+
 /**
  * Newest-first rows from `messages` (bounded) for building the conversation list.
  */
@@ -33,7 +37,7 @@ export async function fetchRecentMessageRows(supabase, limit = 5000) {
   const n = Math.min(5000, Math.max(1, Number.parseInt(String(limit), 10) || 5000));
   const { data, error } = await supabase
     .from("messages")
-    .select("phone, text, sender, created_at, id")
+    .select("phone, body, sender, direction, created_at, id")
     .order(col, { ascending: false, nullsFirst: false })
     .limit(n);
   if (error) throw error;
@@ -54,7 +58,7 @@ export function aggregateConversationsFromMessages(rows) {
       name: key,
       temperature: "warm",
       unread: 0,
-      last_message: String(row.text || ""),
+      last_message: messageBodyFromRow(row),
       last_time: row.created_at || new Date().toISOString(),
     });
   }
@@ -79,7 +83,7 @@ export async function fetchMessagesForPhoneThread(supabase, phoneDigits, limit =
 
   let query = supabase
     .from("messages")
-    .select("id, phone, text, sender, created_at")
+    .select("id, phone, body, sender, direction, created_at")
     .order(col, { ascending: false, nullsFirst: false })
     .limit(n);
 
