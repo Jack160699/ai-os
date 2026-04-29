@@ -181,11 +181,19 @@ def sync_message_event(
         conv_id = _get_or_create_conversation(lead["id"])
         if not conv_id:
             return
+        d = (direction or "").strip().lower()
+        if d in ("in", "incoming", "inbound", "user"):
+            _dir_label = "in"
+        elif d in ("out", "outgoing", "outbound", "bot", "admin", "system", "assistant"):
+            _dir_label = "out"
+        else:
+            _dir_label = "out"
+        db_direction = "out" if _dir_label == "out" else "in"
         payload = {
             "reset_batch_id": _batch_id(),
             "conversation_id": conv_id,
             "body": (body or "").strip()[:4000],
-            "direction": "in" if direction == "in" else "out",
+            "direction": db_direction,
         }
         if created_at_iso:
             payload["created_at"] = created_at_iso

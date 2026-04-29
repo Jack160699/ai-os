@@ -38,11 +38,21 @@ function isTransientSupabaseErr(err) {
   );
 }
 
-/** DB uses `direction` in ('in','out') — align with apps/ai-os analytics queries. */
-function messageDirectionFromSender(sender) {
-  const s = String(sender || "").toLowerCase();
-  if (s === "user") return "in";
-  return "out";
+/** DB constraint `messages_direction_check` allows only 'in' and 'out'. */
+const MESSAGE_DIR_IN = new Set(["in", "incoming", "inbound", "user"]);
+const MESSAGE_DIR_OUT = new Set(["out", "outgoing", "outbound", "bot", "admin", "system", "assistant"]);
+
+/**
+ * Maps sender / loose labels → canonical 'in' | 'out', then coerces to DB-safe values.
+ * WhatsApp inbound → in; bot/admin replies → out.
+ */
+function coerceMessagesDirection(input) {
+  const s = String(input || "").trim().toLowerCase();
+  let label = "out";
+  if (MESSAGE_DIR_IN.has(s)) label = "in";
+  else if (MESSAGE_DIR_OUT.has(s)) label = "out";
+  else label = "out";
+  return label === "out" ? "out" : "in";
 }
 
 /** Map stored rows (`body`, `direction`) to fields the rest of the backend expects (`text`, `sender`). */
@@ -61,7 +71,7 @@ export async function saveMessage(phone, text, sender) {
     log.debug("Supabase not configured; skip saveMessage");
     return;
   }
-  const direction = messageDirectionFromSender(sender);
+  const direction = coerceMessagesDirection(sender);
   const body = String(text ?? "");
   try {
     await withRetry(
@@ -70,11 +80,12 @@ export async function saveMessage(phone, text, sender) {
           {
             phone,
             body,
-            direction,
+            direction: direction === "out" ? "out" : "in",
             created_at: new Date().toISOString(),
           },
         ]);
         if (error) {
+          console.error("SUPABASE INSERT ERROR:", error);
           log.error("SUPABASE INSERT ERROR", { err: error.message, phone, direction, code: error.code });
           throw Object.assign(new Error(error.message), { supabaseError: error });
         }
@@ -123,15 +134,17 @@ export async function backfillMessagesFromLeadSummaries(limit = 200, dryRun = fa
       if (checkErr) throw checkErr;
       if (Array.isArray(existing) && existing.length > 0) continue;
       if (!dryRun) {
+        const direction = coerceMessagesDirection("out");
         const { error: insErr } = await supabase.from("messages").insert([
           {
             phone,
             body: text,
-            direction: "out",
+            direction: direction === "out" ? "out" : "in",
             created_at: createdAt,
           },
         ]);
         if (insErr) {
+          console.error("SUPABASE INSERT ERROR:", insErr);
           log.error("SUPABASE INSERT ERROR", { err: insErr.message, phone, context: "backfill" });
           throw insErr;
         }
