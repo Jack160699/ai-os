@@ -22,8 +22,8 @@ export const ENV = {
   PHONE_NUMBER_ID: pick(process.env.PHONE_NUMBER_ID, process.env.WHATSAPP_PHONE_NUMBER_ID),
   OPENAI_API_KEY: pick(process.env.OPENAI_API_KEY),
   AI_BOT_NAME: pick(process.env.AI_BOT_NAME, "Stratxcel AI Growth Partner"),
-  SUPABASE_URL: pick(process.env.SUPABASE_URL),
-  SUPABASE_KEY: pick(process.env.SUPABASE_KEY),
+  NEXT_PUBLIC_SUPABASE_URL: pick(process.env.NEXT_PUBLIC_SUPABASE_URL),
+  SUPABASE_SERVICE_ROLE_KEY: pick(process.env.SUPABASE_SERVICE_ROLE_KEY),
   RAZORPAY_LIVE_KEY_ID: pick(
     process.env.RAZORPAY_LIVE_KEY_ID,
     process.env.NEXT_PUBLIC_RAZORPAY_LIVE_KEY_ID

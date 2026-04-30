@@ -376,7 +376,7 @@ app.get("/health", (req, res) => {
     verify_token_configured: Boolean(ENV.WHATSAPP_VERIFY_TOKEN),
     openai_configured: Boolean(ENV.OPENAI_API_KEY),
     whatsapp_configured: Boolean(ENV.WHATSAPP_TOKEN && ENV.PHONE_NUMBER_ID),
-    supabase_configured: Boolean(ENV.SUPABASE_URL && ENV.SUPABASE_KEY),
+    supabase_configured: Boolean(ENV.NEXT_PUBLIC_SUPABASE_URL && ENV.SUPABASE_SERVICE_ROLE_KEY),
     primary_frontend: ENV.ADMIN_FRONTEND_APP,
   });
 });
