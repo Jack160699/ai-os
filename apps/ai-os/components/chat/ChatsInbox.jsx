@@ -45,16 +45,18 @@ export function ChatsInbox() {
     setListError("");
     try {
       const res = await fetch(`/api/admin/chats${listQuery}`, { credentials: "include", cache: "no-store" });
-      let data = {};
+      let resData = {};
       try {
-        data = await res.json();
+        resData = await res.json();
       } catch {
-        data = {};
+        resData = {};
       }
+      console.log("FINAL API DATA:", resData);
+      const conversations = resData?.conversations || [];
       if (!res.ok) {
         if (res.status === 401) {
           setListError("Your admin session expired. Refresh the page and sign in again.");
-        } else if (data?.error === "unauthorized") {
+        } else if (resData?.error === "unauthorized") {
           setListError("Bot rejected the dashboard password. Set BACKEND_DASHBOARD_PASSWORD on Vercel to match DASHBOARD_PASSWORD on the bot host.");
         } else {
           setListError(`Could not load inbox (${res.status}). Check BOT_API_URL / bot deployment.`);
@@ -62,15 +64,14 @@ export function ChatsInbox() {
         setRows([]);
         return;
       }
-      console.log("API DATA:", data);
-      const conversations = data?.conversations || [];
       if (!Array.isArray(conversations)) {
+        console.log("Invalid conversations:", conversations);
         setListError("Unexpected response from inbox API.");
         setRows([]);
         return;
       }
       setRows((conversations || []).map((row) => ({ ...(row || {}), last_message: row?.last_message || "" })));
-      setUpdatedAt(data.updated_at || "");
+      setUpdatedAt(resData?.updated_at || "");
     } catch {
       setListError("Network error — check your connection or try again.");
       setRows([]);

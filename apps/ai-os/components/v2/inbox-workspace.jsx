@@ -53,13 +53,19 @@ export function InboxWorkspace() {
     try {
       const res = await fetch(`/api/v2/inbox/conversations${qp}`, { cache: "no-store", signal: controller.signal });
       const data = await res.json().catch(() => ({}));
-      console.log("API DATA:", data);
+      console.log("FINAL API DATA:", data);
       if (!res.ok) {
         setError(data?.error || "Could not load conversations");
         setLoading(false);
         return;
       }
-      const nextRows = Array.isArray(data?.conversations) ? data.conversations : [];
+      const conversations = data?.conversations || [];
+      if (!Array.isArray(conversations)) {
+        console.log("Invalid conversations:", conversations);
+        setRows([]);
+        return;
+      }
+      const nextRows = conversations;
       const currentUnread = nextRows.reduce((acc, row) => acc + Number(row?.unread || 0), 0);
       if (prevUnreadRef.current > 0 && currentUnread > prevUnreadRef.current) {
         setTimeout(() => setToast(ib.newToast), 0);
@@ -347,7 +353,8 @@ export function InboxWorkspace() {
   }
 
   const filteredRows = useMemo(() => {
-    return rows.filter((row) => {
+    const safeRows = Array.isArray(rows) ? rows : [];
+    return (safeRows || []).filter((row) => {
       const tags = Array.isArray(row?.tags) ? row.tags.map((v) => String(v).toLowerCase()) : [];
       if (activeFilter === "unread") return Number(row?.unread || 0) > 0;
       if (activeFilter === "assigned") return Boolean(row?.assigned_user_id);
@@ -375,6 +382,11 @@ export function InboxWorkspace() {
     }),
     [selectedRow, selected],
   );
+
+  if (!Array.isArray(rows)) {
+    console.log("Invalid conversations:", rows);
+    return null;
+  }
 
   try {
     return (
@@ -686,7 +698,7 @@ export function InboxWorkspace() {
     </div>
   );
   } catch (e) {
-    console.error(e);
-    return <div>Something went wrong</div>;
+    console.error("UI CRASH:", e);
+    return <div>Loading...</div>;
   }
 }
