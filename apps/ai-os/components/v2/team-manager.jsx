@@ -36,9 +36,12 @@ export function TeamManager() {
     setError("");
     try {
       const res = await fetch("/api/v2/team", { cache: "no-store" });
+      if (!res) return null;
       const data = await res.json().catch(() => ({}));
+      console.log("TEAM API:", data);
       if (!res.ok) throw new Error(data?.message || data?.error || "Could not load team");
-      setUsers(Array.isArray(data?.users) ? data.users : []);
+      const team = data?.team || [];
+      setUsers(Array.isArray(team) ? team : []);
     } catch (err) {
       setError(err.message || "Could not load team");
     } finally {

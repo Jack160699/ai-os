@@ -41,21 +41,18 @@ export async function GET(request) {
       admin.from("team_members").select("user_id, full_name, role, is_active"),
     ]);
 
-    if (usersError) {
-      return NextResponse.json({ error: usersError.message || "Could not list users" }, { status: 500 });
-    }
-    if (teamError) {
-      return NextResponse.json({ error: teamError.message || "Could not list team members" }, { status: 500 });
+    if (usersError || teamError) {
+      console.error("TEAM API ERROR:", usersError || teamError);
+      return NextResponse.json({ team: [] }, { status: 200 });
     }
 
     const metaMap = new Map((teamRows || []).map((row) => [row.user_id, row]));
-    const users = (usersData?.users || []).map((user) => teamRowFromAuth(user, metaMap.get(user.id)));
-
-    return NextResponse.json({ users }, { status: 200 });
-  } catch (error) {
-    const message = error?.message || "Could not list users";
-    const status = String(message).includes("SUPABASE_SERVICE_ROLE_KEY") ? 503 : 500;
-    return NextResponse.json({ error: status === 503 ? "setup_required" : message, message }, { status });
+    const team = (usersData?.users || []).map((user) => teamRowFromAuth(user, metaMap.get(user.id)));
+    console.log("TEAM API:", { count: team.length });
+    return NextResponse.json({ team }, { status: 200 });
+  } catch (err) {
+    console.error("TEAM API ERROR:", err);
+    return NextResponse.json({ team: [] }, { status: 200 });
   }
 }
 

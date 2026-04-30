@@ -99,9 +99,12 @@ export function InboxWorkspace() {
   async function loadTeamUsers() {
     try {
       const res = await fetch("/api/v2/team", { cache: "no-store" });
+      if (!res) return null;
       const data = await res.json().catch(() => ({}));
+      console.log("TEAM API:", data);
+      const team = data?.team || [];
       if (res.ok) {
-        setTeamUsers((data?.users || []).filter((user) => user.is_active));
+        setTeamUsers((team || []).filter((user) => user?.is_active));
       }
     } catch {
       // Keep inbox usable even if team API is temporarily unavailable.
