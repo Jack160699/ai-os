@@ -4,6 +4,8 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { formatFullTime } from "@/components/chat/format";
 import { QUICK_REPLIES, WHATSAPP_QUICK_TEMPLATES } from "@/components/inbox/constants";
 
+const safeArray = (arr) => (Array.isArray(arr) ? arr : []);
+
 export function ActiveChatPanel({
   selected,
   detail,
@@ -19,11 +21,26 @@ export function ActiveChatPanel({
   compactMode = false,
 }) {
   const reduce = useReducedMotion();
+  const selectedConversation = selected ? (detail && typeof detail === "object" ? detail : {}) : null;
+  const safeMessages =
+    Array.isArray(selectedConversation?.messages)
+      ? selectedConversation.messages
+      : [];
+  const safeTranscript = Array.isArray(selectedConversation?.transcript)
+    ? selectedConversation.transcript
+    : safeMessages;
   const growthScore = selectedRow?.growth_score ?? detail?.state?.growth_score;
   const growthLabel = selectedRow?.growth_label ?? detail?.state?.growth_label;
   const lastActive = selectedRow?.last_time || detail?.state?.last_reply_time || "";
 
-  return (
+  if (!selectedConversation) {
+    return null;
+  }
+
+  console.log("SELECTED CONVO:", selectedConversation);
+
+  try {
+    return (
     <section
       className={`flex min-h-0 min-w-0 flex-col rounded-2xl border border-white/[0.07] bg-[#080b11] shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] ${
         mobileTab === "chat" ? "flex" : "hidden"
@@ -53,7 +70,7 @@ export function ActiveChatPanel({
           </header>
 
           <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
-            {loadingDetail && !detail?.transcript?.length ? (
+            {loadingDetail && !safeArray(safeTranscript).length ? (
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className={`admin-skeleton h-14 rounded-2xl ${i % 2 ? "ml-8" : "mr-8"}`} />
@@ -61,7 +78,7 @@ export function ActiveChatPanel({
               </div>
             ) : (
               <AnimatePresence initial={false}>
-                {(detail?.transcript || []).map((m, idx) => {
+                {(safeArray(safeTranscript).length > 0 ? safeArray(safeTranscript) : safeArray(safeMessages)).map((m, idx) => {
                   const isUser = String(m.role).toLowerCase() === "user";
                   return (
                     <motion.div
@@ -78,7 +95,7 @@ export function ActiveChatPanel({
                             : "border border-sky-500/20 bg-gradient-to-br from-sky-500/25 to-indigo-600/20 text-white"
                         }`}
                       >
-                        <p className="whitespace-pre-wrap break-words">{m.text}</p>
+                        <p className="whitespace-pre-wrap break-words">{m?.text || m?.body || ""}</p>
                         <p className="mt-1 text-[10px] text-slate-500">{formatFullTime(m.timestamp_utc)}</p>
                       </div>
                     </motion.div>
@@ -147,5 +164,9 @@ export function ActiveChatPanel({
       )}
     </section>
   );
+  } catch (e) {
+    console.error("UI CRASH:", e);
+    return <div>Loading...</div>;
+  }
 }
 
