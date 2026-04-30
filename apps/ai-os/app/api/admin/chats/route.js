@@ -40,7 +40,10 @@ export async function GET(request) {
   const temperature = String(searchParams.get("temperature") || "all").toLowerCase();
   const unreadOnly = String(searchParams.get("unread_only") || "") === "1";
 
+  console.log("READ TARGET DB:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+
   const { data, error } = await supabase
+    .schema("public")
     .from("messages")
     .select("phone, body, created_at, direction")
     .order("created_at", { ascending: false })

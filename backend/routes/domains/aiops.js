@@ -1,5 +1,6 @@
 import express from "express";
 import webhookRoute from "../webhook.js";
+import { ENV } from "../../config/env.js";
 import {
   executeCeoCommand,
   getCeoBridgeSettings,
@@ -7,7 +8,7 @@ import {
   updateCeoBridgeSettings,
 } from "../../services/ceoBridge.js";
 import { getDashboardCore } from "../../services/dashboardMetrics.js";
-import { dueFollowups, fetchLeads, fetchRevenueMetrics } from "../../services/supabase.js";
+import { dueFollowups, ensureConversationFlow, fetchLeads, fetchRevenueMetrics } from "../../services/supabase.js";
 
 const router = express.Router();
 
@@ -89,6 +90,33 @@ router.post("/ceo/settings", async (req, res) => {
     permissions: req.body?.permissions,
   });
   return res.status(out.ok ? 200 : 500).json(out);
+});
+
+/** Temporary: POST /webhook/debug/message-pipeline — run lead→conversation→message (requires DASHBOARD_PASSWORD). */
+router.post("/debug/message-pipeline", async (req, res) => {
+  const expected = String(ENV.DASHBOARD_PASSWORD || "").trim();
+  const provided = String(
+    req.get("x-dashboard-password") || req.get("X-Dashboard-Password") || req.query.password || req.body?.password || "",
+  ).trim();
+  if (!expected) {
+    return res.status(503).json({ ok: false, error: "DASHBOARD_PASSWORD not set; debug endpoint disabled" });
+  }
+  if (provided !== expected) {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+  const phone = String(req.body?.phone || "").trim();
+  const text = String(req.body?.text ?? "debug pipeline ping").trim();
+  const direction = String(req.body?.direction || "in").toLowerCase() === "out" ? "out" : "in";
+  if (!phone) {
+    return res.status(400).json({ ok: false, error: "body.phone required" });
+  }
+  try {
+    const out = await ensureConversationFlow(phone, text, direction);
+    return res.status(200).json({ ok: true, ...out });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
 });
 
 router.use("/", webhookRoute);

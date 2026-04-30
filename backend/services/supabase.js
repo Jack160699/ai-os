@@ -7,13 +7,15 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (url) {
-  console.log("SUPABASE URL:", url);
+  console.log("BACKEND NEXT_PUBLIC_SUPABASE_URL:", url);
 }
+console.log("BACKEND SUPABASE_SERVICE_ROLE_KEY set:", Boolean(key));
 
 const supabase =
   url && key
     ? createClient(url, key, {
         auth: { autoRefreshToken: false, persistSession: false },
+        db: { schema: "public" },
       })
     : null;
 
@@ -185,11 +187,16 @@ export async function ensureConversationFlow(phone, text, direction, opts = {}) 
   };
   if (canonicalPhone) row.phone = canonicalPhone;
 
-  const { data, error } = await supabase.from("messages").insert([row]).select("id");
+  console.log("INSERT TARGET DB:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log("INSERTING MESSAGE", phone, text);
+
+  const { data, error } = await supabase.schema("public").from("messages").insert([row]).select("id");
+  console.log("INSERT RESULT:", data, error);
   if (error) {
+    console.error(error);
     console.error("PIPELINE ERROR:", error);
     log.error("PIPELINE ERROR", { err: error.message, phone: canonicalPhone, direction: dir, code: error.code });
-    throw Object.assign(new Error(error.message), { supabaseError: error });
+    throw new Error(error.message);
   }
   return { data, conversationId, resetBatchId, canonicalPhone };
 }
@@ -283,6 +290,7 @@ export async function backfillMessagesFromLeadSummaries(limit = 200, dryRun = fa
       if (!phone || !text) continue;
       const createdAt = row?.last_contacted_at || row?.updated_at || row?.created_at || new Date().toISOString();
       const { data: existing, error: checkErr } = await supabase
+        .schema("public")
         .from("messages")
         .select("id")
         .eq("phone", phone)
@@ -317,6 +325,7 @@ export async function fetchRecentMessages(phone, limit = 10) {
     const data = await withRetry(
       async () => {
         let query = supabase
+          .schema("public")
           .from("messages")
           .select("phone,body,sender,direction,created_at,id")
           .order("created_at", { ascending: true, nullsFirst: false })
@@ -417,6 +426,7 @@ export async function fetchMessages(limit = 1000) {
   const n = Math.min(5000, Math.max(1, Number.parseInt(String(limit), 10) || 1000));
   try {
     const { data, error } = await supabase
+      .schema("public")
       .from("messages")
       .select("phone,body,sender,direction,created_at,id")
       .order(messagesOrderColumn, { ascending: false, nullsFirst: false })
@@ -450,6 +460,7 @@ export async function fetchLatestMessageForPhone(phone) {
   const orderCol = messagesOrderColumn === "created_at" ? "created_at" : "id";
   try {
     const { data, error } = await supabase
+      .schema("public")
       .from("messages")
       .select("sender,direction,body,created_at,id")
       .eq("phone", phone)

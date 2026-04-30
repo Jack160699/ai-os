@@ -29,9 +29,9 @@ import { executeCeoCommand, isOwnerNumber } from "../services/ceoBridge.js";
 import { updateQualification } from "../services/salesEngine.js";
 import { sendFounderOutreach, sendWhatsApp } from "../services/whatsapp.js";
 import {
+  ensureConversationFlow,
   fetchRecentMessages,
   getLeadMemory,
-  saveMessage,
   updateLead,
   upsertLeadMemory,
 } from "../services/supabase.js";
@@ -52,11 +52,13 @@ import { log } from "../utils/logger.js";
 const router = express.Router();
 
 async function persistMessageWithLog(phone, text, sender, context = "unknown") {
-  await saveMessage(phone, text, sender);
   if (sender === "user") {
+    console.log("PIPELINE ensureConversationFlow in", { phone, context, len: String(text || "").length });
+    await ensureConversationFlow(phone, text, "in");
     console.log("saved incoming message", { phone, sender, context });
     return;
   }
+  await ensureConversationFlow(phone, text, "out");
   console.log("saved outgoing message", { phone, sender, context });
 }
 
@@ -144,6 +146,9 @@ router.get("/", (req, res) => {
 router.post("/", assertMetaWebhookSignature, async (req, res) => {
   let claimedId = null;
   try {
+    console.log("WEBHOOK HIT", req.body);
+    console.log("WEBHOOK NEXT_PUBLIC_SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+
     const entry = req.body.entry?.[0];
     const changes = entry?.changes?.[0];
     const value = changes?.value;

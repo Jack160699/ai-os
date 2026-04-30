@@ -1,14 +1,17 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "tasks": {
+  "pipeline": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**"]
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true
-    },
-    "lint": {}
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "BACKEND_API_URL",
+        "API_URL",
+        "BOT_API_URL",
+        "BACKEND_DASHBOARD_PASSWORD",
+        "ADMIN_EMAIL",
+        "ADMIN_PASSWORD"
+      ]
+    }
   }
 }

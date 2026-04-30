@@ -36,6 +36,7 @@ export async function fetchRecentMessageRows(supabase, limit = 5000) {
   const col = messagesOrderColumn();
   const n = Math.min(5000, Math.max(1, Number.parseInt(String(limit), 10) || 5000));
   const { data, error } = await supabase
+    .schema("public")
     .from("messages")
     .select("phone, body, sender, direction, created_at, id")
     .order(col, { ascending: false, nullsFirst: false })
@@ -75,6 +76,8 @@ export function aggregateConversationsFromMessages(rows) {
  * Thread for one logical number (matches stored `phone` variants).
  */
 export async function fetchMessagesForPhoneThread(supabase, phoneDigits, limit = 500) {
+  console.log("READ TARGET DB:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+
   const digits = normalizePhoneForMatch(phoneDigits);
   const last10 = digits.slice(-10);
   const phoneVariants = [...new Set([phoneDigits, digits, digits ? `+${digits}` : ""].filter(Boolean))];
@@ -82,6 +85,7 @@ export async function fetchMessagesForPhoneThread(supabase, phoneDigits, limit =
   const n = Math.min(500, Math.max(1, Number.parseInt(String(limit), 10) || 500));
 
   let query = supabase
+    .schema("public")
     .from("messages")
     .select("id, phone, body, sender, direction, created_at")
     .order(col, { ascending: false, nullsFirst: false })
