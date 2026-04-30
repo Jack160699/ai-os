@@ -53,6 +53,7 @@ export function InboxWorkspace() {
     try {
       const res = await fetch(`/api/v2/inbox/conversations${qp}`, { cache: "no-store", signal: controller.signal });
       const data = await res.json().catch(() => ({}));
+      console.log("API DATA:", data);
       if (!res.ok) {
         setError(data?.error || "Could not load conversations");
         setLoading(false);
@@ -64,7 +65,7 @@ export function InboxWorkspace() {
         setTimeout(() => setToast(ib.newToast), 0);
       }
       prevUnreadRef.current = currentUnread;
-      setRows(nextRows);
+      setRows((nextRows || []).map((row) => ({ ...(row || {}), last_message: row?.last_message || "" })));
       setError("");
     } catch {
       setError("Inbox request timed out. Retry sync.");
@@ -81,11 +82,12 @@ export function InboxWorkspace() {
     try {
       const res = await fetch(`/api/v2/inbox/${encodeURIComponent(phone)}`, { cache: "no-store", signal: controller.signal });
       const data = await res.json().catch(() => ({}));
+      console.log("API DATA:", data);
       if (!res.ok) {
         setError(data?.error || "Could not load thread");
         return;
       }
-      setDetail(data);
+      setDetail(data && typeof data === "object" ? data : {});
       setError("");
     } catch {
       setError("Thread request timed out. Retry sync.");
@@ -371,7 +373,8 @@ export function InboxWorkspace() {
     [selectedRow, selected],
   );
 
-  return (
+  try {
+    return (
     <div className="grid min-h-[calc(100vh-220px)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
       <div className="flex gap-2 lg:hidden">
         {["list", "chat", "actions"].map((tab) => (
@@ -497,7 +500,7 @@ export function InboxWorkspace() {
                       : "ml-auto rounded-br-md border border-[var(--v2-border)] bg-[var(--v2-elevated)] text-[var(--v2-text)]"
                   }`}
                 >
-                  <p>{message.text}</p>
+                  <p>{message?.text || message?.body || ""}</p>
                   <p className="mt-1 text-[10px] opacity-75">{formatTime(message.created_at)} {message.sender === "admin" ? "· sent" : ""}</p>
                 </div>
               ))}
@@ -679,4 +682,8 @@ export function InboxWorkspace() {
       ) : null}
     </div>
   );
+  } catch (e) {
+    console.error(e);
+    return <div>Something went wrong</div>;
+  }
 }

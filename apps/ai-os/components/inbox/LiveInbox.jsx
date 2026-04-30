@@ -34,7 +34,7 @@ function normalizeConversationRow(row = {}) {
 function normalizeThreadMessage(row = {}, idx = 0) {
   const senderRaw = String(row.sender || row.role || "").toLowerCase();
   const sender = senderRaw === "user" ? "user" : "admin";
-  const text = String(row.text || row.message || "");
+  const text = String(row?.text || row?.body || row?.message || "");
   const createdAt = row.created_at || row.timestamp_utc || row.timestamp || new Date().toISOString();
   return {
     id: row.id || `${createdAt}-${idx}`,
@@ -155,6 +155,7 @@ export function LiveInbox() {
       } catch {
         data = {};
       }
+      console.log("API DATA:", data);
       if (!res.ok) {
         if (res.status === 401) {
           setListError("Your admin session expired. Refresh the page and sign in again.");
@@ -173,7 +174,13 @@ export function LiveInbox() {
         setRows([]);
         return;
       }
-      const conv = data.conversations.map((row) => normalizeConversationRow(row)).filter((row) => row.phone);
+      const conversations = data?.conversations || [];
+      if (!Array.isArray(conversations)) {
+        setListError("Unexpected response from inbox API.");
+        setRows([]);
+        return;
+      }
+      const conv = (conversations || []).map((row) => normalizeConversationRow(row)).filter((row) => row.phone);
       const totalUnread = conv.reduce((acc, r) => acc + (Number(r.unread) || 0), 0);
       if (inboxReadyRef.current && totalUnread > prevUnreadRef.current) {
         playSubtlePing();
@@ -213,6 +220,7 @@ export function LiveInbox() {
       } catch {
         data = null;
       }
+      console.log("API DATA:", data);
       if (!res.ok) {
         setDetail(normalizeDetailPayload({}, phone));
         return;
@@ -346,7 +354,8 @@ export function LiveInbox() {
     }
   }
 
-  return (
+  try {
+    return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 lg:gap-4">
       {error ? <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-100">{error}</div> : null}
 
@@ -449,4 +458,8 @@ export function LiveInbox() {
       </div>
     </div>
   );
+  } catch (e) {
+    console.error(e);
+    return <div>Something went wrong</div>;
+  }
 }

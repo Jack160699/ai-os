@@ -24,8 +24,12 @@ export function ChatThreadPanel({
   telLink,
 }) {
   const reduce = useReducedMotion();
+  const safeSuggestions = Array.isArray(suggestions) ? suggestions : [];
+  const safeTranscript = Array.isArray(detail?.transcript) ? detail.transcript : [];
+  const safeTags = Array.isArray(detail?.state?.tags) ? detail.state.tags : [];
 
-  return (
+  try {
+    return (
     <section
       className={`flex min-h-0 min-w-0 flex-col rounded-2xl border border-white/[0.07] bg-[#080b11] shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] ${
         mobileTab === "chat" ? "flex" : "hidden"
@@ -75,7 +79,7 @@ export function ChatThreadPanel({
           </header>
 
           <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
-            {loadingDetail && !detail?.transcript?.length ? (
+            {loadingDetail && !safeTranscript.length ? (
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className={`h-14 rounded-2xl bg-white/[0.06] ${i % 2 ? "ml-8" : "mr-8"}`} />
@@ -83,7 +87,7 @@ export function ChatThreadPanel({
               </div>
             ) : (
               <AnimatePresence initial={false}>
-                {(detail?.transcript || []).map((m, idx) => {
+                {(safeTranscript || []).map((m, idx) => {
                   const isUser = String(m.role).toLowerCase() === "user";
                   return (
                     <motion.div
@@ -100,7 +104,7 @@ export function ChatThreadPanel({
                             : "border border-sky-500/20 bg-gradient-to-br from-sky-500/25 to-indigo-600/20 text-white"
                         }`}
                       >
-                        <p className="whitespace-pre-wrap break-words">{m.text}</p>
+                        <p className="whitespace-pre-wrap break-words">{m?.text || m?.body || ""}</p>
                         <p className="mt-1 text-[10px] text-slate-500">{formatFullTime(m.timestamp_utc)}</p>
                       </div>
                     </motion.div>
@@ -126,7 +130,7 @@ export function ChatThreadPanel({
             </div>
             <div className="mb-2 flex flex-wrap gap-1.5">
               <p className="w-full text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">AI suggestions</p>
-              {suggestions.map((s, i) => (
+              {(safeSuggestions || []).map((s, i) => (
                 <button
                   key={i}
                   type="button"
@@ -163,7 +167,7 @@ export function ChatThreadPanel({
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600">Tags</span>
-              {(detail?.state?.tags || []).map((tag) => (
+              {(safeTags || []).map((tag) => (
                 <span
                   key={tag}
                   className="rounded-full border border-white/[0.1] bg-white/[0.05] px-2 py-0.5 text-[11px] text-slate-300"
@@ -178,4 +182,8 @@ export function ChatThreadPanel({
       )}
     </section>
   );
+  } catch (e) {
+    console.error(e);
+    return <div>Something went wrong</div>;
+  }
 }

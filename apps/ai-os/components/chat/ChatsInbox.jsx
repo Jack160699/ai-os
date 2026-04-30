@@ -62,12 +62,14 @@ export function ChatsInbox() {
         setRows([]);
         return;
       }
-      if (!Array.isArray(data.conversations)) {
+      console.log("API DATA:", data);
+      const conversations = data?.conversations || [];
+      if (!Array.isArray(conversations)) {
         setListError("Unexpected response from inbox API.");
         setRows([]);
         return;
       }
-      setRows(data.conversations);
+      setRows((conversations || []).map((row) => ({ ...(row || {}), last_message: row?.last_message || "" })));
       setUpdatedAt(data.updated_at || "");
     } catch {
       setListError("Network error — check your connection or try again.");
@@ -96,8 +98,9 @@ export function ChatsInbox() {
         setDetail(null);
         return;
       }
-      const data = await res.json();
-      setDetail(data);
+      const data = await res.json().catch(() => ({}));
+      console.log("API DATA:", data);
+      setDetail(data && typeof data === "object" ? data : {});
       setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
     } catch {
       setDetail(null);
@@ -220,7 +223,8 @@ export function ChatsInbox() {
   const waLink = selected ? `https://wa.me/${selected.replace(/\D/g, "")}` : "";
   const telLink = selected ? `tel:+${selected.replace(/\D/g, "")}` : "";
 
-  return (
+  try {
+    return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 lg:gap-4">
       {error ? (
         <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-100">{error}</div>
@@ -298,4 +302,8 @@ export function ChatsInbox() {
       </div>
     </div>
   );
+  } catch (e) {
+    console.error(e);
+    return <div>Something went wrong</div>;
+  }
 }

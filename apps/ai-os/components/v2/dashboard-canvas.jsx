@@ -15,10 +15,13 @@ export function DashboardCanvas({ metrics = [], activity = [] }) {
   const { immersion } = useThemeStudio();
   const d = immersion.dashboard;
   const e = immersion.empty;
-  const cards = metrics.map((metric) => ({ ...metric, numeric: toNumberLike(metric.value) }));
+  const safeMetrics = Array.isArray(metrics) ? metrics : [];
+  const safeActivity = Array.isArray(activity) ? activity : [];
+  const cards = (safeMetrics || []).map((metric) => ({ ...metric, numeric: toNumberLike(metric?.value) }));
   const total = cards.reduce((acc, metric) => acc + metric.numeric, 0);
 
-  return (
+  try {
+    return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {cards.map((metric) => (
@@ -73,11 +76,11 @@ export function DashboardCanvas({ metrics = [], activity = [] }) {
       </div>
 
       <PremiumCard title={d.activityTitle} subtitle={d.activitySubtitle}>
-        {activity.length === 0 ? (
+        {safeActivity.length === 0 ? (
           <EmptyState title={e.activityTitle} description={e.activityDescription} />
         ) : (
           <div className="space-y-2">
-            {activity.map((item) => (
+            {(safeActivity || []).map((item) => (
               <div key={item} className="flex items-center gap-3 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2.5 transition hover:border-[var(--v2-focus)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[color-mix(in_oklab,var(--v2-accent)_85%,var(--v2-text))]" />
                 <span className="line-clamp-1 text-sm text-[var(--v2-text)]">{item}</span>
@@ -88,4 +91,8 @@ export function DashboardCanvas({ metrics = [], activity = [] }) {
       </PremiumCard>
     </div>
   );
+  } catch (e) {
+    console.error(e);
+    return <div>Something went wrong</div>;
+  }
 }

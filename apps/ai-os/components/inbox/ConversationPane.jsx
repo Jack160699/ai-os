@@ -32,7 +32,9 @@ export function ConversationPane({
   liveEmpty = false,
   compactMode = false,
 }) {
-  return (
+  const safeRows = Array.isArray(rows) ? rows : [];
+  try {
+    return (
     <aside
       className={`flex min-h-0 flex-col rounded-2xl border border-white/[0.07] bg-white/[0.02] shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] ${
         mobileTab === "list" ? "flex" : "hidden"
@@ -76,13 +78,13 @@ export function ConversationPane({
               Retry
             </button>
           </div>
-        ) : loadingList && rows.length === 0 ? (
+        ) : loadingList && safeRows.length === 0 ? (
           <div className="space-y-2 p-2">
             {Array.from({ length: 7 }).map((_, i) => (
               <div key={i} className="admin-skeleton h-16 rounded-xl" />
             ))}
           </div>
-        ) : rows.length === 0 ? (
+        ) : safeRows.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center px-6 py-14 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-2xl text-slate-400">
               ···
@@ -98,7 +100,7 @@ export function ConversationPane({
           </div>
         ) : (
           <ul className={`${compactMode ? "space-y-0.5" : "space-y-1"}`}>
-            {rows.map((c) => {
+            {(safeRows || []).map((c) => {
               const active = selected === c.phone;
               const status = statusFromRow(c);
               return (
@@ -143,5 +145,9 @@ export function ConversationPane({
       </div>
     </aside>
   );
+  } catch (e) {
+    console.error(e);
+    return <div>Something went wrong</div>;
+  }
 }
 
