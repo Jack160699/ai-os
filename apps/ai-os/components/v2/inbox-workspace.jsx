@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useProMode } from "@/components/v2/pro-mode";
 import { useThemeStudio } from "@/components/v2/theme-provider";
 
+const safeArray = (arr) => (Array.isArray(arr) ? arr : []);
+
 export function InboxWorkspace() {
   const { proMode } = useProMode();
   const { immersion } = useThemeStudio();
@@ -71,7 +73,7 @@ export function InboxWorkspace() {
         setTimeout(() => setToast(ib.newToast), 0);
       }
       prevUnreadRef.current = currentUnread;
-      setRows((nextRows || []).map((row) => ({ ...(row || {}), last_message: row?.last_message || "" })));
+      setRows(safeArray(nextRows).map((row) => ({ ...(row || {}), last_message: row?.last_message || "" })));
       setError("");
     } catch {
       setError("Inbox request timed out. Retry sync.");
@@ -110,7 +112,7 @@ export function InboxWorkspace() {
       console.log("TEAM API:", data);
       const team = data?.team || [];
       if (res.ok) {
-        setTeamUsers((team || []).filter((user) => user?.is_active));
+        setTeamUsers(safeArray(team).filter((user) => user?.is_active));
       }
     } catch {
       // Keep inbox usable even if team API is temporarily unavailable.
@@ -354,8 +356,8 @@ export function InboxWorkspace() {
 
   const filteredRows = useMemo(() => {
     const safeRows = Array.isArray(rows) ? rows : [];
-    return (safeRows || []).filter((row) => {
-      const tags = Array.isArray(row?.tags) ? row.tags.map((v) => String(v).toLowerCase()) : [];
+    return safeArray(safeRows).filter((row) => {
+      const tags = safeArray(row?.tags).map((v) => String(v).toLowerCase());
       if (activeFilter === "unread") return Number(row?.unread || 0) > 0;
       if (activeFilter === "assigned") return Boolean(row?.assigned_user_id);
       if (activeFilter === "payments") return tags.some((tagValue) => tagValue.includes("payment"));
@@ -392,7 +394,7 @@ export function InboxWorkspace() {
     return (
     <div className="grid min-h-[calc(100vh-220px)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
       <div className="flex gap-2 lg:hidden">
-        {["list", "chat", "actions"].map((tab) => (
+        {safeArray(["list", "chat", "actions"]).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -419,7 +421,7 @@ export function InboxWorkspace() {
             className="mb-3 w-full rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-sm text-[var(--v2-text)] outline-none transition focus:border-[var(--v2-focus)]"
         />
         <div className="mb-3 flex flex-wrap gap-1.5">
-          {filterTabs.map((tab) => (
+          {safeArray(filterTabs).map((tab) => (
             <button
               key={tab.id}
               type="button"
@@ -448,7 +450,7 @@ export function InboxWorkspace() {
           </div>
         ) : null}
         <div className="space-y-2">
-          {filteredRows.map((row) => (
+          {safeArray(filteredRows).map((row) => (
             <button
               key={row.phone}
               type="button"
@@ -506,7 +508,7 @@ export function InboxWorkspace() {
               {ib.loadOlder}
             </button>
             <div className="mt-4 space-y-2">
-              {(detail?.messages || []).map((message) => (
+              {safeArray(detail?.messages).map((message) => (
                 <div
                   key={message.id}
                   className={`max-w-[82%] rounded-xl px-3 py-2 text-sm ${
@@ -577,7 +579,7 @@ export function InboxWorkspace() {
           className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm"
         >
           <option value="">Unassigned</option>
-          {teamUsers.map((user) => (
+          {safeArray(teamUsers).map((user) => (
             <option key={user.id} value={user.id}>
               {user.full_name}
             </option>
@@ -586,7 +588,7 @@ export function InboxWorkspace() {
 
         <h3 className="mt-5 text-sm font-semibold">{ib.tags}</h3>
         <div className="mt-2 flex flex-wrap gap-2">
-          {(detail?.tags || []).map((row) => (
+          {safeArray(detail?.tags).map((row) => (
             <span key={row} className="rounded-full border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-2.5 py-1 text-[11px] text-[var(--v2-muted)]">
               {formatTag(row)}
             </span>
@@ -610,7 +612,7 @@ export function InboxWorkspace() {
 
         <h3 className="mt-5 text-sm font-semibold">{ib.internalNotes}</h3>
         <div className="mt-2 space-y-2">
-          {(detail?.notes || []).map((row) => (
+          {safeArray(detail?.notes).map((row) => (
             <div key={row.id} className="rounded-lg border border-black/8 bg-black/3 px-2 py-1 text-xs dark:border-white/10 dark:bg-white/5">
               {row.note}
             </div>

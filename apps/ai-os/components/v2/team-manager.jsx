@@ -5,6 +5,7 @@ import { useProMode } from "@/components/v2/pro-mode";
 import { useThemeStudio } from "@/components/v2/theme-provider";
 
 const ROLES = ["super_admin", "manager", "support", "finance"];
+const safeArray = (arr) => (Array.isArray(arr) ? arr : []);
 
 function stableMetric(value, min, max) {
   const text = String(value || "");
@@ -41,7 +42,7 @@ export function TeamManager() {
       console.log("TEAM API:", data);
       if (!res.ok) throw new Error(data?.message || data?.error || "Could not load team");
       const team = data?.team || [];
-      setUsers(Array.isArray(team) ? team : []);
+      setUsers(safeArray(team));
     } catch (err) {
       setError(err.message || "Could not load team");
     } finally {
@@ -133,7 +134,7 @@ export function TeamManager() {
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {safeArray(users).map((user) => (
               <tr key={user.id} className="border-b border-white/5">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -152,11 +153,11 @@ export function TeamManager() {
                       const role = e.target.value;
                       const ok = await updateUser(user.id, { role });
                       if (ok) {
-                        setUsers((prev) => prev.map((row) => (row.id === user.id ? { ...row, role } : row)));
+                        setUsers((prev) => safeArray(prev).map((row) => (row.id === user.id ? { ...row, role } : row)));
                       }
                     }}
                   >
-                    {ROLES.map((role) => (
+                    {safeArray(ROLES).map((role) => (
                       <option key={role} value={role}>
                         {role}
                       </option>
@@ -175,7 +176,7 @@ export function TeamManager() {
                       const is_active = !user.is_active;
                       const ok = await updateUser(user.id, { is_active });
                       if (ok) {
-                        setUsers((prev) => prev.map((row) => (row.id === user.id ? { ...row, is_active } : row)));
+                        setUsers((prev) => safeArray(prev).map((row) => (row.id === user.id ? { ...row, is_active } : row)));
                       }
                     }}
                   >
@@ -241,7 +242,7 @@ export function TeamManager() {
             value={createForm.role}
             onChange={(e) => setCreateForm((prev) => ({ ...prev, role: e.target.value }))}
           >
-            {ROLES.map((role) => (
+            {safeArray(ROLES).map((role) => (
               <option key={role} value={role}>
                 {role}
               </option>

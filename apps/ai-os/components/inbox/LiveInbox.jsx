@@ -6,6 +6,8 @@ import { ActiveChatPanel } from "@/components/inbox/ActiveChatPanel";
 import { ConversationPane } from "@/components/inbox/ConversationPane";
 import { LeadInfoDrawer } from "@/components/inbox/LeadInfoDrawer";
 
+const safeArray = (arr) => (Array.isArray(arr) ? arr : []);
+
 function applyFilter(rows, filter, archivedMap, deletedMap) {
   const withState = rows.filter((r) => !deletedMap[r.phone]);
   const activeRows = withState.filter((r) => !archivedMap[r.phone]);
@@ -47,7 +49,7 @@ function normalizeThreadMessage(row = {}, idx = 0) {
 function normalizeDetailPayload(payload, phone) {
   const input = payload ?? {};
   const transcript = Array.isArray(input?.transcript) ? input.transcript : [];
-  const messagesFromTranscript = transcript.map((row, idx) =>
+  const messagesFromTranscript = safeArray(transcript).map((row, idx) =>
     normalizeThreadMessage(
       {
         id: row.id,
@@ -63,15 +65,15 @@ function normalizeDetailPayload(payload, phone) {
   if (messagesFromTranscript.length > 0) {
     messages = messagesFromTranscript;
   } else if (Array.isArray(input?.messages)) {
-    messages = input.messages.map((row, idx) => normalizeThreadMessage(row, idx));
+    messages = safeArray(input.messages).map((row, idx) => normalizeThreadMessage(row, idx));
   } else if (Array.isArray(input?.data)) {
-    messages = input.data.map((row, idx) => normalizeThreadMessage(row, idx));
+    messages = safeArray(input.data).map((row, idx) => normalizeThreadMessage(row, idx));
   } else if (Array.isArray(input)) {
-    messages = input.map((row, idx) => normalizeThreadMessage(row, idx));
+    messages = safeArray(input).map((row, idx) => normalizeThreadMessage(row, idx));
   }
 
   messages.sort((a, b) => Date.parse(String(a.created_at || "")) - Date.parse(String(b.created_at || "")));
-  const normalizedTranscript = messages.map((m) => ({
+  const normalizedTranscript = safeArray(messages).map((m) => ({
     role: m.sender === "user" ? "user" : "assistant",
     text: m.text,
     timestamp_utc: m.created_at,
@@ -180,7 +182,7 @@ export function LiveInbox() {
         setRows([]);
         return;
       }
-      const conv = (conversations || []).map((row) => normalizeConversationRow(row)).filter((row) => row.phone);
+      const conv = safeArray(conversations).map((row) => normalizeConversationRow(row)).filter((row) => row.phone);
       const totalUnread = conv.reduce((acc, r) => acc + (Number(r.unread) || 0), 0);
       if (inboxReadyRef.current && totalUnread > prevUnreadRef.current) {
         playSubtlePing();
@@ -267,10 +269,10 @@ export function LiveInbox() {
     if (el && (stickToBottom || !selected)) el.scrollTop = el.scrollHeight;
   }, [detail?.transcript, selected, stickToBottom]);
 
-  const filteredRows = useMemo(() => applyFilter(rows, filter, archivedMap, deletedMap), [rows, filter, archivedMap, deletedMap]);
-  const selectedRow = useMemo(() => rows.find((item) => item.phone === selected) || null, [rows, selected]);
+  const filteredRows = useMemo(() => applyFilter(safeArray(rows), filter, archivedMap, deletedMap), [rows, filter, archivedMap, deletedMap]);
+  const selectedRow = useMemo(() => safeArray(rows).find((item) => item.phone === selected) || null, [rows, selected]);
 
-  const liveEmpty = !listError && !loadingList && rows.length === 0 && !debouncedQ && filter === "all";
+  const liveEmpty = !listError && !loadingList && safeArray(rows).length === 0 && !debouncedQ && filter === "all";
 
   async function postAction(action, payload = {}) {
     if (!selected) return { ok: false };
@@ -459,7 +461,7 @@ export function LiveInbox() {
     </div>
   );
   } catch (e) {
-    console.error(e);
-    return <div>Something went wrong</div>;
+    console.error("UI CRASH:", e);
+    return <div>Loading...</div>;
   }
 }

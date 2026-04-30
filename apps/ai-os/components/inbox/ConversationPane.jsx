@@ -3,6 +3,8 @@
 import { formatFullTime, formatTime } from "@/components/chat/format";
 import { INBOX_FILTERS } from "@/components/inbox/constants";
 
+const safeArray = (arr) => (Array.isArray(arr) ? arr : []);
+
 function statusFromRow(row) {
   if ((row?.unread || 0) > 0) return "waiting";
   const ts = row?.last_time ? new Date(row.last_time).getTime() : 0;
@@ -32,7 +34,7 @@ export function ConversationPane({
   liveEmpty = false,
   compactMode = false,
 }) {
-  const safeRows = Array.isArray(rows) ? rows : [];
+  const safeRows = safeArray(rows);
   try {
     return (
     <aside
@@ -100,7 +102,7 @@ export function ConversationPane({
           </div>
         ) : (
           <ul className={`${compactMode ? "space-y-0.5" : "space-y-1"}`}>
-            {(safeRows || []).map((c) => {
+            {safeArray(safeRows).map((c) => {
               const active = selected === c.phone;
               const status = statusFromRow(c);
               return (
@@ -146,8 +148,8 @@ export function ConversationPane({
     </aside>
   );
   } catch (e) {
-    console.error(e);
-    return <div>Something went wrong</div>;
+    console.error("UI CRASH:", e);
+    return <div>Loading...</div>;
   }
 }
 

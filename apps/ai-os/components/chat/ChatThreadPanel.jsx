@@ -5,6 +5,8 @@ import { QUICK_TEMPLATES } from "@/components/chat/constants";
 import { formatFullTime } from "@/components/chat/format";
 import { TagComposer } from "@/components/chat/TagComposer";
 
+const safeArray = (arr) => (Array.isArray(arr) ? arr : []);
+
 export function ChatThreadPanel({
   selected,
   detail,
@@ -24,9 +26,9 @@ export function ChatThreadPanel({
   telLink,
 }) {
   const reduce = useReducedMotion();
-  const safeSuggestions = Array.isArray(suggestions) ? suggestions : [];
-  const safeTranscript = Array.isArray(detail?.transcript) ? detail.transcript : [];
-  const safeTags = Array.isArray(detail?.state?.tags) ? detail.state.tags : [];
+  const safeSuggestions = safeArray(suggestions);
+  const safeTranscript = safeArray(detail?.transcript);
+  const safeTags = safeArray(detail?.state?.tags);
 
   try {
     return (
@@ -87,7 +89,7 @@ export function ChatThreadPanel({
               </div>
             ) : (
               <AnimatePresence initial={false}>
-                {(safeTranscript || []).map((m, idx) => {
+                {safeArray(safeTranscript).map((m, idx) => {
                   const isUser = String(m.role).toLowerCase() === "user";
                   return (
                     <motion.div
@@ -130,7 +132,7 @@ export function ChatThreadPanel({
             </div>
             <div className="mb-2 flex flex-wrap gap-1.5">
               <p className="w-full text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">AI suggestions</p>
-              {(safeSuggestions || []).map((s, i) => (
+              {safeArray(safeSuggestions).map((s, i) => (
                 <button
                   key={i}
                   type="button"
@@ -167,7 +169,7 @@ export function ChatThreadPanel({
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600">Tags</span>
-              {(safeTags || []).map((tag) => (
+              {safeArray(safeTags).map((tag) => (
                 <span
                   key={tag}
                   className="rounded-full border border-white/[0.1] bg-white/[0.05] px-2 py-0.5 text-[11px] text-slate-300"
@@ -183,7 +185,7 @@ export function ChatThreadPanel({
     </section>
   );
   } catch (e) {
-    console.error(e);
-    return <div>Something went wrong</div>;
+    console.error("UI CRASH:", e);
+    return <div>Loading...</div>;
   }
 }

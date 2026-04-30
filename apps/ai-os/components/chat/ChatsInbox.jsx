@@ -6,6 +6,8 @@ import { ChatConversationList } from "@/components/chat/ChatConversationList";
 import { ChatIntelSidebar } from "@/components/chat/ChatIntelSidebar";
 import { ChatThreadPanel } from "@/components/chat/ChatThreadPanel";
 
+const safeArray = (arr) => (Array.isArray(arr) ? arr : []);
+
 export function ChatsInbox() {
   const [rows, setRows] = useState([]);
   const [updatedAt, setUpdatedAt] = useState("");
@@ -70,7 +72,7 @@ export function ChatsInbox() {
         setRows([]);
         return;
       }
-      setRows((conversations || []).map((row) => ({ ...(row || {}), last_message: row?.last_message || "" })));
+      setRows(safeArray(conversations).map((row) => ({ ...(row || {}), last_message: row?.last_message || "" })));
       setUpdatedAt(resData?.updated_at || "");
     } catch {
       setListError("Network error — check your connection or try again.");
@@ -102,7 +104,7 @@ export function ChatsInbox() {
       const data = await res.json().catch(() => ({}));
       console.log("API DATA:", data);
       setDetail(data && typeof data === "object" ? data : {});
-      setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+      setSuggestions(safeArray(data?.suggestions));
     } catch {
       setDetail(null);
     } finally {
@@ -304,7 +306,7 @@ export function ChatsInbox() {
     </div>
   );
   } catch (e) {
-    console.error(e);
-    return <div>Something went wrong</div>;
+    console.error("UI CRASH:", e);
+    return <div>Loading...</div>;
   }
 }
