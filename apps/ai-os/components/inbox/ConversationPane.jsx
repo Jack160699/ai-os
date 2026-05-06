@@ -2,13 +2,14 @@
 
 import { formatFullTime, formatTime } from "@/components/chat/format";
 import { INBOX_FILTERS } from "@/components/inbox/constants";
+import { useEffect, useState } from "react";
 
 const safeArray = (arr) => (Array.isArray(arr) ? arr : []);
 
-function statusFromRow(row) {
+function statusFromRow(row, nowTs) {
   if ((row?.unread || 0) > 0) return "waiting";
   const ts = row?.last_time ? new Date(row.last_time).getTime() : 0;
-  if (ts && Date.now() - ts < 15 * 60 * 1000) return "online";
+  if (ts && nowTs - ts < 15 * 60 * 1000) return "online";
   return "replied";
 }
 
@@ -35,6 +36,14 @@ export function ConversationPane({
   compactMode = false,
 }) {
   const safeRows = safeArray(rows);
+  const [nowTs, setNowTs] = useState(0);
+
+  useEffect(() => {
+    setNowTs(Date.now());
+    const id = setInterval(() => setNowTs(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   try {
     return (
     <aside
@@ -104,7 +113,7 @@ export function ConversationPane({
           <ul className={`${compactMode ? "space-y-0.5" : "space-y-1"}`}>
             {safeArray(safeRows).map((c) => {
               const active = selected === c.phone;
-              const status = statusFromRow(c);
+              const status = statusFromRow(c, nowTs);
               return (
                 <li key={c.phone}>
                   <button
