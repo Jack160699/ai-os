@@ -1,3 +1,3 @@
 export default function InboxPage() {
-  return <div>Inbox working</div>;
+  return <div>Inbox working ✅</div>;
 }
