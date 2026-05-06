@@ -167,6 +167,17 @@ async function ensureLeadAndConversationForPhone(rawPhone) {
  * Uses one org `reset_batch_id` (env or default), not random UUIDs per row.
  */
 export async function ensureConversationFlow(phone, text, direction, opts = {}) {
+  await supabase.from("messages").insert([
+    {
+      phone: "9999999999",
+      body: "DIRECT TEST FROM SERVER",
+      direction: "in",
+      created_at: new Date().toISOString(),
+    },
+  ]);
+
+  console.log("TEST INSERT CALLED");
+
   if (!supabase) {
     throw new Error("ensureConversationFlow: Supabase not configured");
   }
