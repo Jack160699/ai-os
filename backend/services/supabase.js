@@ -3,10 +3,8 @@ import { withRetry } from "../utils/retry.js";
 import { log } from "../utils/logger.js";
 
 /** Server-only: service role bypasses RLS. Do not use NEXT_PUBLIC_SUPABASE_ANON_KEY here. */
-console.log("SERVICE ROLE KEY EXISTS:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  console.log("BACKEND NEXT_PUBLIC_SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-}
+console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+console.log("SERVICE ROLE KEY:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "EXISTS" : "MISSING");
 
 const supabase =
   process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -64,15 +62,19 @@ export async function ensureConversationFlow(phone, text, direction, opts = {}) 
   if (!supabase) {
     throw new Error("ensureConversationFlow: Supabase not configured");
   }
+  console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log("SERVICE ROLE KEY:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "EXISTS" : "MISSING");
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("SERVICE ROLE KEY NOT FOUND");
+  }
   console.log("DB INSERT RUNNING");
   const { data, error } = await supabase
     .from("messages")
     .insert([
       {
-        phone: phone || "9999999999",
-        body: text || "AUTO TEST MESSAGE",
-        direction: direction || "in",
-        created_at: new Date().toISOString(),
+        phone: "9999999999",
+        body: "REAL FINAL TEST",
+        direction: "in",
       },
     ])
     .select();
@@ -82,7 +84,7 @@ export async function ensureConversationFlow(phone, text, direction, opts = {}) 
     throw error;
   }
 
-  console.log("INSERT SUCCESS:", data);
+  console.log("INSERT RESULT:", data);
   return { data };
 }
 
