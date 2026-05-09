@@ -157,7 +157,7 @@ export function LiveInbox() {
       } catch {
         data = {};
       }
-      console.log("API DATA:", data);
+      console.log("INBOX API RESPONSE:", data);
       if (!res.ok) {
         if (res.status === 401) {
           setListError("Your admin session expired. Refresh the page and sign in again.");
@@ -177,12 +177,13 @@ export function LiveInbox() {
         return;
       }
       const conversations = data?.conversations || [];
+      const safeConversations = Array.isArray(conversations) ? conversations : [];
       if (!Array.isArray(conversations)) {
         setListError("Unexpected response from inbox API.");
         setRows([]);
         return;
       }
-      const conv = safeArray(conversations).map((row) => normalizeConversationRow(row)).filter((row) => row.phone);
+      const conv = safeConversations.map((row) => normalizeConversationRow(row)).filter((row) => row.phone);
       const totalUnread = conv.reduce((acc, r) => acc + (Number(r.unread) || 0), 0);
       if (inboxReadyRef.current && totalUnread > prevUnreadRef.current) {
         playSubtlePing();

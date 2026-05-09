@@ -53,21 +53,22 @@ export function InboxWorkspace() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
-      const res = await fetch(`/api/v2/inbox/conversations${qp}`, { cache: "no-store", signal: controller.signal });
+      const res = await fetch(`/api/admin/chats${qp}`, { cache: "no-store", signal: controller.signal });
       const data = await res.json().catch(() => ({}));
-      console.log("FINAL API DATA:", data);
+      console.log("INBOX API RESPONSE:", data);
       if (!res.ok) {
         setError(data?.error || "Could not load conversations");
         setLoading(false);
         return;
       }
       const conversations = data?.conversations || [];
+      const safeConversations = Array.isArray(conversations) ? conversations : [];
       if (!Array.isArray(conversations)) {
         console.log("Invalid conversations:", conversations);
         setRows([]);
         return;
       }
-      const nextRows = conversations;
+      const nextRows = safeConversations;
       const currentUnread = nextRows.reduce((acc, row) => acc + Number(row?.unread || 0), 0);
       if (prevUnreadRef.current > 0 && currentUnread > prevUnreadRef.current) {
         setTimeout(() => setToast(ib.newToast), 0);
@@ -88,7 +89,7 @@ export function InboxWorkspace() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
-      const res = await fetch(`/api/v2/inbox/${encodeURIComponent(phone)}`, { cache: "no-store", signal: controller.signal });
+      const res = await fetch(`/api/admin/chats/${encodeURIComponent(phone)}`, { cache: "no-store", signal: controller.signal });
       const data = await res.json().catch(() => ({}));
       console.log("API DATA:", data);
       if (!res.ok) {

@@ -45,119 +45,16 @@ async function getPipelineStageIdForBatch(batchId, stageKey = "new") {
   return data?.id || null;
 }
 
-/**
- * Ensures lead + conversation exist for this phone (single reset_batch_id for the org).
- * 1) Optional: `conversations.phone` match.
- * 2) Else Stratxcel: get/create `leads` then `conversations` for batch + phone.
- */
 async function ensureLeadAndConversationForPhone(rawPhone) {
-  const batchId = String(process.env.SUPABASE_RESET_BATCH_ID || "").trim() || DEFAULT_RESET_BATCH_ID;
   const digits = normalizePhoneForMatch(rawPhone);
   const trimmed = String(rawPhone || "").trim();
-  const variants = [...new Set([trimmed, digits, digits ? `+${digits}` : ""].filter(Boolean))];
   const canonicalPhone = digits || trimmed;
   if (!canonicalPhone) {
     throw new Error("ensureLeadAndConversationForPhone: empty phone");
   }
-
-  for (const v of variants) {
-    const { data, error } = await supabase
-      .from("conversations")
-      .select("id, reset_batch_id")
-      .eq("phone", v)
-      .limit(1)
-      .maybeSingle();
-    if (error) {
-      if (isConversationsPhoneLookupUnsupported(error)) break;
-      throw Object.assign(new Error(error.message), { supabaseError: error });
-    }
-    if (data?.id) {
-      return {
-        conversationId: data.id,
-        resetBatchId: data.reset_batch_id || batchId,
-        canonicalPhone,
-      };
-    }
-  }
-
-  const { data: leadRows, error: leadErr } = await supabase
-    .from("leads")
-    .select("id")
-    .eq("reset_batch_id", batchId)
-    .eq("archived", false)
-    .in("phone", variants)
-    .limit(1);
-  if (leadErr) throw Object.assign(new Error(leadErr.message), { supabaseError: leadErr });
-
-  let leadId = Array.isArray(leadRows) && leadRows[0]?.id ? leadRows[0].id : null;
-
-  if (!leadId) {
-    const stageId = await getPipelineStageIdForBatch(batchId, "new");
-    if (!stageId) {
-      throw new Error(
-        `ensureLeadAndConversationForPhone: missing pipeline_stages row for stage_key=new (reset_batch_id=${batchId})`,
-      );
-    }
-    const { data: newLead, error: nlErr } = await supabase
-      .from("leads")
-      .insert([
-        {
-          reset_batch_id: batchId,
-          pipeline_stage_id: stageId,
-          full_name: `Lead ${canonicalPhone.slice(-4) || "?"}`,
-          phone: canonicalPhone,
-          source: "whatsapp",
-          ai_score: 0,
-          temperature: "warm",
-          estimated_value_cents: 0,
-          has_unreplied: false,
-          archived: false,
-        },
-      ])
-      .select("id")
-      .single();
-    if (nlErr) throw Object.assign(new Error(nlErr.message), { supabaseError: nlErr });
-    leadId = newLead.id;
-  }
-
-  const { data: convRows, error: cFindErr } = await supabase
-    .from("conversations")
-    .select("id, reset_batch_id")
-    .eq("reset_batch_id", batchId)
-    .eq("lead_id", leadId)
-    .eq("channel", "whatsapp")
-    .eq("archived", false)
-    .limit(1);
-  if (cFindErr) throw Object.assign(new Error(cFindErr.message), { supabaseError: cFindErr });
-  const existingConv = Array.isArray(convRows) && convRows[0];
-  if (existingConv?.id) {
-    return {
-      conversationId: existingConv.id,
-      resetBatchId: existingConv.reset_batch_id || batchId,
-      canonicalPhone,
-    };
-  }
-
-  const { data: newConv, error: ncErr } = await supabase
-    .from("conversations")
-    .insert([
-      {
-        reset_batch_id: batchId,
-        lead_id: leadId,
-        channel: "whatsapp",
-        archived: false,
-        last_message_at: new Date().toISOString(),
-      },
-    ])
-    .select("id, reset_batch_id")
-    .single();
-  if (ncErr) throw Object.assign(new Error(ncErr.message), { supabaseError: ncErr });
-  if (!newConv?.id) {
-    throw new Error("ensureLeadAndConversationForPhone: conversation insert returned no id");
-  }
   return {
-    conversationId: newConv.id,
-    resetBatchId: newConv.reset_batch_id || batchId,
+    conversationId: null,
+    resetBatchId: String(process.env.SUPABASE_RESET_BATCH_ID || "").trim() || DEFAULT_RESET_BATCH_ID,
     canonicalPhone,
   };
 }
@@ -167,36 +64,32 @@ async function ensureLeadAndConversationForPhone(rawPhone) {
  * Uses one org `reset_batch_id` (env or default), not random UUIDs per row.
  */
 export async function ensureConversationFlow(phone, text, direction, opts = {}) {
+  if (!supabase) {
+    throw new Error("ensureConversationFlow: Supabase not configured");
+  }
+
   await supabase.from("messages").insert([
     {
-      phone: "9999999999",
-      body: "DIRECT TEST FROM SERVER",
+      phone: "1111111111",
+      body: "SYSTEM TEST INSERT",
       direction: "in",
       created_at: new Date().toISOString(),
     },
   ]);
 
-  console.log("TEST INSERT CALLED");
-
-  if (!supabase) {
-    throw new Error("ensureConversationFlow: Supabase not configured");
-  }
+  console.log("TEST INSERT TRIGGERED");
   const dir = String(direction || "").trim().toLowerCase() === "out" ? "out" : "in";
   const body = String(text ?? "");
-  const { conversationId, resetBatchId, canonicalPhone } = await ensureLeadAndConversationForPhone(phone);
-  if (!conversationId) {
-    throw new Error("ensureConversationFlow: missing conversation_id");
-  }
+  const { resetBatchId, canonicalPhone } = await ensureLeadAndConversationForPhone(phone);
 
   const createdAt = opts.createdAt || new Date().toISOString();
   const row = {
     reset_batch_id: resetBatchId,
-    conversation_id: conversationId,
+    phone: canonicalPhone,
     body,
     direction: dir,
     created_at: createdAt,
   };
-  if (canonicalPhone) row.phone = canonicalPhone;
 
   console.log("INSERT TARGET DB:", process.env.NEXT_PUBLIC_SUPABASE_URL);
   console.log("INSERTING MESSAGE", phone, text);
@@ -209,7 +102,7 @@ export async function ensureConversationFlow(phone, text, direction, opts = {}) 
     log.error("PIPELINE ERROR", { err: error.message, phone: canonicalPhone, direction: dir, code: error.code });
     throw new Error(error.message);
   }
-  return { data, conversationId, resetBatchId, canonicalPhone };
+  return { data, conversationId: null, resetBatchId, canonicalPhone };
 }
 
 function normalizePhoneForMatch(value) {

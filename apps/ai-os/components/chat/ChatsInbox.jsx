@@ -53,8 +53,9 @@ export function ChatsInbox() {
       } catch {
         resData = {};
       }
-      console.log("FINAL API DATA:", resData);
+      console.log("INBOX API RESPONSE:", resData);
       const conversations = resData?.conversations || [];
+      const safeConversations = Array.isArray(conversations) ? conversations : [];
       if (!res.ok) {
         if (res.status === 401) {
           setListError("Your admin session expired. Refresh the page and sign in again.");
@@ -72,7 +73,7 @@ export function ChatsInbox() {
         setRows([]);
         return;
       }
-      setRows(safeArray(conversations).map((row) => ({ ...(row || {}), last_message: row?.last_message || "" })));
+      setRows(safeConversations.map((row) => ({ ...(row || {}), last_message: row?.last_message || "" })));
       setUpdatedAt(resData?.updated_at || "");
     } catch {
       setListError("Network error — check your connection or try again.");
