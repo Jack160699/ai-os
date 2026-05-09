@@ -151,6 +151,7 @@ export function LiveInbox() {
     setListError("");
     try {
       const res = await fetch(`/api/admin/chats${listQuery}`, { credentials: "include", cache: "no-store" });
+      console.log("API DATA:", res);
       let data = {};
       try {
         data = await res.json();

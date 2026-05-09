@@ -64,13 +64,15 @@ export async function ensureConversationFlow(phone, text, direction, opts = {}) 
   if (!supabase) {
     throw new Error("ensureConversationFlow: Supabase not configured");
   }
+  console.log("DB INSERT RUNNING");
   const { data, error } = await supabase
     .from("messages")
     .insert([
       {
         phone: phone || "9999999999",
-        body: text || "FINAL REAL TEST",
+        body: text || "AUTO TEST MESSAGE",
         direction: direction || "in",
+        created_at: new Date().toISOString(),
       },
     ])
     .select();

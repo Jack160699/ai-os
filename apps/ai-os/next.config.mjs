@@ -4,7 +4,10 @@ import { fileURLToPath } from "node:url";
 const appDir = dirname(fileURLToPath(import.meta.url));
 const monorepoRoot = join(appDir, "../..");
 
-/** @type {import('next').NextConfig} */
+/**
+ * @type {import('next').NextConfig}
+ * Do not set `output: "export"` — App Router needs a normal build (routes-manifest, server handlers).
+ */
 const nextConfig = {
   transpilePackages: ["@stratxcel/payments", "@stratxcel/ui"],
   experimental: {

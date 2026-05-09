@@ -54,6 +54,7 @@ export function InboxWorkspace() {
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
       const res = await fetch(`/api/admin/chats${qp}`, { cache: "no-store", signal: controller.signal });
+      console.log("API DATA:", res);
       const data = await res.json().catch(() => ({}));
       console.log("INBOX API RESPONSE:", data);
       if (!res.ok) {
@@ -74,7 +75,14 @@ export function InboxWorkspace() {
         setTimeout(() => setToast(ib.newToast), 0);
       }
       prevUnreadRef.current = currentUnread;
-      setRows(safeArray(nextRows).map((row) => ({ ...(row || {}), last_message: row?.last_message || "" })));
+      const list = Array.isArray(nextRows) ? nextRows : [];
+      setRows(
+        safeArray(list).map((row) => ({
+          ...(row || {}),
+          last_message: row?.last_message || "",
+          last_time: row?.last_time || row?.updated_at || row?.created_at || "",
+        })),
+      );
       setError("");
     } catch {
       setError("Inbox request timed out. Retry sync.");
@@ -451,7 +459,7 @@ export function InboxWorkspace() {
           </div>
         ) : null}
         <div className="space-y-2">
-          {safeArray(filteredRows).map((row) => (
+          {(Array.isArray(filteredRows) ? filteredRows : []).map((row) => (
             <button
               key={row.phone}
               type="button"

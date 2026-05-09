@@ -47,6 +47,7 @@ export function ChatsInbox() {
     setListError("");
     try {
       const res = await fetch(`/api/admin/chats${listQuery}`, { credentials: "include", cache: "no-store" });
+      console.log("API DATA:", res);
       let resData = {};
       try {
         resData = await res.json();
