@@ -7,6 +7,7 @@ export function createAdminClient() {
     return adminClient;
   }
 
+  console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
   console.log("SERVICE ROLE KEY EXISTS:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

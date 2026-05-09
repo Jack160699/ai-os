@@ -1,10 +1,12 @@
-import { createClient } from "@supabase/supabase-js";
-
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST() {
   try {
     console.log("DEBUG ROUTE HIT ✅");
+    console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,6 +17,7 @@ export async function POST() {
       },
     );
 
+    console.log("INSERTING INTO PROJECT:", process.env.NEXT_PUBLIC_SUPABASE_URL);
     const { data, error } = await supabase
       .from("messages")
       .insert([

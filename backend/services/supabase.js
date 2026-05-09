@@ -68,6 +68,7 @@ export async function ensureConversationFlow(phone, text, direction, opts = {}) 
     throw new Error("SERVICE ROLE KEY NOT FOUND");
   }
   console.log("DB INSERT RUNNING");
+  console.log("INSERTING INTO PROJECT:", process.env.NEXT_PUBLIC_SUPABASE_URL);
   const { data, error } = await supabase
     .from("messages")
     .insert([
