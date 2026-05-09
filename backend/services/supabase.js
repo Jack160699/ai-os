@@ -67,42 +67,25 @@ export async function ensureConversationFlow(phone, text, direction, opts = {}) 
   if (!supabase) {
     throw new Error("ensureConversationFlow: Supabase not configured");
   }
+  const { data, error } = await supabase
+    .from("messages")
+    .insert([
+      {
+        phone: phone || "9999999999",
+        body: text || "TEST MESSAGE",
+        direction: direction || "in",
+        created_at: new Date().toISOString(),
+      },
+    ])
+    .select();
 
-  await supabase.from("messages").insert([
-    {
-      phone: "1111111111",
-      body: "SYSTEM TEST INSERT",
-      direction: "in",
-      created_at: new Date().toISOString(),
-    },
-  ]);
-
-  console.log("TEST INSERT TRIGGERED");
-  const dir = String(direction || "").trim().toLowerCase() === "out" ? "out" : "in";
-  const body = String(text ?? "");
-  const { resetBatchId, canonicalPhone } = await ensureLeadAndConversationForPhone(phone);
-
-  const createdAt = opts.createdAt || new Date().toISOString();
-  const row = {
-    reset_batch_id: resetBatchId,
-    phone: canonicalPhone,
-    body,
-    direction: dir,
-    created_at: createdAt,
-  };
-
-  console.log("INSERT TARGET DB:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log("INSERTING MESSAGE", phone, text);
-
-  const { data, error } = await supabase.schema("public").from("messages").insert([row]).select("id");
-  console.log("INSERT RESULT:", data, error);
   if (error) {
-    console.error(error);
-    console.error("PIPELINE ERROR:", error);
-    log.error("PIPELINE ERROR", { err: error.message, phone: canonicalPhone, direction: dir, code: error.code });
+    console.error("INSERT FAILED:", error);
     throw new Error(error.message);
   }
-  return { data, conversationId: null, resetBatchId, canonicalPhone };
+
+  console.log("INSERT SUCCESS:", data);
+  return { data };
 }
 
 function normalizePhoneForMatch(value) {
