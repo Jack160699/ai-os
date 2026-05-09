@@ -2,18 +2,15 @@ import { createClient } from "@supabase/supabase-js";
 import { withRetry } from "../utils/retry.js";
 import { log } from "../utils/logger.js";
 
-/** Same project as Next.js apps: public URL + service role (server-side only). */
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (url) {
-  console.log("BACKEND NEXT_PUBLIC_SUPABASE_URL:", url);
+/** Server-only: service role bypasses RLS. Do not use NEXT_PUBLIC_SUPABASE_ANON_KEY here. */
+console.log("SERVICE ROLE KEY EXISTS:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  console.log("BACKEND NEXT_PUBLIC_SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 }
-console.log("BACKEND SUPABASE_SERVICE_ROLE_KEY set:", Boolean(key));
 
 const supabase =
-  url && key
-    ? createClient(url, key, {
+  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
         auth: { autoRefreshToken: false, persistSession: false },
         db: { schema: "public" },
       })
@@ -72,16 +69,15 @@ export async function ensureConversationFlow(phone, text, direction, opts = {}) 
     .insert([
       {
         phone: phone || "9999999999",
-        body: text || "TEST MESSAGE",
+        body: text || "FINAL REAL TEST",
         direction: direction || "in",
-        created_at: new Date().toISOString(),
       },
     ])
     .select();
 
   if (error) {
-    console.error("INSERT FAILED:", error);
-    throw new Error(error.message);
+    console.error("INSERT ERROR:", error);
+    throw error;
   }
 
   console.log("INSERT SUCCESS:", data);
