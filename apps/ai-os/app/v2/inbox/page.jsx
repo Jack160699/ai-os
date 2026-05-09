@@ -15,9 +15,33 @@ export default function InboxPage() {
   if (!isClient) return null;
 
   return (
-    <section>
-      <PageHeader page="inbox" />
-      <InboxWorkspace />
-    </section>
+    <>
+      <button
+        onClick={async () => {
+          const res = await fetch("/api/webhook/debug/message-pipeline", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-dashboard-password": process.env.NEXT_PUBLIC_DASHBOARD_PASSWORD || "test",
+            },
+            body: JSON.stringify({
+              phone: "9999999999",
+              text: "BUTTON TEST MESSAGE",
+              direction: "in",
+            }),
+          });
+
+          const data = await res.json();
+          console.log("DEBUG RESULT:", data);
+          alert("Message sent");
+        }}
+      >
+        TEST INSERT
+      </button>
+      <section>
+        <PageHeader page="inbox" />
+        <InboxWorkspace />
+      </section>
+    </>
   );
 }
