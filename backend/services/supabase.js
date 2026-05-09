@@ -73,14 +73,14 @@ export async function ensureConversationFlow(phone, text, direction, opts = {}) 
     .insert([
       {
         phone: "9999999999",
-        body: "REAL FINAL TEST",
+        body: "FINAL CLEAN TEST",
         direction: "in",
       },
     ])
     .select();
 
   if (error) {
-    console.error("INSERT ERROR:", error);
+    console.error("REAL INSERT ERROR:", JSON.stringify(error, null, 2));
     throw error;
   }
 

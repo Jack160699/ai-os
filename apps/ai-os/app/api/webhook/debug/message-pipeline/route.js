@@ -1,37 +1,41 @@
-import { NextResponse } from "next/server";
-import { backendBase } from "@/app/admin/_lib/backendFetch";
+import { createClient } from "@supabase/supabase-js";
 
-export async function POST(req) {
+export const dynamic = "force-dynamic";
+
+export async function POST() {
   try {
-    const body = await req.json();
-    const password = req.headers.get("x-dashboard-password");
+    console.log("DEBUG ROUTE HIT ✅");
 
-    if (password !== process.env.BACKEND_DASHBOARD_PASSWORD) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { phone, text, direction } = body || {};
-    const response = await fetch(`${backendBase()}/api/aiops/debug/message-pipeline`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Dashboard-Password": password,
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: { autoRefreshToken: false, persistSession: false },
+        db: { schema: "public" },
       },
-      body: JSON.stringify({ phone, text, direction }),
-      cache: "no-store",
-    });
+    );
 
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: data?.error || "Debug pipeline failed" },
-        { status: response.status || 500 },
-      );
+    const { data, error } = await supabase
+      .from("messages")
+      .insert([
+        {
+          phone: "9999999999",
+          body: "FORCED INSERT WORKING",
+          direction: "in",
+        },
+      ])
+      .select();
+
+    if (error) {
+      console.error("FORCED INSERT ERROR:", error);
+      throw error;
     }
 
-    return NextResponse.json({ success: true, data });
+    console.log("FORCED INSERT SUCCESS:", data);
+
+    return Response.json({ success: true, data });
   } catch (err) {
-    console.error("DEBUG PIPELINE ERROR:", err);
-    return NextResponse.json({ error: err?.message || "unknown_error" }, { status: 500 });
+    console.error("ROUTE ERROR:", err);
+    return Response.json({ error: err?.message || String(err) }, { status: 500 });
   }
 }
