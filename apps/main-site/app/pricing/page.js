@@ -1,11 +1,6 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata = {
-  title: "Pricing — Stratxcel",
-};
-
+/** Old /pricing URL — conversations only, no checkout. */
 export default function PricingPage() {
-  // Single-page site: keep this route for compatibility and forward to the section.
-  // (No payment logic changes.)
-  redirect("/#pricing");
+  permanentRedirect("/contact");
 }

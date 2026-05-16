@@ -67,7 +67,7 @@ export function LanguagePreferenceProvider({ children }) {
     window.clearTimeout(closeTimerRef.current);
     closeTimerRef.current = window.setTimeout(() => {
       setOverlayOpen(false);
-    }, 320);
+    }, 260);
   }, []);
 
   const commitChoice = useCallback(
@@ -158,9 +158,6 @@ export function LanguagePreferenceProvider({ children }) {
     finishClose();
   }, [allowDismiss, finishClose]);
 
-  const reduceMotion =
-    typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-
   const ctx = {
     experience: hydrated ? experience : null,
     openLanguageSelector,
@@ -173,20 +170,20 @@ export function LanguagePreferenceProvider({ children }) {
       {children}
       {overlayOpen ? (
         <div
-          className="fixed inset-0 z-[220] flex items-end justify-center sm:items-center sm:p-6"
+          className="fixed inset-0 z-[220] flex items-end justify-center sm:items-center sm:p-5"
           role="presentation"
         >
+          {/* Light veil — homepage stays visible with subtle blur */}
           <div
             role={allowDismiss ? "button" : undefined}
             tabIndex={allowDismiss ? 0 : -1}
             aria-label={allowDismiss ? "Close language selection" : undefined}
             className={[
-              "absolute inset-0 bg-black/50 transition-[opacity,backdrop-filter] duration-300 ease-out motion-reduce:transition-none",
-              reduceMotion ? "backdrop-blur-md" : "backdrop-blur-xl",
+              "absolute inset-0 bg-stone-100/50 transition-opacity duration-200 ease-out motion-reduce:transition-none",
+              "backdrop-blur-[4px] sm:backdrop-blur-[6px] motion-reduce:backdrop-blur-none",
               visualEnter ? "opacity-100" : "opacity-0",
               allowDismiss ? "cursor-pointer" : "cursor-default",
             ].join(" ")}
-            style={{ WebkitBackdropFilter: reduceMotion ? "blur(12px)" : "blur(28px)" }}
             onClick={onBackdropPointerDown}
             onKeyDown={(e) => {
               if (!allowDismiss) return;
@@ -199,9 +196,9 @@ export function LanguagePreferenceProvider({ children }) {
 
           <div
             className={[
-              "relative z-10 mx-auto w-full max-w-[min(100%,26rem)] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 sm:px-0 sm:pb-0 sm:pt-0",
-              "transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-              visualEnter ? "translate-y-0 opacity-100 sm:scale-100" : "translate-y-3 opacity-0 sm:translate-y-1 sm:scale-[0.98]",
+              "relative z-10 mx-auto w-full max-w-[min(100%,24rem)] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1 sm:px-0 sm:pb-0 sm:pt-0",
+              "transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none",
+              visualEnter ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0 sm:translate-y-1",
             ].join(" ")}
             role="dialog"
             aria-modal="true"
@@ -210,60 +207,63 @@ export function LanguagePreferenceProvider({ children }) {
           >
             <div
               className={[
-                "relative overflow-hidden rounded-[1.35rem] border border-white/[0.11] p-6 shadow-[0_0_0_1px_rgba(0,0,0,0.55)_inset,0_32px_80px_-40px_rgba(0,0,0,0.85),0_0_100px_-48px_rgba(59,130,246,0.18)] sm:rounded-[1.5rem] sm:p-8",
-                "bg-[linear-gradient(168deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.03)_40%,rgba(11,15,25,0.88)_100%)]",
-                "backdrop-blur-2xl backdrop-saturate-150",
+                "relative overflow-hidden rounded-t-[1.75rem] border border-white/70 sm:rounded-[2rem]",
+                "bg-white/85 p-7 shadow-[0_32px_64px_-28px_rgba(28,25,23,0.14),0_0_0_1px_rgba(255,255,255,0.85)_inset]",
+                "backdrop-blur-sm sm:p-9 sm:backdrop-blur-md",
               ].join(" ")}
             >
+              {/* Very soft warmth behind content — not a heavy scene */}
               <div
-                className="pointer-events-none absolute -left-1/4 top-0 h-[55%] w-[70%] rounded-full bg-sky-500/[0.07] blur-3xl"
+                className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-amber-100/35 blur-3xl"
                 aria-hidden
               />
               <div
-                className="pointer-events-none absolute -right-1/5 bottom-0 h-[45%] w-[55%] rounded-full bg-indigo-500/[0.05] blur-3xl"
+                className="pointer-events-none absolute -bottom-20 -left-16 h-44 w-44 rounded-full bg-stone-200/40 blur-3xl"
                 aria-hidden
               />
 
               <div className="relative text-center">
                 <h2
                   id={titleId}
-                  className="text-balance text-[1.35rem] font-semibold leading-snug tracking-[-0.035em] text-[#F4F4F5] sm:text-[1.5rem]"
+                  className="text-balance text-[1.45rem] font-semibold leading-snug tracking-[-0.03em] text-stone-900 sm:text-[1.55rem]"
                 >
-                  Let&apos;s keep things simple.
+                  Bas simple rakhte hain.
                 </h2>
                 <p
                   id={descId}
-                  className="mx-auto mt-3 max-w-[32ch] text-[14px] leading-relaxed text-zinc-400 sm:text-[15px]"
+                  className="mx-auto mt-3 max-w-[34ch] text-[15px] leading-relaxed text-stone-500 sm:text-[16px]"
                 >
-                  Choose the experience that feels most comfortable to you.
+                  Jo bhasha theek lage, woh chuno.
                 </p>
 
-                <div className="mt-8 flex flex-col gap-3">
+                <div className="mt-9 flex flex-col gap-3 sm:mt-10">
+                  {/* Primary: warm, approachable, human */}
                   <button
                     ref={primaryRef}
                     type="button"
                     className={[
-                      "group relative w-full rounded-2xl border border-sky-400/35 bg-[#0B0F19]/90 px-5 py-4 text-center transition-[transform,box-shadow,border-color] duration-300 ease-out motion-reduce:transition-none",
-                      "shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset,0_0_64px_-20px_rgba(59,130,246,0.45),0_20px_48px_-28px_rgba(0,0,0,0.65)]",
-                      "hover:border-sky-400/50 hover:shadow-[0_0_0_1px_rgba(147,197,253,0.15)_inset,0_0_72px_-16px_rgba(59,130,246,0.55),0_24px_56px_-26px_rgba(0,0,0,0.72)]",
-                      "active:translate-y-px",
+                      "w-full rounded-2xl border border-amber-200/40 px-5 py-[1.05rem] text-center shadow-[0_1px_0_rgba(255,250,245,0.24)_inset,0_14px_36px_-14px_rgba(62,48,38,0.28)] transition-[transform,box-shadow,filter] duration-200 ease-out motion-reduce:transition-none",
+                      "bg-gradient-to-br from-[#5a4c42] via-[#453a33] to-[#342e29] hover:brightness-[1.04] hover:shadow-[0_1px_0_rgba(255,250,245,0.3)_inset,0_18px_40px_-12px_rgba(62,48,38,0.32)]",
+                      "active:translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white/90",
                     ].join(" ")}
                     onClick={() => commitChoice(LANGUAGE_HINGLISH)}
                   >
-                    <span className="block text-[15px] font-semibold tracking-[-0.02em] text-[#E5E7EB] sm:text-[16px]">
-                      Hindi + English (Easy to Understand)
+                    <span className="block text-[15px] font-semibold leading-snug tracking-[-0.018em] text-[#faf6f1] sm:text-[16px]">
+                      Hindi + English — seedhi, simple baat
                     </span>
                   </button>
 
+                  {/* Secondary: clean, premium, lighter */}
                   <button
                     type="button"
                     className={[
-                      "w-full rounded-2xl border border-white/[0.14] bg-white/[0.04] px-5 py-3.5 text-[14px] font-semibold tracking-[-0.015em] text-zinc-200 transition-[transform,background-color,border-color] duration-300 ease-out motion-reduce:transition-none",
-                      "hover:border-white/22 hover:bg-white/[0.07] active:translate-y-px",
+                      "w-full rounded-2xl border border-stone-200/95 bg-white/65 px-5 py-3.5 text-[14px] font-medium tracking-[-0.01em] text-stone-700 shadow-sm transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
+                      "hover:border-stone-300 hover:bg-white hover:shadow-md",
+                      "active:translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white/90",
                     ].join(" ")}
                     onClick={() => commitChoice(LANGUAGE_ENGLISH)}
                   >
-                    Continue in English
+                    Sirf English mein
                   </button>
                 </div>
               </div>

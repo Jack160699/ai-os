@@ -93,12 +93,11 @@ Deployments clone **whatever Git repository is connected to the Vercel project**
 | Public AI marketing | `apps/ai-marketing` |
 | Demo portfolio | `apps/demo-site` |
 
-Leave **Root Directory empty** only if you intend to deploy **main site** using the repository root `vercel.json` (see below). For AI OS, marketing, or demos, **always** set the matching `apps/...` path.
+For these frontends, set the matching **`apps/...`** Root Directory (this repo does not ship a root `vercel.json` for empty-root deploys).
 
 **Step 3 — `vercel.json` behavior**
 
-- **Repository root** `vercel.json`: when Root Directory is empty (`.`), install runs at repo root and the build runs `turbo` for **`@stratxcel/main-site`** with output `apps/main-site/.next`.
-- **Per app** `apps/<name>/vercel.json`: when Root Directory is `apps/<name>`, install/build use `cd ../..` so `npm install` and `turbo` run from the **monorepo root** (workspace packages resolve).
+- When Root Directory is `apps/<name>`, each app’s `vercel.json` should use plain **`npm install`** and **`npm run build`** in that directory. Do **not** set the Vercel **Install Command** override to `cd ../.. && npm install`: Vercel already runs an install for the project, and a second install from the repo root can overlap and trigger **`npm error Tracker "idealTree" already exists`**. The full monorepo is cloned, so `file:../../packages/...` dependencies still resolve.
 
 **Step 4 — Turbo filter ↔ `package.json` name**
 
@@ -115,7 +114,7 @@ Per app: e.g. `NEXT_PUBLIC_API_URL`, `ADMIN_DASHBOARD_PASSWORD`, `BOT_API_URL`, 
 
 **Step 6 — Redeploy**
 
-Trigger a new deployment after Git and Root Directory changes so logs show the correct clone URL and app path.
+Trigger a new deployment after Git and Root Directory changes so logs show the correct clone URL and app path. In **Settings → General → Build & Development Settings**, clear any **Install Command** override (or set it exactly to `npm install`) so it does not duplicate or conflict with `vercel.json`.
 
 ### Backend (VPS / Render / Railway / Docker-ready path)
 

@@ -10,21 +10,21 @@ const geistSans = Geist({
 });
 
 export const metadata = {
-  title: "Stratxcel — Revenue systems for serious businesses",
+  title: "Stratxcel — Grow your business online",
   description:
-    "Stratxcel designs and ships revenue systems: AI, automation, and operating infrastructure for operators who need execution, not noise.",
+    "Calm help with websites, marketing, and your online presence. Message us on WhatsApp — real people, straight answers.",
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#000000",
+  themeColor: "#f5f2eb",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="min-h-full bg-black text-[#E5E7EB]">
+      <body className="min-h-full bg-[var(--sx-canvas)] text-[var(--sx-ink)]">
         <SiteShell>{children}</SiteShell>
       </body>
     </html>

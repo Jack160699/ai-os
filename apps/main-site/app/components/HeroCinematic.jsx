@@ -8,11 +8,11 @@ import {
   useLanguagePreference,
 } from "./LanguagePreferenceProvider";
 
-const ctaPrimaryClass =
-  "sx-cta-primary inline-flex min-h-[52px] w-full items-center justify-center rounded-full border border-sky-500/32 bg-[#0B0F19]/95 px-6 text-[14px] font-semibold tracking-[-0.016em] text-[#E5E7EB] transition-[transform,box-shadow,border-color] duration-300 ease-out active:translate-y-0 sm:w-auto sm:min-w-[13.5rem]";
+const waPrimaryClass =
+  "inline-flex min-h-[50px] w-full items-center justify-center gap-2 rounded-full bg-[#1a7f4a] px-5 text-[15px] font-semibold tracking-[-0.02em] text-white shadow-[0_1px_0_rgba(255,255,255,0.12)_inset,0_8px_24px_-8px_rgba(22,101,52,0.55)] transition-[transform,box-shadow,filter] duration-200 ease-out hover:brightness-[1.03] hover:shadow-[0_1px_0_rgba(255,255,255,0.14)_inset,0_12px_28px_-10px_rgba(22,101,52,0.6)] active:translate-y-px sm:w-auto sm:min-w-[13.5rem]";
 
-const ctaSecondaryClass =
-  "inline-flex min-h-[52px] w-full items-center justify-center rounded-full border border-white/[0.16] bg-white/[0.05] px-6 text-[14px] font-semibold tracking-[-0.016em] text-[#E5E7EB] shadow-[0_1px_0_rgba(255,255,255,0.06)_inset] backdrop-blur-md transition-[transform,background-color,border-color] duration-300 ease-out hover:border-white/22 hover:bg-white/[0.08] active:translate-y-0 sm:w-auto sm:min-w-[13.5rem]";
+const secondaryClass =
+  "inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-stone-300/90 bg-white/90 px-5 text-[14.5px] font-semibold tracking-[-0.015em] text-stone-800 shadow-sm transition-[transform,box-shadow,border-color,background-color] duration-200 ease-out hover:border-stone-400 hover:bg-white active:translate-y-px sm:w-auto sm:min-w-[11rem]";
 
 function waHref(prefill) {
   const digits = String(CONTACT.whatsapp || "").replace(/[^\d]/g, "");
@@ -20,18 +20,27 @@ function waHref(prefill) {
   return `https://wa.me/${digits}${q}`;
 }
 
-function HeroVisualSide() {
+function HeroGrowthVisual({ isHinglish }) {
+  const summary = isHinglish
+    ? "Website, marketing, online help"
+    : "Websites · Marketing · Online help";
   return (
     <div
-      className="relative mx-auto flex w-full max-w-[min(100%,22rem)] flex-1 items-center justify-center lg:mx-0 lg:max-w-none lg:justify-end"
+      className="relative mx-auto w-full max-w-[17rem] rounded-2xl border border-stone-200/90 bg-gradient-to-b from-white to-stone-50/90 p-6 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_18px_48px_-28px_rgba(41,37,36,0.18)] sm:max-w-[19rem] sm:p-7 lg:mx-0"
       aria-hidden
     >
-      <div className="relative aspect-[5/4] w-full max-w-[20rem] sm:max-w-[22rem] lg:aspect-square lg:max-w-[min(100%,26rem)]">
-        <div className="sx-hero-visual-drift absolute inset-[4%] rounded-[2rem] border border-white/[0.07] bg-[radial-gradient(ellipse_at_30%_20%,rgba(59,130,246,0.12),transparent_55%),radial-gradient(ellipse_at_78%_72%,rgba(99,102,241,0.1),transparent_50%),linear-gradient(165deg,rgba(255,255,255,0.04),rgba(11,15,25,0.5))] shadow-[0_0_0_1px_rgba(0,0,0,0.45)_inset]" />
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[42%] w-[42%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-400/10 blur-[48px]" />
-        <div className="pointer-events-none absolute bottom-[18%] right-[12%] h-[28%] w-[38%] rounded-full bg-indigo-500/10 blur-[40px]" />
-        <div className="absolute inset-0 rounded-[2rem] border border-white/[0.04]" />
+      <div className="flex h-[7.5rem] items-end justify-center gap-2 sm:h-[8rem] sm:gap-2.5">
+        <div className="flex h-full w-[26%] max-w-[3.25rem] items-end">
+          <div className="h-[48%] w-full rounded-lg bg-stone-300/95" />
+        </div>
+        <div className="flex h-full w-[26%] max-w-[3.25rem] items-end">
+          <div className="h-[78%] w-full rounded-lg bg-stone-400/90" />
+        </div>
+        <div className="flex h-full w-[26%] max-w-[3.25rem] items-end">
+          <div className="h-[58%] w-full rounded-lg bg-stone-300/95" />
+        </div>
       </div>
+      <p className="mt-5 text-center text-[13px] font-medium leading-snug text-stone-600">{summary}</p>
     </div>
   );
 }
@@ -44,84 +53,65 @@ export function HeroCinematic() {
 
   const copy = isHinglish
     ? {
-        headline: (
-          <>
-            Business grow karna hai?
-            <br />
-            <span className="text-zinc-100">Hum online setup easy bana dete hain.</span>
-          </>
-        ),
-        sub:
-          "Website, ads, automation aur branding — sab kuch simple aur effective way mein.",
-        cta1: "Free Strategy Call",
-        cta2: "WhatsApp Pe Baat Karein",
-        trust: "Asli team · Seedha jawab · India ke liye",
-        waNote: "Hi — mujhe StratXcel pe free strategy call book karni hai.",
+        headline: "Business online grow karna hai?",
+        sub: "Website, marketing, aur baaki online cheezein — hum simple tarike se karte hain.",
+        wa: "WhatsApp pe baat karein",
+        start: "Apne business ki baat karein",
+        waNote: "Hi, StratXcel se baat karni hai. Mera business: ",
+        trust: "Seedhi baat · Asli log",
       }
     : {
-        headline: "We help businesses grow with modern digital systems.",
-        sub: "Websites, automation, branding, and marketing designed to simplify growth.",
-        cta1: "Book Free Strategy Call",
-        cta2: "Chat on WhatsApp",
-        trust: "Real people · Straight answers · Built for India",
-        waNote: "Hi — I'd like a free strategy call with StratXcel.",
+        headline: "Grow your business online without the confusion.",
+        sub: "Websites, marketing, and the online work that helps you grow — explained simply.",
+        wa: "Chat on WhatsApp",
+        start: "Let's talk about your business",
+        waNote: "Hi — I'd like to chat with StratXcel about growing my business online.",
+        trust: "Straight answers · Real people",
       };
 
   return (
     <section
       id="hero-cinematic"
-      className="relative z-10 overflow-hidden bg-transparent pb-12 pt-[calc(var(--sx-nav-h)+1.25rem)] sm:pb-16 sm:pt-[calc(var(--sx-nav-h)+1.75rem)] lg:min-h-[min(100svh,56rem)] lg:pb-20 lg:pt-[calc(var(--sx-nav-h)+2rem)]"
+      className="relative z-10 overflow-hidden bg-transparent pb-8 pt-[calc(var(--sx-nav-h)+0.75rem)] sm:pb-9 sm:pt-[calc(var(--sx-nav-h)+1rem)]"
       aria-labelledby="hero-heading"
     >
-      <div
-        className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-black via-black/35 to-black lg:bg-gradient-to-r lg:from-black lg:via-black/55 lg:to-transparent"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[min(28vh,280px)] bg-gradient-to-t from-black via-black/40 to-transparent lg:left-[42%] lg:h-auto lg:bg-gradient-to-l lg:from-transparent lg:via-black/25 lg:to-black/75"
-        aria-hidden
-      />
-
       <div className="relative z-10 mx-auto w-full max-w-[var(--sx-max)] px-[var(--sx-gutter)]">
-        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)] lg:gap-12 xl:gap-16">
-          <div className="sx-hero-soft-in order-1 max-w-xl lg:order-none">
-            <div className="rounded-2xl border border-white/[0.08] bg-black/35 p-6 backdrop-blur-md sm:p-8 lg:border-transparent lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
-              <h1
-                id="hero-heading"
-                className="text-balance text-center text-[1.65rem] font-semibold leading-[1.12] tracking-[-0.034em] text-zinc-200 sm:text-[1.85rem] sm:leading-[1.1] lg:text-left lg:text-[clamp(1.85rem,2.4vw,2.35rem)] lg:leading-[1.08]"
-                suppressHydrationWarning
-              >
-                {copy.headline}
-              </h1>
-              <p
-                className="mx-auto mt-4 max-w-[40ch] text-center text-[15px] leading-relaxed text-zinc-400 sm:text-[16px] lg:mx-0 lg:text-left"
-                suppressHydrationWarning
-              >
-                {copy.sub}
-              </p>
+        <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:gap-12 xl:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
+          <div className="max-w-xl lg:max-w-none lg:pr-4">
+            <h1
+              id="hero-heading"
+              className="text-balance text-[1.5rem] font-semibold leading-[1.18] tracking-[-0.032em] text-stone-900 sm:text-[1.65rem] sm:leading-[1.14] lg:text-[1.85rem]"
+              suppressHydrationWarning
+            >
+              {copy.headline}
+            </h1>
+            <p
+              className="mt-3 max-w-[40ch] text-[15px] leading-snug text-stone-600 sm:mt-3.5 sm:text-[16px] sm:leading-relaxed lg:max-w-[46ch]"
+              suppressHydrationWarning
+            >
+              {copy.sub}
+            </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start">
-                <Link href="/#contact" className={ctaPrimaryClass}>
-                  {copy.cta1}
-                </Link>
-                <a
-                  href={waHref(copy.waNote)}
-                  className={ctaSecondaryClass}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {copy.cta2}
-                </a>
-              </div>
-
-              <p className="mt-5 text-center text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500 lg:text-left">
-                {copy.trust}
-              </p>
+            <div className="mt-6 flex flex-col gap-2.5 sm:mt-7 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+              <a
+                href={waHref(copy.waNote)}
+                className={waPrimaryClass}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {copy.wa}
+              </a>
+              <Link href="/contact" className={secondaryClass}>
+                {copy.start}
+              </Link>
             </div>
+            <p className="mt-3 text-[12px] text-stone-500 sm:mt-3.5" suppressHydrationWarning>
+              {copy.trust}
+            </p>
           </div>
 
-          <div className="order-2 lg:order-none">
-            <HeroVisualSide />
+          <div className="flex justify-center lg:justify-end">
+            <HeroGrowthVisual isHinglish={isHinglish} />
           </div>
         </div>
       </div>

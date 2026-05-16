@@ -10,7 +10,7 @@ export default function InsightsPage() {
     <PageLayout title="Insights" eyebrow="Explore">
       <p>Practical notes on growth, brand, and operations are on the way.</p>
       <p className="mt-6">
-        <Link href="/#contact" className="font-medium text-sky-300/90 underline-offset-4 hover:underline">
+        <Link href="/contact" className="font-medium text-stone-800 underline-offset-4 transition-colors hover:text-stone-950 hover:underline">
           Tell us what you want to read first
         </Link>
         .

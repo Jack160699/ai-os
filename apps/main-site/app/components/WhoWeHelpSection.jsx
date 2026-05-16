@@ -17,9 +17,9 @@ export function WhoWeHelpSection() {
       <SectionReveal>
         <div className="sx-container">
           <header className="max-w-2xl">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Who We Help</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">Who We Help</p>
             <h2 className="sx-heading-space mt-3 text-balance">If this sounds like you, you&apos;re in the right place.</h2>
-            <p className="sx-prose-space sx-prose-space--wide mt-4 text-zinc-500">
+            <p className="sx-prose-space sx-prose-space--wide mt-4 text-stone-600">
               Find your fit — we shape websites, ads, and follow-ups around how your business actually runs.
             </p>
           </header>
@@ -28,13 +28,13 @@ export function WhoWeHelpSection() {
             {AUDIENCES.map((label) => (
               <li key={label}>
                 <article
-                  className="group flex h-full min-h-[5.5rem] flex-col justify-center rounded-2xl border border-white/[0.08] bg-[#0B0F19]/40 px-4 py-5 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,0,0,0.42)_inset] transition-[border-color,box-shadow,transform,background-color] duration-300 ease-out sm:min-h-[6rem] sm:px-5 sm:py-6 lg:px-6 lg:py-7 hover:-translate-y-0.5 hover:border-white/[0.14] hover:bg-[#0B0F19]/55 hover:shadow-[0_0_0_1px_rgba(59,130,246,0.12)_inset,0_20px_48px_-28px_rgba(0,0,0,0.65)]"
+                  className="group flex h-full min-h-[5.5rem] flex-col justify-center rounded-2xl border border-stone-200/90 bg-white/95 px-4 py-5 shadow-sm transition-[border-color,box-shadow,transform,background-color] duration-300 ease-out sm:min-h-[6rem] sm:px-5 sm:py-6 lg:px-6 lg:py-7 hover:-translate-y-0.5 hover:border-stone-300 hover:bg-white hover:shadow-md"
                 >
                   <span
-                    className="mb-2 block h-px w-6 rounded-full bg-gradient-to-r from-sky-400/50 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-100"
+                    className="mb-2 block h-px w-6 rounded-full bg-gradient-to-r from-stone-400/60 to-transparent opacity-70 transition-opacity duration-300 group-hover:opacity-100"
                     aria-hidden
                   />
-                  <h3 className="text-[14px] font-semibold leading-snug tracking-[-0.02em] text-zinc-100 sm:text-[15px] lg:text-[15px]">
+                  <h3 className="text-[14px] font-semibold leading-snug tracking-[-0.02em] text-stone-900 sm:text-[15px] lg:text-[15px]">
                     {label}
                   </h3>
                 </article>

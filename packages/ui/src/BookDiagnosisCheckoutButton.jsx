@@ -4,14 +4,14 @@ import { useCallback, useMemo, useState } from "react";
 import Script from "next/script";
 import { checkoutFetch, parseCheckoutJson } from "@stratxcel/payments";
 
-const DEFAULT_BRAND = "#1E3A8A";
-const DEFAULT_ACCENT = "#3B82F6";
+const DEFAULT_BRAND = "#292524";
+const DEFAULT_ACCENT = "#44403c";
 
 function baseBtnClasses(disabled) {
   const disabledCls = disabled
     ? "cursor-not-allowed opacity-70"
-    : "hover:brightness-110 motion-safe:hover:-translate-y-px hover:shadow-[0_0_0_1px_rgba(191,219,254,0.55),0_20px_52px_-14px_rgba(37,99,235,0.65)]";
-  return `inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-full px-6 text-[14px] font-semibold tracking-tight text-white shadow-[0_12px_34px_-12px_rgba(30,58,138,0.58)] ring-1 ring-blue-200/40 transition-[transform,box-shadow,filter] duration-200 ease-out sm:w-auto sm:px-7 ${disabledCls}`;
+    : "hover:brightness-[1.03] motion-safe:hover:-translate-y-px hover:shadow-[0_1px_0_rgb(255_255_255_0.12)_inset,0_16px_40px_-14px_rgb(28_25_23_/_0.22)]";
+  return `inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-full px-6 text-[14px] font-semibold tracking-tight text-stone-50 shadow-[0_12px_32px_-14px_rgb(28_25_23_/_0.25)] ring-1 ring-stone-700/30 transition-[transform,box-shadow,filter] duration-200 ease-out sm:w-auto sm:px-7 ${disabledCls}`;
 }
 
 function friendlyError(data, status) {
@@ -213,7 +213,7 @@ export function BookDiagnosisCheckoutButton({
         >
           {busy ? "Opening checkout…" : buttonLabel}
         </button>
-        {showUpiHint ? <p className="mt-2 text-xs text-blue-700">Use UPI for fastest checkout.</p> : null}
+        {showUpiHint ? <p className="mt-2 text-xs text-stone-600">Use UPI for fastest checkout.</p> : null}
         {busy && !status ? (
           <p className="mt-3 text-sm text-slate-500" role="status">
             Connecting to secure payment…
@@ -231,7 +231,7 @@ export function BookDiagnosisCheckoutButton({
           <button
             type="button"
             onClick={() => openCheckout(lastOrder)}
-            className="mt-3 inline-flex items-center justify-center rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+            className="mt-3 inline-flex items-center justify-center rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50"
           >
             Retry payment
           </button>

@@ -10,7 +10,7 @@ export default function NewsPage() {
     <PageLayout title="News" eyebrow="Explore">
       <p>Company updates and announcements will appear here.</p>
       <p className="mt-6">
-        <Link href="/#contact" className="font-medium text-sky-300/90 underline-offset-4 hover:underline">
+        <Link href="/contact" className="font-medium text-stone-800 underline-offset-4 transition-colors hover:text-stone-950 hover:underline">
           Contact the team
         </Link>{" "}
         for press or partnerships.

@@ -2,15 +2,34 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { URLS } from "@stratxcel/config";
-import { useLanguagePreference } from "./LanguagePreferenceProvider";
+import { CONTACT, URLS } from "@stratxcel/config";
+import {
+  getStoredLanguageExperience,
+  LANGUAGE_HINGLISH,
+  useLanguagePreference,
+} from "./LanguagePreferenceProvider";
 import { StratxcelBrand } from "./StratxcelBrand";
 
 const MAIN_NAV = [
   { label: "Home", href: "/" },
-  { label: "Services", href: "/#services" },
-  { label: "Contact", href: "/#contact" },
+  { label: "What we help", href: "/#what-we-help" },
+  { label: "Contact", href: "/contact" },
 ];
+
+const MAIN_NAV_HI = [
+  { label: "Home", href: "/" },
+  { label: "Kya karte hain", href: "/#what-we-help" },
+  { label: "Contact", href: "/contact" },
+];
+
+function navWhatsAppHref(isHinglish) {
+  const digits = String(CONTACT.whatsapp || "").replace(/[^\d]/g, "");
+  if (!digits) return "/#final-cta";
+  const text = isHinglish
+    ? "Hi, main StratXcel site pe hoon. Baat karni hai."
+    : "Hi — I'm on the StratXcel site and want to chat.";
+  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+}
 
 function caseStudiesUrl() {
   const base = String(URLS.aiMarketing || "https://stratxcel.ai").replace(/\/+$/, "");
@@ -48,7 +67,11 @@ function NavItem({ href, external, className, children, onNavigate }) {
 }
 
 export function Navbar() {
-  const { openLanguageSelector } = useLanguagePreference();
+  const { experience, openLanguageSelector } = useLanguagePreference();
+  const stored = getStoredLanguageExperience();
+  const isHinglish =
+    experience != null ? experience === LANGUAGE_HINGLISH : stored === LANGUAGE_HINGLISH;
+  const mainNav = isHinglish ? MAIN_NAV_HI : MAIN_NAV;
   const [menuOpen, setMenuOpen] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -82,25 +105,25 @@ export function Navbar() {
   }, [menuOpen, exploreOpen]);
 
   const headerSurface = scrolled
-    ? "border-b border-white/[0.07] bg-black/82 shadow-[0_20px_56px_-28px_rgba(0,0,0,0.82),0_1px_0_rgba(255,255,255,0.05)_inset] backdrop-blur-2xl backdrop-saturate-150"
-    : "border-b border-transparent bg-black/40 backdrop-blur-xl";
+    ? "border-b border-stone-200/90 bg-white/80 shadow-[0_12px_40px_-28px_rgb(28_25_23_/_0.08)] backdrop-blur-md"
+    : "border-b border-transparent bg-white/45 backdrop-blur-md";
 
   const mainLinkClass =
-    "py-1 text-[13px] font-medium tracking-[-0.015em] text-zinc-400 transition-[color,text-shadow] duration-300 ease-out hover:text-white hover:[text-shadow:0_0_14px_rgba(147,197,253,0.18)]";
+    "py-1 text-[13px] font-medium tracking-[-0.015em] text-stone-600 transition-colors duration-300 ease-out hover:text-stone-900";
 
   const exploreLinkClass =
-    "flex min-h-[48px] items-center text-[14px] font-medium tracking-[-0.015em] text-zinc-300 transition-colors duration-200 hover:text-white";
+    "flex min-h-[48px] items-center text-[14px] font-medium tracking-[-0.015em] text-stone-700 transition-colors duration-200 hover:text-stone-900";
 
-  const exploreHeading = "text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-600";
+  const exploreHeading = "text-[10px] font-semibold uppercase tracking-[0.22em] text-stone-500";
 
   const ctaDesktopClass =
-    "sx-cta-primary inline-flex h-[40px] min-h-[44px] items-center justify-center rounded-full border border-sky-500/30 bg-[#0B0F19]/95 px-[1.15rem] text-[13px] font-semibold tracking-[-0.01em] text-[#E5E7EB] active:scale-[0.98]";
+    "sx-cta-primary inline-flex h-[40px] min-h-[44px] items-center justify-center rounded-full border border-stone-800/25 bg-stone-900 px-[1.15rem] text-[13px] font-semibold tracking-[-0.01em] text-stone-50 active:scale-[0.98]";
 
   const exploreBtnClass =
-    "inline-flex h-10 items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.04] px-3.5 text-[13px] font-medium tracking-[-0.01em] text-zinc-300 transition-[border-color,background-color,color] duration-300 hover:border-white/18 hover:bg-white/[0.07] hover:text-white";
+    "inline-flex h-10 items-center gap-1.5 rounded-full border border-stone-300/90 bg-white/80 px-3.5 text-[13px] font-medium tracking-[-0.01em] text-stone-700 shadow-sm transition-[border-color,background-color,color] duration-300 hover:border-stone-400 hover:bg-white hover:text-stone-900";
 
   const menuBtnClass =
-    "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/16 bg-white/[0.07] text-zinc-100 backdrop-blur-md transition-[background-color,border-color] duration-300 hover:border-white/26 hover:bg-white/[0.12] active:scale-[0.97] lg:hidden";
+    "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-stone-300/90 bg-white/90 text-stone-800 shadow-sm transition-[background-color,border-color] duration-300 hover:border-stone-400 hover:bg-white active:scale-[0.97] lg:hidden";
 
   return (
     <>
@@ -114,7 +137,7 @@ export function Navbar() {
           <StratxcelBrand tone="hero" />
 
           <nav className="hidden items-center gap-7 lg:flex" aria-label="Primary">
-            {MAIN_NAV.map((item) => (
+            {mainNav.map((item) => (
               <NavItem key={item.href} href={item.href} external={false} className={mainLinkClass}>
                 {item.label}
               </NavItem>
@@ -129,17 +152,22 @@ export function Navbar() {
               className={exploreBtnClass}
               onClick={() => setExploreOpen((v) => !v)}
             >
-              Explore
-              <span className="text-[10px] text-zinc-500" aria-hidden>
+              {isHinglish ? "Aur padhein" : "Explore"}
+              <span className="text-[10px] text-stone-500" aria-hidden>
                 {exploreOpen ? "▾" : "▸"}
               </span>
             </button>
             <button type="button" className={mainLinkClass} onClick={() => openLanguageSelector()}>
-              Language
+              {isHinglish ? "Bhasha" : "Language"}
             </button>
-            <Link href="/#pricing" className={ctaDesktopClass}>
-              Request Diagnosis
-            </Link>
+            <a
+              href={navWhatsAppHref(isHinglish)}
+              className={ctaDesktopClass}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              WhatsApp
+            </a>
           </div>
 
           <button
@@ -188,7 +216,7 @@ export function Navbar() {
           tabIndex={exploreOpen ? 0 : -1}
           aria-label="Close explore menu"
           className={[
-            "absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300",
+            "absolute inset-0 bg-stone-900/20 backdrop-blur-[2px] transition-opacity duration-300",
             exploreOpen ? "opacity-100" : "opacity-0",
           ].join(" ")}
           onClick={() => setExploreOpen(false)}
@@ -196,16 +224,16 @@ export function Navbar() {
         <aside
           id="explore-drawer"
           className={[
-            "absolute right-0 top-0 flex h-full w-[min(100%,20rem)] flex-col border-l border-white/[0.08] bg-[#0B0F19]/98 shadow-[-24px_0_64px_-24px_rgba(0,0,0,0.85)] backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            "absolute right-0 top-0 flex h-full w-[min(100%,20rem)] flex-col border-l border-stone-200/90 bg-[var(--sx-surface)] shadow-[-12px_0_40px_-24px_rgb(28_25_23_/_0.12)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
             exploreOpen ? "translate-x-0" : "translate-x-full",
           ].join(" ")}
         >
-          <div className="flex h-[var(--sx-nav-h)] items-center justify-between border-b border-white/[0.08] px-5">
-            <p className={exploreHeading}>Explore</p>
+          <div className="flex h-[var(--sx-nav-h)] items-center justify-between border-b border-stone-200/80 px-5">
+            <p className={exploreHeading}>{isHinglish ? "Aur padhein" : "Explore"}</p>
             <button
               type="button"
               aria-label="Close"
-              className="rounded-full p-2 text-zinc-500 transition hover:bg-white/[0.06] hover:text-white"
+              className="rounded-full p-2 text-stone-500 transition hover:bg-stone-100 hover:text-stone-800"
               onClick={() => setExploreOpen(false)}
             >
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
@@ -216,7 +244,7 @@ export function Navbar() {
           <nav className="flex-1 overflow-y-auto px-5 py-6" aria-label="Explore">
             <ul className="flex flex-col gap-0.5">
               {EXPLORE_NAV.map((item) => (
-                <li key={item.label} className="border-b border-white/[0.05]">
+                <li key={item.label} className="border-b border-stone-200/70">
                   <NavItem
                     href={item.href}
                     external={item.external}
@@ -244,7 +272,7 @@ export function Navbar() {
           tabIndex={menuOpen ? 0 : -1}
           aria-label="Close menu"
           className={[
-            "absolute inset-0 bg-black/55 backdrop-blur-[3px] transition-opacity duration-300",
+            "absolute inset-0 bg-stone-900/25 backdrop-blur-[2px] transition-opacity duration-300",
             menuOpen ? "opacity-100" : "opacity-0",
           ].join(" ")}
           onClick={() => setMenuOpen(false)}
@@ -252,17 +280,17 @@ export function Navbar() {
         <div
           id="mobile-nav-panel"
           className={[
-            "absolute inset-0 flex flex-col bg-[#0B0F19] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            "absolute inset-0 flex flex-col bg-[var(--sx-surface)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
             menuOpen ? "translate-x-0" : "translate-x-full",
           ].join(" ")}
         >
-          <div className="flex h-[var(--sx-nav-h)] items-center justify-between border-b border-white/[0.08] px-[var(--sx-gutter)]">
+          <div className="flex h-[var(--sx-nav-h)] items-center justify-between border-b border-stone-200/80 px-[var(--sx-gutter)]">
             <StratxcelBrand tone="hero" />
             <button
               type="button"
               aria-label="Close menu"
               onClick={() => setMenuOpen(false)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-zinc-400 transition hover:bg-white/[0.06] hover:text-white"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-900"
             >
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
                 <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -272,12 +300,12 @@ export function Navbar() {
           <nav className="flex flex-1 flex-col overflow-y-auto px-[var(--sx-gutter)] pt-6" aria-label="Site">
             <p className={exploreHeading}>Main</p>
             <ul className="mt-3 flex flex-col gap-0.5">
-              {MAIN_NAV.map((item) => (
-                <li key={item.href} className="border-b border-white/[0.06]">
+              {mainNav.map((item) => (
+                <li key={item.href} className="border-b border-stone-200/70">
                   <NavItem
                     href={item.href}
                     external={false}
-                    className="flex min-h-[52px] items-center text-[17px] font-medium tracking-[-0.02em] text-zinc-200 transition-colors hover:text-white"
+                    className="flex min-h-[52px] items-center text-[17px] font-medium tracking-[-0.02em] text-stone-800 transition-colors hover:text-stone-950"
                     onNavigate={() => setMenuOpen(false)}
                   >
                     {item.label}
@@ -285,14 +313,14 @@ export function Navbar() {
                 </li>
               ))}
             </ul>
-            <p className={`${exploreHeading} mt-10`}>Explore</p>
+            <p className={`${exploreHeading} mt-10`}>{isHinglish ? "Aur padhein" : "Explore"}</p>
             <ul className="mt-3 flex flex-col gap-0.5">
               {EXPLORE_NAV.map((item) => (
-                <li key={item.label} className="border-b border-white/[0.06]">
+                <li key={item.label} className="border-b border-stone-200/70">
                   <NavItem
                     href={item.href}
                     external={item.external}
-                    className="flex min-h-[52px] items-center text-[17px] font-medium tracking-[-0.02em] text-zinc-200 transition-colors hover:text-white"
+                    className="flex min-h-[52px] items-center text-[17px] font-medium tracking-[-0.02em] text-stone-800 transition-colors hover:text-stone-950"
                     onNavigate={() => setMenuOpen(false)}
                   >
                     {item.label}
@@ -300,25 +328,27 @@ export function Navbar() {
                 </li>
               ))}
             </ul>
-            <div className="mt-auto border-t border-white/[0.08] pb-8 pt-6">
+            <div className="mt-auto border-t border-stone-200/80 pb-8 pt-6">
               <button
                 type="button"
-                className="mb-5 flex min-h-[48px] w-full items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-left text-[14px] font-medium text-zinc-200 transition-colors hover:border-white/14 hover:bg-white/[0.05]"
+                className="mb-5 flex min-h-[48px] w-full items-center justify-between rounded-xl border border-stone-200/90 bg-stone-50/80 px-4 py-3 text-left text-[14px] font-medium text-stone-800 transition-colors hover:border-stone-300 hover:bg-white"
                 onClick={() => {
                   openLanguageSelector();
                   setMenuOpen(false);
                 }}
               >
-                <span>Language</span>
-                <span className="text-[12px] text-zinc-500">Change</span>
+                <span>{isHinglish ? "Bhasha" : "Language"}</span>
+                <span className="text-[12px] text-stone-500">{isHinglish ? "Badlein" : "Change"}</span>
               </button>
-              <Link
-                href="/#pricing"
+              <a
+                href={navWhatsAppHref(isHinglish)}
                 onClick={() => setMenuOpen(false)}
-                className="sx-cta-primary flex h-[52px] w-full items-center justify-center rounded-full border border-sky-500/30 bg-[#0B0F19] text-[15px] font-semibold text-[#E5E7EB]"
+                className="sx-cta-primary flex h-[52px] w-full items-center justify-center rounded-full border border-stone-800/25 bg-stone-900 text-[15px] font-semibold text-stone-50"
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                Request Diagnosis
-              </Link>
+                WhatsApp
+              </a>
             </div>
           </nav>
         </div>
