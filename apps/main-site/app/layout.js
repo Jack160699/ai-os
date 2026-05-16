@@ -23,7 +23,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="en" className={`${geistSans.variable} font-sans h-full antialiased`}>
       <body className="min-h-full bg-[var(--sx-canvas)] text-[var(--sx-ink)]">
         <SiteShell>{children}</SiteShell>
       </body>

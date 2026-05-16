@@ -91,6 +91,50 @@ body {
   color: var(--sx-ink);
 }
 
+/* —— Stratxcel editorial type (unified across pages) —— */
+.sx-type-eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sx-muted);
+}
+
+.sx-type-display {
+  font-size: clamp(1.65rem, 1.35rem + 1.1vw, 2.125rem);
+  font-weight: 600;
+  letter-spacing: -0.032em;
+  line-height: 1.14;
+  color: var(--sx-ink);
+}
+
+.sx-type-title {
+  font-size: clamp(1.0625rem, 0.98rem + 0.35vw, 1.1875rem);
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.25;
+  color: var(--sx-ink);
+}
+
+.sx-type-body {
+  font-size: 0.9375rem;
+  line-height: 1.62;
+  color: var(--sx-ink-secondary);
+}
+
+@media (min-width: 640px) {
+  .sx-type-body {
+    font-size: 1rem;
+    line-height: 1.62;
+  }
+}
+
+.sx-type-caption {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--sx-muted);
+}
+
 /* —— Stratxcel surface system (light sections) —— */
 .sx-container {
   width: 100%;

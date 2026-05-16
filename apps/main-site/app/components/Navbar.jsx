@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CONTACT, URLS } from "@stratxcel/config";
+import { CONTACT } from "@stratxcel/config";
 import {
   getStoredLanguageExperience,
   LANGUAGE_HINGLISH,
@@ -29,13 +29,8 @@ function navWhatsAppHref(isHinglish) {
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
 
-function caseStudiesUrl() {
-  const base = String(URLS.aiMarketing || "https://stratxcel.ai").replace(/\/+$/, "");
-  return `${base}/case-studies`;
-}
-
 const EXPLORE_NAV = [
-  { label: "Case Studies", href: caseStudiesUrl(), external: true },
+  { label: "Case Studies", href: "/case-studies", external: false },
   { label: "Careers", href: "/careers", external: false },
 ];
 

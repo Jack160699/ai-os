@@ -1,18 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { CONTACT, URLS } from "@stratxcel/config";
+import { CONTACT } from "@stratxcel/config";
 import { StratxcelBrand } from "./StratxcelBrand";
 import {
   getStoredLanguageExperience,
   LANGUAGE_HINGLISH,
   useLanguagePreference,
 } from "./LanguagePreferenceProvider";
-
-function caseStudiesUrl() {
-  const base = String(URLS.aiMarketing || "https://stratxcel.ai").replace(/\/+$/, "");
-  return `${base}/case-studies`;
-}
 
 function footerWhatsAppHref(isHinglish) {
   const digits = String(CONTACT.whatsapp || "").replace(/[^\d]/g, "");
@@ -54,10 +49,10 @@ export function SiteFooter() {
         <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between sm:gap-10">
           <div className="max-w-xs">
             <StratxcelBrand tone="hero" />
-            <p className="mt-3 text-[13px] leading-relaxed text-stone-600">{c.tagline}</p>
+            <p className="sx-type-caption mt-3 max-w-xs leading-relaxed">{c.tagline}</p>
           </div>
           <nav
-            className="flex flex-wrap gap-x-6 gap-y-2 text-[13px] font-medium text-stone-700"
+            className="flex flex-wrap gap-x-6 gap-y-2 text-[13px] font-medium tracking-[-0.015em] text-stone-700"
             aria-label="Footer"
           >
             <Link href="/" className="transition-colors duration-300 hover:text-stone-950">
@@ -72,20 +67,15 @@ export function SiteFooter() {
             <Link href="/#lead" className="transition-colors duration-300 hover:text-stone-950">
               {isHinglish ? "Form" : "Form"}
             </Link>
-            <a
-              href={caseStudiesUrl()}
-              className="transition-colors duration-300 hover:text-stone-950"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
+            <Link href="/case-studies" className="transition-colors duration-300 hover:text-stone-950">
               {c.caseStudies}
-            </a>
+            </Link>
             <Link href="/careers" className="transition-colors duration-300 hover:text-stone-950">
               {c.careers}
             </Link>
           </nav>
         </div>
-        <p className="mt-8 border-t border-stone-200/70 pt-6 text-center text-[12px] text-stone-500 sm:mt-9 sm:pt-7">
+        <p className="mt-8 border-t border-stone-200/70 pt-6 text-center sx-type-caption sm:mt-9 sm:pt-7">
           © 2026 Stratxcel. All rights reserved.
         </p>
       </div>

@@ -11,12 +11,10 @@ export function PageLayout({ title, eyebrow, children, wideForm = false }) {
       />
       <div className={`relative mx-auto w-full ${innerMax} px-4 py-14 sm:px-6 sm:py-20`}>
         <div className={`sx-glass-page ${glassPad}`}>
-          {eyebrow ? (
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">{eyebrow}</p>
-          ) : null}
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[var(--sx-ink)] sm:text-4xl">{title}</h1>
+          {eyebrow ? <p className="sx-type-eyebrow">{eyebrow}</p> : null}
+          <h1 className={`sx-type-display ${eyebrow ? "mt-2" : ""}`}>{title}</h1>
           <div
-            className={`mt-6 text-[15px] leading-relaxed text-[color:var(--sx-ink-secondary)] sm:mt-8 ${wideForm ? "max-w-none" : ""}`}
+            className={`sx-type-body mt-6 sm:mt-8 ${wideForm ? "max-w-none" : ""} [&_a]:font-medium [&_a]:text-[var(--sx-ink)] [&_a]:underline [&_a]:decoration-stone-300/80 [&_a]:underline-offset-[5px] [&_a]:transition-colors [&_a]:hover:decoration-stone-400`}
           >
             {children}
           </div>
