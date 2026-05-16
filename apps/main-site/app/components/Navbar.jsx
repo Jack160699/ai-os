@@ -30,8 +30,9 @@ function navWhatsAppHref(isHinglish) {
 }
 
 const EXPLORE_NAV = [
-  { label: "Case Studies", href: "/case-studies", external: false },
-  { label: "Careers", href: "/careers", external: false },
+  { label: "Work", labelHi: "Kaam", href: "/work" },
+  { label: "Case Studies", labelHi: "Case studies", href: "/case-studies" },
+  { label: "Careers", labelHi: "Careers", href: "/careers" },
 ];
 
 function NavItem({ href, external, className, children, onNavigate }) {
@@ -235,14 +236,14 @@ export function Navbar() {
           <nav className="flex-1 overflow-y-auto px-5 py-6" aria-label="Explore">
             <ul className="flex flex-col gap-0.5">
               {EXPLORE_NAV.map((item) => (
-                <li key={item.label} className="border-b border-stone-200/70">
+                <li key={item.href} className="border-b border-stone-200/70">
                   <NavItem
                     href={item.href}
-                    external={item.external}
+                    external={false}
                     className={exploreLinkClass}
                     onNavigate={() => setExploreOpen(false)}
                   >
-                    {item.label}
+                    {isHinglish ? item.labelHi : item.label}
                   </NavItem>
                 </li>
               ))}
@@ -309,14 +310,14 @@ export function Navbar() {
             <p className={`${exploreHeading} mt-10`}>{isHinglish ? "Aur" : "Explore"}</p>
             <ul className="mt-3 flex flex-col gap-0.5">
               {EXPLORE_NAV.map((item) => (
-                <li key={item.label} className="border-b border-stone-200/70">
+                <li key={item.href} className="border-b border-stone-200/70">
                   <NavItem
                     href={item.href}
-                    external={item.external}
+                    external={false}
                     className="flex min-h-[52px] items-center text-[17px] font-medium tracking-[-0.02em] text-stone-800 transition-colors hover:text-stone-950"
                     onNavigate={() => setMenuOpen(false)}
                   >
-                    {item.label}
+                    {isHinglish ? item.labelHi : item.label}
                   </NavItem>
                 </li>
               ))}

@@ -41,7 +41,7 @@ export function HomepageLeadSection() {
   return (
     <section
       id="lead"
-      className="relative scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] border-b border-stone-200/55 bg-[var(--sx-surface)] py-12 sm:py-[3.65rem]"
+      className="relative scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] border-b border-stone-200/60 bg-[color-mix(in_srgb,var(--sx-surface)_94%,var(--sx-canvas))] py-12 sm:py-[3.65rem]"
     >
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_72%_48%_at_0%_100%,color-mix(in_srgb,var(--sx-glow-amber)_24%,transparent),transparent)]"

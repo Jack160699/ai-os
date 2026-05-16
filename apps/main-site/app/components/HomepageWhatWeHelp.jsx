@@ -10,37 +10,37 @@ const ITEMS = {
   en: [
     {
       t: "Site looks fine — but nothing really happens?",
-      d: "People look… then leave without saying anything. We untangle that gap.",
+      d: "People look… then leave. We figure out what’s breaking in the middle.",
     },
     {
       t: "People click the ad — then get lost?",
-      d: "What the ad promises and what the site shows don’t match? That confusion alone kills interest.",
+      d: "Ad says one thing… they land and it feels like something else.",
     },
     {
       t: "Money going out — hard to tell what’s actually working?",
-      d: "Money’s going out but nothing feels clear. We help you see what’s actually happening — plain talk.",
+      d: "Stuff’s running… you just can’t read it. We help make sense of it — plain talk.",
     },
     {
       t: "WhatsApp eating the whole day?",
-      d: "Replying, repeating, orders — it piles up. We help make it calmer so it’s not a second job.",
+      d: "Same questions again and again.\nReplies here, orders there.\nWe help calm it down.",
     },
   ],
   hi: [
     {
       t: "Website achhi lagti hai, par message nahi aate?",
-      d: "Log dekhte hain… phir bina bole chale jaate hain. Us gap ko pakadte hain.",
+      d: "Log dekhte hain… phir bina bole chale jaate hain.\nBeech mein kya toot raha hai, wahi dekhte hain.",
     },
     {
       t: "Ad pe click karne ke baad banda confuse ho jaata hai kya?",
-      d: "Jo ad pe dikha, aur jo site pe milta hai — alag alag lagta hai na?",
+      d: "Ad pe kuch aur dikhta hai…\nandar jaake kuch aur?",
     },
     {
       t: "Paise ja rahe hain, pata hi nahi kya chal raha hai?",
-      d: "Sab chal toh raha hai… bas dimaag mein clear nahi. Wahi sab seedha karte hain.",
+      d: "Sab chal toh raha hai… bas samajh nahi aa raha.",
     },
     {
       t: "WhatsApp pe reply dena hi alag kaam ban gaya?",
-      d: "Wahi sawaal dubara, order, follow-up — thoda set ho jaye to dimaag halke ho jaata hai.",
+      d: "Wahi sawaal baar baar.\nReply alag.\nOrder alag.",
     },
   ],
 };
@@ -57,12 +57,12 @@ export function HomepageWhatWeHelp() {
   return (
     <section
       id="how-we-help"
-      className="scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] border-b border-stone-200/55 bg-[color-mix(in_srgb,var(--sx-surface)_92%,var(--sx-canvas-mid))] py-12 sm:py-[3.65rem]"
+      className="scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] border-b border-stone-200/60 bg-[color-mix(in_srgb,var(--sx-surface)_88%,var(--sx-canvas-mid))] py-12 sm:py-[3.65rem]"
     >
       <div className="sx-container relative">
         <div className="max-w-2xl lg:max-w-xl">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">{eyebrow}</p>
-          <h2 className="mt-2.5 text-[1.38rem] font-semibold leading-[1.18] tracking-[-0.032em] text-[var(--sx-ink)] sm:text-[1.52rem]">
+          <h2 className="mt-2.5 text-[1.38rem] font-semibold leading-[1.16] tracking-[-0.033em] text-[var(--sx-ink)] sm:text-[1.52rem]">
             {title}
           </h2>
         </div>
@@ -80,8 +80,8 @@ export function HomepageWhatWeHelp() {
                 className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[color-mix(in_srgb,var(--sx-green-mid)_07%,transparent)] blur-2xl transition-opacity duration-300 group-hover:opacity-100"
                 aria-hidden
               />
-              <p className="relative text-[15px] font-semibold tracking-[-0.02em] text-[var(--sx-ink)]">{item.t}</p>
-              <p className="relative mt-2 text-[13px] leading-relaxed text-[var(--sx-ink-secondary)] sm:mt-2.5 sm:text-[14px]">
+              <p className="relative text-[15px] font-semibold leading-snug tracking-[-0.02em] text-[var(--sx-ink)]">{item.t}</p>
+              <p className="relative mt-2 whitespace-pre-line text-[13px] leading-[1.58] text-[var(--sx-ink-secondary)] sm:mt-2.5 sm:text-[14px]">
                 {item.d}
               </p>
             </li>

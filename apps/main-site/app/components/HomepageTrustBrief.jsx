@@ -40,7 +40,7 @@ export function HomepageTrustBrief() {
   return (
     <section
       id="trust"
-      className="relative scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] border-b border-stone-200/55 bg-[color-mix(in_srgb,var(--sx-surface-warm)_45%,var(--sx-canvas))] py-12 sm:py-14"
+      className="relative scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] border-b border-stone-200/60 bg-[color-mix(in_srgb,var(--sx-surface-warm)_40%,var(--sx-canvas))] py-12 sm:py-14"
     >
       <div
         className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,white_40%,transparent)_0%,transparent_50%)]"

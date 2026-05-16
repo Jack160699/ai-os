@@ -1,5 +1,13 @@
-/** Shared public URLs for Stratxcel surfaces (configure per deployment). */
+/** Company / legal (footer, trust surfaces). Override location via env in deployment. */
+export const COMPANY = {
+  legalName: "Stratxcel Private Limited",
+  /** City / region line for footer — set NEXT_PUBLIC_COMPANY_LOCATION in Vercel if you want a specific address. */
+  location: process.env.NEXT_PUBLIC_COMPANY_LOCATION?.trim() || "India",
+  line: "Websites · Systems · Automation",
+  subline: "Modern digital systems for growing businesses.",
+};
 
+/** Shared public URLs for Stratxcel surfaces (configure per deployment). */
 export const URLS = {
   main: process.env.NEXT_PUBLIC_MAIN_SITE_URL || "https://stratxcel.in",
   aiOs: process.env.NEXT_PUBLIC_AI_OS_URL || "https://ai.stratxcel.in",

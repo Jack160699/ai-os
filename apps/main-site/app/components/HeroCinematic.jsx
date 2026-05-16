@@ -29,26 +29,26 @@ export function HeroCinematic() {
     ? {
         kicker: "Stratxcel · website, ads, WhatsApp",
         headline: "Online mein kuch na kuch gadbad chal rahi hai kya?",
-        sub: "Ads chal rahe hain, site bhi bani hui hai — fir bhi kaam utna feel nahi ho raha? Paise ja rahe hain bas? WhatsApp pe sab bikhar jaata hai? Website, ads, WhatsApp — jo uljha hai use seedha karne mein madad karte hain.",
+        sub: "Ads chal rahe hain, site bhi bani hui hai… fir bhi kaam utna nahi aa raha?\n\nKabhi WhatsApp bikhar jaata hai.\nKabhi log dekh ke chale jaate hain.\n\nBas wahi set karte hain.",
         wa: "WhatsApp Karein",
         seeHow: "Kaam Dekhein",
         waNote: "Hi — online thoda off lag raha hai, baat karni thi.",
-        trust: "Usually same day reply. Koi awkward sales call nahi. Seedha banda reply karega.",
+        trust: "Usually same day reply. Koi awkward sales call nahi.",
       }
     : {
         kicker: "Stratxcel · websites, ads & WhatsApp",
         headline: "Something’s clearly not clicking online?",
-        sub: "Ads running, site’s up — still not really working? Money going out and hard to tell what’s going on? WhatsApp chaos? We help straighten website, ads, and messages — in normal words, no jargon.",
+        sub: "Ads on, site’s up — still doesn’t feel like it’s working?\n\nSometimes WhatsApp is a mess.\nSometimes people look and leave.\n\nWe help sort that — plain talk.",
         wa: "WhatsApp us",
         seeHow: "See what we fix",
         waNote: "Hi — something feels off online. Can we chat?",
-        trust: "Usually same-day reply. No awkward sales call. A real person answers.",
+        trust: "Usually same-day reply. No awkward sales call.",
       };
 
   return (
     <section
       id="hero-cinematic"
-      className="relative z-10 overflow-hidden border-b border-stone-200/55 pb-11 pt-[calc(var(--sx-nav-h)+0.75rem)] sm:pb-[3.15rem] sm:pt-[calc(var(--sx-nav-h)+1rem)]"
+      className="relative z-10 overflow-hidden border-b border-stone-200/60 bg-[color-mix(in_srgb,var(--sx-canvas)_88%,white)] pb-11 pt-[calc(var(--sx-nav-h)+0.75rem)] sm:pb-[3.15rem] sm:pt-[calc(var(--sx-nav-h)+1rem)]"
       aria-labelledby="hero-heading"
     >
       <div
@@ -66,13 +66,13 @@ export function HeroCinematic() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">{copy.kicker}</p>
             <h1
               id="hero-heading"
-              className="mt-2.5 text-balance text-[1.62rem] font-semibold leading-[1.14] tracking-[-0.034em] text-[var(--sx-ink)] sm:mt-3 sm:text-[1.88rem] sm:leading-[1.1] lg:text-[1.98rem]"
+              className="mt-2.5 text-balance text-[1.62rem] font-semibold leading-[1.13] tracking-[-0.034em] text-[var(--sx-ink)] sm:mt-3 sm:text-[1.88rem] sm:leading-[1.09] lg:text-[1.98rem]"
               suppressHydrationWarning
             >
               {copy.headline}
             </h1>
             <p
-              className="mt-4 max-w-[52ch] text-[15px] leading-[1.66] text-[color:var(--sx-ink-secondary)] sm:mt-5 sm:text-[16px]"
+              className="mt-4 max-w-[52ch] whitespace-pre-line text-[15px] leading-[1.68] text-[color:var(--sx-ink-secondary)] sm:mt-5 sm:text-[16px]"
               suppressHydrationWarning
             >
               {copy.sub}
@@ -87,7 +87,7 @@ export function HeroCinematic() {
               >
                 {copy.wa}
               </a>
-              <a href="#how-we-help" className={secondaryClass}>
+              <a href="#services" className={secondaryClass}>
                 {copy.seeHow}
               </a>
             </div>
@@ -108,8 +108,8 @@ export function HeroCinematic() {
               <div className="relative rounded-[1.1rem] border border-stone-200/80 bg-[color-mix(in_srgb,white_88%,var(--sx-surface-warm))] p-5 shadow-[var(--sx-shadow-sm)] transition-[box-shadow,border-color] duration-300 ease-out sm:p-6">
                 <p className="text-[14px] font-medium leading-snug text-[var(--sx-ink)] sm:text-[15px]">
                   {isHinglish
-                    ? "Paise ja rahe hain, samajh nahi aa raha kya chal raha hai? Aise random cheezein set karne mein madad karte hain — seedhi baat."
-                    : "Money going out without a clear picture of what’s working? We help sort the messy bits — step by step, plain talk."}
+                    ? "Paise ja rahe hain, samajh nahi aa raha kya chal raha hai? Wahi cheezein thodi set karne mein madad karte hain."
+                    : "Money going out and hard to tell what’s working? We help untangle the messy bits — step by step."}
                 </p>
                 <div className="mt-4 flex gap-2.5 border-t border-stone-200/60 pt-4">
                   <span className="mt-1.5 inline-flex h-2 w-2 shrink-0 rounded-full bg-[var(--sx-green-mid)]" />

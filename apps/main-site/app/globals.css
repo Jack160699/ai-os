@@ -637,8 +637,9 @@ body {
 .sx-footer-space {
   position: relative;
   z-index: 1;
-  border-top: 1px solid rgba(68, 64, 60, 0.08);
-  background: linear-gradient(180deg, rgba(255, 253, 248, 0.82) 0%, rgba(236 230 220, 0.96) 100%);
+  border-top: 1px solid rgba(68, 64, 60, 0.11);
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.94) 0%, rgba(244, 239, 230, 0.98) 55%, rgba(236, 230, 220, 0.99) 100%);
   padding-top: 2rem;
   padding-bottom: 2rem;
 }
