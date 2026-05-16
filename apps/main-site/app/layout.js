@@ -10,7 +10,7 @@ const geistSans = Geist({
 });
 
 export const metadata = {
-  title: "Stratxcel — Websites, ads & WhatsApp for growing businesses",
+  title: "MISNETEXT — Websites, ads & WhatsApp for growing businesses",
   description:
     "Small team, clear help. Site, marketing, WhatsApp — less confusion, more customers.",
 };

@@ -76,7 +76,7 @@ export function SiteFooter() {
           </nav>
         </div>
         <p className="mt-8 border-t border-stone-200/70 pt-6 text-center sx-type-caption sm:mt-9 sm:pt-7">
-          © 2026 Stratxcel. All rights reserved.
+          © 2026 MISNETEXT. All rights reserved.
         </p>
       </div>
     </footer>

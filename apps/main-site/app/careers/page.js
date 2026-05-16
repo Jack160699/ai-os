@@ -3,7 +3,7 @@ import { CONTACT_EMAIL } from "@stratxcel/config";
 import { PageLayout } from "@/app/components/PageLayout";
 
 export const metadata = {
-  title: "Careers — Stratxcel",
+  title: "Careers — MISNETEXT",
 };
 
 export default function CareersPage() {
@@ -37,7 +37,7 @@ export default function CareersPage() {
       </div>
       <div className="mt-8 flex flex-wrap gap-3">
         <a
-          href={`mailto:${CONTACT_EMAIL}?subject=Application%20%E2%80%94%20Stratxcel`}
+          href={`mailto:${CONTACT_EMAIL}?subject=Application%20%E2%80%94%20MISNETEXT`}
           className="sx-cta-primary inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-stone-800/25 px-7 text-[15px] font-semibold text-stone-50"
         >
           Email your application
