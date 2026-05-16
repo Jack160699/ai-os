@@ -1,19 +1,19 @@
 import Link from "next/link";
 
-/** Text-only wordmark — premium editorial caps. `compact` tightens for nav. `tone` kept for API compat; both map to the same light treatment. */
+/** Text-only wordmark. `compact` slightly tightens for the nav. `tone` kept for API compat. */
 export function StratxcelBrand({ className = "", tone = "hero", compact = false }) {
   const _ = tone;
   const textClass = compact
-    ? "text-[14px] font-semibold tracking-[0.16em] text-stone-900 sm:text-[15px] sm:tracking-[0.18em]"
-    : "text-[16px] font-semibold tracking-[0.17em] text-stone-900 sm:text-[18px] sm:tracking-[0.2em]";
+    ? "text-[14px] font-semibold tracking-[-0.02em] text-stone-900 sm:text-[15px]"
+    : "text-base font-semibold tracking-[-0.02em] text-stone-900 sm:text-[1.05rem]";
 
   return (
     <Link
       href="/"
-      className={`group inline-flex items-center outline-none transition-opacity duration-200 hover:opacity-85 ${className}`}
-      aria-label="MISNETEXT home"
+      className={`inline-flex max-w-full items-center outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-stone-900/15 focus-visible:ring-offset-2 ${className}`}
+      aria-label="Stratxcel home"
     >
-      <span className={`whitespace-nowrap font-sans uppercase ${textClass}`}>MISNETEXT</span>
+      <span className={`truncate font-sans ${textClass}`}>Stratxcel</span>
     </Link>
   );
 }

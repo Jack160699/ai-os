@@ -81,8 +81,8 @@ export async function generateMetadata({ params }) {
   const { slug } = await params;
   const role = ROLE_MAP[slug];
   return {
-    title: role ? `${role.title} — MISNETEXT` : "Careers — MISNETEXT",
-    description: role?.overview?.slice(0, 155) ?? "MISNETEXT careers",
+    title: role ? `${role.title} — Stratxcel` : "Careers — Stratxcel",
+    description: role?.overview?.slice(0, 155) ?? "Stratxcel careers",
   };
 }
 

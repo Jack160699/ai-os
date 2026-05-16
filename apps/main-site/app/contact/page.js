@@ -2,7 +2,7 @@ import { PageLayout } from "@/app/components/PageLayout";
 import { ContactPageBody } from "./ContactPageBody";
 
 export const metadata = {
-  title: "Contact — MISNETEXT",
+  title: "Contact — Stratxcel",
   description: "WhatsApp for a quick hello, or a short form if you prefer. We reply like humans.",
 };
 

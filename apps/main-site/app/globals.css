@@ -44,8 +44,8 @@
 
   --sx-max: 1120px;
   --sx-gutter: 1rem;
-  --sx-section-y: 4.25rem;
-  --sx-section-y-lg: 5.5rem;
+  --sx-section-y: 4.45rem;
+  --sx-section-y-lg: 5.65rem;
   --sx-nav-h: 56px;
 }
 
@@ -104,7 +104,7 @@ body {
   font-size: clamp(1.65rem, 1.35rem + 1.1vw, 2.125rem);
   font-weight: 600;
   letter-spacing: -0.032em;
-  line-height: 1.14;
+  line-height: 1.15;
   color: var(--sx-ink);
 }
 
@@ -112,20 +112,20 @@ body {
   font-size: clamp(1.0625rem, 0.98rem + 0.35vw, 1.1875rem);
   font-weight: 600;
   letter-spacing: -0.022em;
-  line-height: 1.25;
+  line-height: 1.27;
   color: var(--sx-ink);
 }
 
 .sx-type-body {
   font-size: 0.9375rem;
-  line-height: 1.62;
+  line-height: 1.66;
   color: var(--sx-ink-secondary);
 }
 
 @media (min-width: 640px) {
   .sx-type-body {
     font-size: 1rem;
-    line-height: 1.62;
+    line-height: 1.66;
   }
 }
 
@@ -185,7 +185,7 @@ body {
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--sx-ink);
-  line-height: 1.22;
+  line-height: 1.24;
 }
 
 @media (min-width: 640px) {
@@ -199,7 +199,7 @@ body {
 }
 
 .sx-subheading {
-  margin-top: 2.5rem;
+  margin-top: 2.625rem;
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -207,10 +207,10 @@ body {
 }
 
 .sx-prose {
-  margin-top: 1.25rem;
+  margin-top: 1.35rem;
   max-width: 60ch;
   font-size: 0.9375rem;
-  line-height: 1.75;
+  line-height: 1.76;
   color: rgb(87 83 78);
 }
 
@@ -540,7 +540,7 @@ body {
   font-weight: 600;
   letter-spacing: -0.03em;
   color: var(--sx-ink);
-  line-height: 1.2;
+  line-height: 1.22;
 }
 
 @media (min-width: 640px) {
@@ -550,10 +550,10 @@ body {
 }
 
 .sx-prose-space {
-  margin-top: 1.25rem;
+  margin-top: 1.35rem;
   max-width: 64ch;
   font-size: 0.9375rem;
-  line-height: 1.8;
+  line-height: 1.78;
   color: rgb(120 113 108);
 }
 
@@ -798,14 +798,14 @@ body {
 
 @media (max-width: 640px) {
   :root {
-    --sx-section-y: 3.5rem;
+    --sx-section-y: 3.65rem;
   }
   .sx-heading-space {
-    line-height: 1.16;
+    line-height: 1.18;
   }
   .sx-prose-space {
     font-size: 0.98rem;
-    line-height: 1.74;
+    line-height: 1.76;
   }
   .sx-glass-hero {
     border-color: rgb(231 229 228);

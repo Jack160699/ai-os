@@ -24,8 +24,8 @@ function navWhatsAppHref(isHinglish) {
   const digits = String(CONTACT.whatsapp || "").replace(/[^\d]/g, "");
   if (!digits) return "/#lead";
   const text = isHinglish
-    ? "Hi, StratXcel site se — 2 min baat ho sakti hai?"
-    : "Hi — I'm on the StratXcel site and want to chat.";
+    ? "Hi, Stratxcel site se — 2 min baat ho sakti hai?"
+    : "Hi — I'm on the Stratxcel site and want to chat.";
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
 
@@ -122,10 +122,12 @@ export function Navbar() {
           headerSurface,
         ].join(" ")}
       >
-        <div className="relative mx-auto flex h-[var(--sx-nav-h)] max-w-[var(--sx-max)] items-center justify-between gap-3 px-[var(--sx-gutter)]">
-          <StratxcelBrand tone="hero" compact />
+        <div className="relative mx-auto flex h-[var(--sx-nav-h)] max-w-[var(--sx-max)] items-center justify-between gap-2 px-[var(--sx-gutter)] sm:gap-4">
+          <div className="flex min-w-0 flex-1 items-center lg:w-auto lg:flex-none lg:shrink-0">
+            <StratxcelBrand tone="hero" compact className="min-w-0" />
+          </div>
 
-          <nav className="hidden items-center gap-7 lg:flex" aria-label="Primary">
+          <nav className="hidden items-center gap-8 lg:flex" aria-label="Primary">
             {mainNav.map((item) => (
               <NavItem key={item.href} href={item.href} external={false} className={mainLinkClass}>
                 {item.label}
@@ -165,7 +167,7 @@ export function Navbar() {
             aria-controls="mobile-nav-panel"
             aria-label={menuOpen ? "Close menu" : "Open menu"}
             onClick={() => setMenuOpen((v) => !v)}
-            className={menuBtnClass}
+            className={[menuBtnClass, "shrink-0"].join(" ")}
           >
             <span className="sr-only">Menu</span>
             <span className="relative block h-5 w-5" aria-hidden>
@@ -273,13 +275,15 @@ export function Navbar() {
             menuOpen ? "translate-x-0" : "translate-x-full",
           ].join(" ")}
         >
-          <div className="flex h-[var(--sx-nav-h)] items-center justify-between border-b border-stone-200/80 px-[var(--sx-gutter)]">
-            <StratxcelBrand tone="hero" compact />
+          <div className="flex h-[var(--sx-nav-h)] items-center justify-between gap-3 border-b border-stone-200/80 px-[var(--sx-gutter)]">
+            <div className="min-w-0 flex-1">
+              <StratxcelBrand tone="hero" compact className="min-w-0" />
+            </div>
             <button
               type="button"
               aria-label="Close menu"
               onClick={() => setMenuOpen(false)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-900"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-900"
             >
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
                 <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

@@ -11,10 +11,10 @@ import {
   useState,
 } from "react";
 
-/** Primary key — new brand session. */
-export const LANGUAGE_STORAGE_KEY = "misnetext_language_experience";
-/** Legacy Stratxcel key — read for migration only. */
-const LANGUAGE_LEGACY_KEY = "stratxcel_language_experience";
+/** Primary key for language preference. */
+export const LANGUAGE_STORAGE_KEY = "stratxcel_language_experience";
+/** Legacy key — read for migration only. */
+const LANGUAGE_LEGACY_MISNETEXT_KEY = "misnetext_language_experience";
 
 export const LANGUAGE_HINGLISH = "hinglish";
 export const LANGUAGE_ENGLISH = "english";
@@ -48,7 +48,7 @@ function writeStored(value) {
   try {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, value);
     try {
-      localStorage.removeItem(LANGUAGE_LEGACY_KEY);
+      localStorage.removeItem(LANGUAGE_LEGACY_MISNETEXT_KEY);
     } catch {
       /* ignore */
     }
@@ -254,16 +254,16 @@ export function LanguagePreferenceProvider({ children }) {
       {children}
       {overlayOpen ? (
         <div
-          className="fixed inset-0 z-[600] flex items-end justify-center overscroll-none sm:items-center sm:p-6"
+          className="fixed inset-0 z-[600] flex items-end justify-center overscroll-none sm:items-center sm:p-4"
           role="presentation"
-          style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+          style={{ paddingBottom: "max(0.25rem, env(safe-area-inset-bottom, 0px))" }}
         >
           <div
             role={allowDismiss ? "button" : undefined}
             tabIndex={allowDismiss ? 0 : -1}
             aria-label={allowDismiss ? "Close language selection" : undefined}
             className={[
-              "absolute inset-0 bg-stone-900/[0.14] backdrop-blur-[12px] backdrop-saturate-110 transition-opacity duration-500 ease-out motion-reduce:transition-none motion-reduce:backdrop-blur-md",
+              "absolute inset-0 bg-stone-800/[0.12] backdrop-blur-[8px] backdrop-saturate-[0.92] transition-opacity duration-300 ease-out motion-reduce:transition-none motion-reduce:backdrop-blur-sm",
               allowDismiss ? "cursor-pointer" : "cursor-default",
               backdropEnter ? "opacity-100" : "opacity-0",
             ].join(" ")}
@@ -279,9 +279,9 @@ export function LanguagePreferenceProvider({ children }) {
 
           <div
             className={[
-              "relative z-10 mx-auto w-full max-w-[min(100%,26rem)] px-3 pb-1 sm:px-0 sm:pb-0",
-              "transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-150",
-              panelEnter ? "translate-y-0 scale-100 opacity-100" : "translate-y-4 scale-[0.98] opacity-0 sm:translate-y-3",
+              "relative z-10 mx-auto w-full max-w-[min(100%,21rem)] px-3 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] sm:px-0 sm:pb-0",
+              "transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-150",
+              panelEnter ? "translate-y-0 scale-100 opacity-100" : "translate-y-3 scale-[0.99] opacity-0 sm:translate-y-2",
             ].join(" ")}
             role="dialog"
             aria-modal="true"
@@ -290,70 +290,47 @@ export function LanguagePreferenceProvider({ children }) {
           >
             <div
               className={[
-                "relative overflow-hidden rounded-t-[1.35rem] border border-white/55 sm:rounded-[1.5rem]",
-                "bg-[linear-gradient(165deg,rgba(255,255,255,0.94)_0%,rgba(252,248,241,0.9)_45%,rgba(249,244,236,0.88)_100%)]",
-                "p-7 shadow-[var(--sx-shadow-lg)] backdrop-blur-xl backdrop-saturate-105 sm:p-8",
+                "rounded-t-2xl border border-stone-200/90 bg-[var(--sx-surface-elevated)] shadow-[var(--sx-shadow-md)] sm:rounded-2xl",
+                "px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] pt-5 sm:px-6 sm:pb-6 sm:pt-6",
               ].join(" ")}
             >
-              <div
-                className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[color-mix(in_srgb,var(--sx-glow-amber)_38%,transparent)] blur-3xl"
-                aria-hidden
-              />
-              <div
-                className="pointer-events-none absolute -bottom-24 -left-12 h-52 w-52 rounded-full bg-[color-mix(in_srgb,var(--sx-green-mid)_06%,transparent)] blur-3xl"
-                aria-hidden
-              />
-
-              <div className="relative text-center">
-                <p className="sx-type-eyebrow text-[0.65rem] tracking-[0.22em] text-stone-500">First impression</p>
+              <div className="text-center">
                 <h2
                   id={titleId}
-                  className="mt-3 text-balance text-[1.42rem] font-semibold leading-[1.18] tracking-[-0.028em] text-stone-900 sm:text-[1.52rem]"
+                  className="text-balance text-lg font-semibold leading-snug tracking-[-0.02em] text-stone-900 sm:text-[1.125rem]"
                 >
-                  Kaise baat karein?
+                  Kaise baat karni hai?
                 </h2>
-                <p
-                  id={descId}
-                  className="mx-auto mt-3 max-w-[36ch] text-[15px] leading-relaxed text-stone-600 sm:text-[15.5px]"
-                >
-                  Ek baar choose karo — site usi vibe mein chalegi. Jo natural lage, wahi select karo.
+                <p id={descId} className="mx-auto mt-2.5 max-w-[34ch] text-[14px] leading-relaxed text-stone-600 sm:text-[15px]">
+                  Jo language comfortable lage, wahi choose kar lo.
                 </p>
 
-                <div className="mt-8 flex flex-col gap-3 sm:mt-9">
+                <div className="mt-6 flex flex-col gap-2.5 sm:mt-7">
                   <button
                     ref={primaryRef}
                     type="button"
                     className={[
-                      "group w-full rounded-[1.05rem] border border-white/25 px-5 py-[1.1rem] text-center",
-                      "bg-gradient-to-br from-[#3f3a36] via-[#2f2b28] to-[#252220]",
-                      "shadow-[0_1px_0_rgba(255,253,248,0.12)_inset,0_20px_48px_-20px_rgba(28,25,23,0.45)]",
-                      "transition-[transform,box-shadow,filter,border-color] duration-300 ease-out motion-reduce:transition-none",
-                      "hover:border-white/35 hover:shadow-[0_1px_0_rgba(255,253,248,0.16)_inset,0_24px_52px_-18px_rgba(28,25,23,0.5)] hover:brightness-[1.03]",
-                      "active:translate-y-px motion-safe:active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sx-green-mid)_55%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(255,252,246,0.95)]",
+                      "w-full rounded-xl bg-stone-800 px-4 py-3 text-center text-[14px] font-semibold tracking-[-0.015em] text-stone-50 shadow-sm",
+                      "transition-[background-color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
+                      "hover:bg-stone-900 hover:shadow-md",
+                      "active:bg-stone-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-500 focus-visible:ring-offset-2",
                     ].join(" ")}
                     onClick={() => commitChoice(LANGUAGE_HINGLISH)}
                   >
-                    <span className="block text-[15px] font-semibold leading-snug tracking-[-0.015em] text-[#faf7f2] sm:text-[16px]">
-                      Hinglish — jaise normal baat hoti hai
-                    </span>
-                    <span className="mt-1 block text-[12px] font-medium tracking-[-0.01em] text-[color-mix(in_srgb,#faf7f2_62%,transparent)]">
-                      Relaxed, spoken, everyday
-                    </span>
+                    Hinglish — jaise normally baat karte ho
                   </button>
 
                   <button
                     type="button"
                     className={[
-                      "w-full rounded-[1.05rem] border border-stone-200/95 bg-white/90 px-5 py-3.5",
-                      "text-[14px] font-semibold tracking-[-0.012em] text-stone-800",
-                      "shadow-[0_1px_0_rgb(255_255_255/0.95)_inset,var(--sx-shadow-sm)]",
-                      "transition-[transform,background-color,border-color,box-shadow] duration-300 ease-out motion-reduce:transition-none",
-                      "hover:border-stone-300 hover:bg-white hover:shadow-[var(--sx-shadow-md)]",
-                      "active:translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white/95",
+                      "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-center text-[14px] font-medium tracking-[-0.015em] text-stone-800 shadow-[0_1px_0_rgb(255_255_255/0.9)_inset]",
+                      "transition-[background-color,border-color] duration-200 ease-out motion-reduce:transition-none",
+                      "hover:border-stone-300 hover:bg-stone-50",
+                      "active:bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400/50 focus-visible:ring-offset-2",
                     ].join(" ")}
                     onClick={() => commitChoice(LANGUAGE_ENGLISH)}
                   >
-                    English — simple and clear
+                    English
                   </button>
                 </div>
               </div>

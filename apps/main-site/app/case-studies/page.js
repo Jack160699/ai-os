@@ -3,7 +3,7 @@ import { PageLayout } from "@/app/components/PageLayout";
 import { CASE_STUDIES } from "@/app/data/caseStudies";
 
 export const metadata = {
-  title: "Case studies — MISNETEXT",
+  title: "Case studies — Stratxcel",
   description:
     "Real situations we have helped with — clearer sites, calmer WhatsApp, sharper ads. Practical outcomes, human language.",
 };

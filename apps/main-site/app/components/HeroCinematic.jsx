@@ -36,7 +36,7 @@ export function HeroCinematic() {
         trust: "Same day jawab zyada tar. Koi sales walla natak nahi.",
       }
     : {
-        kicker: "MISNETEXT · websites, ads & WhatsApp",
+        kicker: "Stratxcel · websites, ads & WhatsApp",
         headline: "Online feels messy right now?",
         sub: "Ads wasting money? Site looks fine but doesn’t convert? Inquiries all over the place? We calm it down — website, ads, WhatsApp — in plain language.",
         wa: "Chat on WhatsApp",
