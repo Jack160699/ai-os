@@ -16,15 +16,14 @@ function caseStudiesUrl() {
 
 function footerWhatsAppHref(isHinglish) {
   const digits = String(CONTACT.whatsapp || "").replace(/[^\d]/g, "");
-  const text = isHinglish ? "Hi, StratXcel footer se — connect karna tha." : "Hi — contacting from StratXcel footer.";
+  const text = isHinglish ? "Hi — footer se. Baat karni thi." : "Hi — saying hi from the footer.";
   const q = digits ? `?text=${encodeURIComponent(text)}` : "";
   return digits ? `https://wa.me/${digits}${q}` : "/#lead";
 }
 
 const COPY = {
   en: {
-    tagline: "Websites, ads & WhatsApp — for teams who sell in the real world.",
-    linksHead: "Links",
+    tagline: "Small team. Clear words. Same-day replies, most days.",
     home: "Home",
     whatsapp: "WhatsApp",
     contact: "Contact",
@@ -32,11 +31,10 @@ const COPY = {
     careers: "Careers",
   },
   hi: {
-    tagline: "Website, ads, WhatsApp — jahan actual customers bante hain.",
-    linksHead: "Links",
+    tagline: "Chhota team. Seedhi baat. Zyada tar same day reply.",
     home: "Home",
     whatsapp: "WhatsApp",
-    contact: "Baat karein",
+    contact: "Baat",
     caseStudies: "Case studies",
     careers: "Careers",
   },
@@ -52,50 +50,44 @@ export function SiteFooter() {
 
   return (
     <footer className="sx-footer-space">
-      <div className="sx-container">
-        <div className="grid gap-8 border-b border-stone-200/80 pb-8 sm:grid-cols-2 sm:gap-10 sm:pb-9">
-          <div className="max-w-md">
+      <div className="sx-container py-7 sm:py-8">
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between sm:gap-10">
+          <div className="max-w-xs">
             <StratxcelBrand tone="hero" />
             <p className="mt-3 text-[13px] leading-relaxed text-stone-600">{c.tagline}</p>
           </div>
-
-          <div className="sm:justify-self-end sm:text-right">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500">{c.linksHead}</p>
-            <nav
-              className="mt-3 flex flex-col gap-2 text-[13px] font-medium text-stone-700 sm:items-end"
-              aria-label="Footer"
+          <nav
+            className="flex flex-wrap gap-x-6 gap-y-2 text-[13px] font-medium text-stone-700"
+            aria-label="Footer"
+          >
+            <Link href="/" className="transition-colors duration-300 hover:text-stone-950">
+              {c.home}
+            </Link>
+            <a href={waHref} className="transition-colors duration-300 hover:text-stone-950" rel="noopener noreferrer" target="_blank">
+              {c.whatsapp}
+            </a>
+            <Link href="/contact" className="transition-colors duration-300 hover:text-stone-950">
+              {c.contact}
+            </Link>
+            <Link href="/#lead" className="transition-colors duration-300 hover:text-stone-950">
+              {isHinglish ? "Form" : "Form"}
+            </Link>
+            <a
+              href={caseStudiesUrl()}
+              className="transition-colors duration-300 hover:text-stone-950"
+              rel="noopener noreferrer"
+              target="_blank"
             >
-              <Link href="/" className="transition-colors duration-200 hover:text-stone-950">
-                {c.home}
-              </Link>
-              <a
-                href={waHref}
-                className="transition-colors duration-200 hover:text-stone-950"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                {c.whatsapp}
-              </a>
-              <Link href="/contact" className="transition-colors duration-200 hover:text-stone-950">
-                {c.contact}
-              </Link>
-              <a
-                href={caseStudiesUrl()}
-                className="transition-colors duration-200 hover:text-stone-950"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                {c.caseStudies}
-              </a>
-              <Link href="/careers" className="transition-colors duration-200 hover:text-stone-950">
-                {c.careers}
-              </Link>
-            </nav>
-          </div>
+              {c.caseStudies}
+            </a>
+            <Link href="/careers" className="transition-colors duration-300 hover:text-stone-950">
+              {c.careers}
+            </Link>
+          </nav>
         </div>
-        <div className="pt-4 text-center text-[12px] tracking-[0.02em] text-stone-500 sm:pt-5">
+        <p className="mt-8 border-t border-stone-200/70 pt-6 text-center text-[12px] text-stone-500 sm:mt-9 sm:pt-7">
           © 2026 Stratxcel. All rights reserved.
-        </div>
+        </p>
       </div>
     </footer>
   );

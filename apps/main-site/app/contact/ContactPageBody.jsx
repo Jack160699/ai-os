@@ -22,14 +22,19 @@ export function ContactPageBody() {
 
   const copy = isHinglish
     ? {
-        intro: "Sabse tez — WhatsApp. Form optional hai, details bhejo, hum reply karenge.",
-        wa: "WhatsApp khol do",
-        waNote: "Hi, StratXcel contact page se — baat karni hai.",
+        intro:
+          "Sabse easy? WhatsApp pe hi drop kar do. Form sirf tab jab typing comfortable ho.",
+        wa: "WhatsApp pe likh do",
+        waNote: "Hi — contact page se. Seedhi baat karni hai.",
+        formLead: "Ya bas yah likh do",
+        formSub: "Chhota sa. Jitna yaad aaye.",
       }
     : {
-        intro: "Fastest is WhatsApp. The form is optional — send details if that’s easier.",
-        wa: "Open WhatsApp",
-        waNote: "Hi — I'm on the StratXcel contact page and want to chat.",
+        intro: "Easiest is WhatsApp — just say hi. The form’s here if typing feels better.",
+        wa: "Message on WhatsApp",
+        waNote: "Hi — from the contact page. Wanted a quick human chat.",
+        formLead: "Or type a little here",
+        formSub: "Short is perfect. We’ll reply personally.",
       };
 
   return (
@@ -38,7 +43,7 @@ export function ContactPageBody() {
       <div className="mt-6">
         <a
           href={waHref(copy.waNote)}
-          className="sx-btn-wa inline-flex min-h-[52px] w-full max-w-sm items-center justify-center rounded-full px-5 text-[15px] font-semibold tracking-[-0.02em] no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sx-green-mid)_55%,transparent)] focus-visible:ring-offset-2"
+          className="sx-btn-wa inline-flex min-h-[52px] w-full max-w-sm items-center justify-center rounded-full px-5 text-[15px] font-semibold tracking-[-0.02em] no-underline transition-[transform,filter] duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sx-green-mid)_55%,transparent)] focus-visible:ring-offset-2 motion-safe:active:scale-[0.99]"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -46,14 +51,8 @@ export function ContactPageBody() {
         </a>
       </div>
 
-      <p className="mt-10 text-[13px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-        {isHinglish ? "Form" : "Form"}
-      </p>
-      <p className="mt-2 text-[15px] text-[var(--sx-ink-secondary)]">
-        {isHinglish
-          ? "Neeche chhota sa — bas basics."
-          : "Short one below — just the basics."}
-      </p>
+      <p className="mt-10 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">{copy.formLead}</p>
+      <p className="mt-2 text-[15px] leading-relaxed text-[var(--sx-ink-secondary)]">{copy.formSub}</p>
       <div className="mt-6">
         <AiBusinessAuditLeadForm variant="compact" />
       </div>

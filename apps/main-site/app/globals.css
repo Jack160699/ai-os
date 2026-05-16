@@ -32,11 +32,12 @@
   --sx-glow-cream: rgba(255, 252, 245, 0.92);
 
   --sx-shadow-inset: 0 1px 0 rgb(255 255 255 / 0.92) inset;
-  --sx-shadow-sm: var(--sx-shadow-inset), 0 10px 30px -18px rgb(42 38 34 / 0.11);
-  --sx-shadow-md: var(--sx-shadow-inset), 0 20px 48px -28px rgb(42 38 34 / 0.13),
-    0 4px 14px -6px rgb(42 38 34 / 0.06);
-  --sx-shadow-lg: var(--sx-shadow-inset), 0 32px 64px -32px rgb(42 38 34 / 0.16),
-    0 10px 24px -10px rgb(42 38 34 / 0.08);
+  /* Softer, calmer depth (premium calm minimal) */
+  --sx-shadow-sm: var(--sx-shadow-inset), 0 10px 28px -20px rgb(42 38 34 / 0.075);
+  --sx-shadow-md: var(--sx-shadow-inset), 0 22px 52px -32px rgb(42 38 34 / 0.09),
+    0 5px 16px -8px rgb(42 38 34 / 0.04);
+  --sx-shadow-lg: var(--sx-shadow-inset), 0 34px 70px -36px rgb(42 38 34 / 0.11),
+    0 12px 28px -12px rgb(42 38 34 / 0.055);
 
   --background: var(--sx-canvas);
   --foreground: var(--sx-ink);
@@ -887,11 +888,29 @@ body {
 
 .sx-quote-card {
   border-radius: 1.05rem;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  background: linear-gradient(168deg, rgba(255, 255, 255, 0.92) 0%, rgba(252, 248, 240, 0.85) 100%);
-  box-shadow: var(--sx-shadow-sm);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  background: linear-gradient(168deg, rgba(255, 255, 255, 0.94) 0%, rgba(252, 248, 240, 0.88) 100%);
+  box-shadow: var(--sx-shadow-md);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    box-shadow 0.35s ease,
+    border-color 0.35s ease,
+    transform 0.35s ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sx-quote-card:hover {
+    box-shadow: var(--sx-shadow-lg);
+    border-color: rgba(255, 255, 255, 0.72);
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sx-quote-card:hover {
+    transform: none;
+  }
 }
 
 .sx-hero-glass {
