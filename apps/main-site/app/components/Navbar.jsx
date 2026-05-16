@@ -22,7 +22,7 @@ const MAIN_NAV_HI = [
 
 function navWhatsAppHref(isHinglish) {
   const digits = String(CONTACT.whatsapp || "").replace(/[^\d]/g, "");
-  if (!digits) return "/#final-cta";
+  if (!digits) return "/#lead";
   const text = isHinglish
     ? "Hi, StratXcel site se — 2 min baat ho sakti hai?"
     : "Hi — I'm on the StratXcel site and want to chat.";

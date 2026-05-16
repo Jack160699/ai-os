@@ -229,7 +229,7 @@ body {
 /* Homepage: skip off-screen layout work below hero until near viewport */
 .sx-page-below-hero {
   content-visibility: auto;
-  contain-intrinsic-size: 1px 1200px;
+  contain-intrinsic-size: 1px 2600px;
 }
 
 .sx-card-title {

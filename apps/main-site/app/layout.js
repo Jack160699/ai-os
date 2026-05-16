@@ -12,7 +12,7 @@ const geistSans = Geist({
 export const metadata = {
   title: "Stratxcel — Websites, ads & WhatsApp for growing businesses",
   description:
-    "A small team that helps with your site, marketing, and customer messages — plain language, fast WhatsApp replies.",
+    "Small team, clear help. Site, marketing, WhatsApp — less confusion, more customers.",
 };
 
 export const viewport = {

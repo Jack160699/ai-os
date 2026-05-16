@@ -1,6 +1,8 @@
 import { HeroCinematic } from "./HeroCinematic";
-import { HomepageFinalWhatsappCta } from "./HomepageFinalWhatsappCta";
+import { HomepageIndustryCases } from "./HomepageIndustryCases";
+import { HomepageLeadSection } from "./HomepageLeadSection";
 import { HomepageTrustBrief } from "./HomepageTrustBrief";
+import { HomepageWhatWeHelp } from "./HomepageWhatWeHelp";
 
 export function HomePageContent() {
   return (
@@ -8,7 +10,9 @@ export function HomePageContent() {
       <HeroCinematic />
       <div className="sx-page-below-hero">
         <HomepageTrustBrief />
-        <HomepageFinalWhatsappCta />
+        <HomepageWhatWeHelp />
+        <HomepageIndustryCases />
+        <HomepageLeadSection />
       </div>
     </>
   );
