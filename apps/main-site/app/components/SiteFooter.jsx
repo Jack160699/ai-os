@@ -29,6 +29,7 @@ const COPY = {
     services: "Services",
     emailLabel: "Email",
     legalNote: "Registered company · invoices & contracts handled properly.",
+    phoneLabel: "Phone",
   },
   hi: {
     tagline: "Chhota team. Seedhi baat. Zyada tar same day reply.",
@@ -42,6 +43,7 @@ const COPY = {
     services: "Services",
     emailLabel: "Email",
     legalNote: "Registered company — kaam official tarike se.",
+    phoneLabel: "Phone",
   },
 };
 
@@ -137,6 +139,15 @@ export function SiteFooter() {
                 </a>
               </p>
             ) : null}
+            <p className="mt-2 text-[12px] text-stone-600">
+              <span className="font-medium text-stone-500">{c.phoneLabel}: </span>
+              <a
+                href={`tel:${CONTACT.phone}`}
+                className="font-medium text-stone-800 underline decoration-stone-300/80 underline-offset-2 transition-colors hover:text-stone-950"
+              >
+                {CONTACT.phone}
+              </a>
+            </p>
             <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[13px] font-medium text-stone-700">
               {SOCIAL.instagram ? (
                 <a href={SOCIAL.instagram} className="transition-colors hover:text-stone-950" rel="noopener noreferrer" target="_blank">

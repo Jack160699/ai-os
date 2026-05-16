@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useProMode } from "@/components/v2/pro-mode";
 import { useThemeStudio } from "@/components/v2/theme-provider";
+import { WHATSAPP_NUMBER } from "@/lib/constants";
 
 function formatAmount(value) {
   const n = Number(value || 0);
@@ -347,7 +348,7 @@ export function PaymentsRecords() {
               <button onClick={createPaymentLink} disabled={creatingLink} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-text)]">{creatingLink ? "Generating..." : "Generate"}</button>
               <button onClick={async () => { if (generatedLink) await navigator.clipboard.writeText(generatedLink); }} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Copy link</button>
               <button onClick={() => window.open(generatedLink || "#", "_blank", "noopener,noreferrer")} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Open checkout</button>
-              <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(generatedLink || "")}`, "_blank", "noopener,noreferrer")} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Send WhatsApp</button>
+              <button onClick={() => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(generatedLink || "")}`, "_blank", "noopener,noreferrer")} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Send WhatsApp</button>
               <button onClick={() => setModalOpen(false)} className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-elevated)] px-3 py-2 text-xs text-[var(--v2-muted)]">Close</button>
             </div>
           </div>

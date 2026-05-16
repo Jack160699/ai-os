@@ -50,6 +50,15 @@ export function ContactPageBody() {
           {copy.wa}
         </a>
       </div>
+      <p className="mt-4 text-[14px] text-[var(--sx-ink-secondary)]">
+        <a
+          href={`tel:${CONTACT.phone}`}
+          className="font-semibold text-[var(--sx-ink)] underline decoration-stone-300/85 underline-offset-[4px] transition-colors hover:decoration-stone-400"
+        >
+          {isHinglish ? "Phone: " : "Call: "}
+          {CONTACT.phone}
+        </a>
+      </p>
 
       <p className="mt-10 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">{copy.formLead}</p>
       <p className="mt-2 text-[15px] leading-relaxed text-[var(--sx-ink-secondary)]">{copy.formSub}</p>

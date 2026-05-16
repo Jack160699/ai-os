@@ -16,7 +16,7 @@ export const URLS = {
 };
 
 export const CONTACT_EMAIL = "hello@stratxcel.com";
-export const WHATSAPP_NUMBER = "917777812777";
+export const WHATSAPP_NUMBER = "919584735857";
 
 function trimUrl(value) {
   const s = String(value || "").trim();

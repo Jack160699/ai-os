@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SurfaceCard } from "@/app/admin/_components/SurfaceCard";
+import { WHATSAPP_NUMBER } from "@/lib/constants";
 
 const REFUND_STATUS_OPTIONS = ["none", "requested", "initiated", "processed", "rejected"];
 
@@ -100,7 +101,7 @@ export function PaymentsWorkspace() {
   async function sendWhatsapp(link = latestLink) {
     if (!link) return;
     const text = encodeURIComponent(`Secure payment link: ${link}`);
-    window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, "_blank", "noopener,noreferrer");
   }
 
   async function resendPaymentLink(row) {
