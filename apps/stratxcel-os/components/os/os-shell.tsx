@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronDown, Globe, LogOut, MoreHorizontal, Search, Settings } from "lucide-react";
+import { Bell, ChevronDown, LogOut, MoreHorizontal, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OS_MAIN_NAV, navActive } from "@/lib/os-nav";
 import { Button } from "@/components/ui/button";
@@ -75,20 +75,18 @@ export function OsShell({ children, userLabel = "Operator" }: { children: React.
 
   return (
     <div className="flex min-h-dvh bg-[#0B0F14] text-foreground">
-      <aside className="hidden w-[248px] shrink-0 flex-col border-r border-[#1E2632] bg-[#0f141c] md:flex">
-        <div className="flex h-14 items-center border-b border-[#1E2632] px-4">
-          <Link href="/" className="group flex items-center gap-2.5 leading-tight">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md border border-[#2a3446] bg-[#171f2c] text-[11px] font-semibold text-[#a9b6d8] transition-colors group-hover:border-[#3a4a66] group-hover:text-[#c2ccf1]">
-              SX
-            </span>
-            <span className="flex flex-col">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">StratXcel</span>
-              <span className="text-sm font-semibold tracking-tight text-white">StratXcel OS</span>
-            </span>
+      <aside className="hidden w-[220px] shrink-0 flex-col border-r border-[#1E2632]/90 bg-[#0f141c] md:flex">
+        <div className="flex min-h-12 items-end border-b border-[#1E2632]/80 px-4 pb-3 pt-4">
+          <Link
+            href="/"
+            className="block w-full outline-offset-2 transition-colors hover:text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color-mix(in_oklab,var(--color-accent)_45%,transparent)]"
+          >
+            <span className="text-[10px] font-medium uppercase tracking-[0.22em] text-slate-500">StratXcel</span>
+            <span className="mt-1 block text-[13px] font-medium tracking-[-0.02em] text-slate-200">Workspace</span>
           </Link>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
+        <nav className="flex flex-1 flex-col gap-px overflow-y-auto px-2 py-4" aria-label="Main">
           {OS_MAIN_NAV.map(({ href, label, icon: Icon }) => {
             const active = navActive(pathname, href);
             return (
@@ -96,32 +94,32 @@ export function OsShell({ children, userLabel = "Operator" }: { children: React.
                 key={href}
                 href={href}
                 className={cn(
-                  "relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
+                  "relative flex items-center gap-2.5 rounded-md px-3 py-2.5 text-[13px] font-normal tracking-[-0.01em] transition-colors duration-150",
                   active
-                    ? "nav-item-active text-white"
-                    : "text-slate-400 hover:bg-[#151c27] hover:text-slate-200",
+                    ? "nav-item-active text-slate-100"
+                    : "text-slate-500 hover:bg-white/[0.03] hover:text-slate-300",
                 )}
               >
-                <Icon className={cn("size-4", active ? "text-[#9aabff]" : "opacity-70")} />
+                <Icon className={cn("size-[15px] shrink-0 stroke-[1.5]", active ? "text-slate-300" : "text-slate-600")} />
                 {label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="mt-auto space-y-2 border-t border-[#1E2632] p-2">
+        <div className="mt-auto border-t border-[#1E2632]/80 p-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-2 rounded-lg border border-[#1E2632] bg-[#121821] px-3 py-2 text-left text-xs font-medium text-slate-200 transition-colors hover:border-[#34435b] hover:bg-[#18212e]"
+                className="flex w-full items-center justify-between gap-2 rounded-md border border-transparent bg-transparent px-3 py-2.5 text-left text-[12px] font-normal text-slate-400 transition-colors hover:border-[#1E2632] hover:bg-[#121821] hover:text-slate-200"
               >
                 <span className="truncate">{workspaceLabel}</span>
-                <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                <ChevronDown className="size-3.5 shrink-0 opacity-50" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" className="w-56 border-[#1E2632] bg-[#121821]">
-              <DropdownMenuLabel className="text-[10px] font-normal uppercase tracking-wide text-slate-500">
+              <DropdownMenuLabel className="text-[10px] font-normal uppercase tracking-[0.14em] text-slate-500">
                 Workspace
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-white/10" />
@@ -132,29 +130,17 @@ export function OsShell({ children, userLabel = "Operator" }: { children: React.
                   onClick={() => setWorkspace(id)}
                 >
                   {id === "india" ? "StratXcel India" : "StratXcel Global"}
-                  {workspaceId === id ? <span className="ml-auto text-[10px] text-[#90a2cf]">Active</span> : null}
+                  {workspaceId === id ? <span className="ml-auto text-[10px] text-slate-500">Active</span> : null}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <button
-            type="button"
-            onClick={() => setWorkspace("global")}
-            className={cn(
-              "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] text-slate-500 transition-colors hover:text-slate-300",
-              workspaceId === "global" && "text-[#90a2cf]",
-            )}
-          >
-            <Globe className="size-3.5 opacity-70" />
-            StratXcel Global
-            <span className="ml-auto rounded border border-white/10 px-1 font-mono text-[9px] text-slate-600">v</span>
-          </button>
         </div>
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-[#1E2632] bg-[#0B0F14]/95 px-3 backdrop-blur-xl md:gap-3 md:px-5">
-          <div className="hidden shrink-0 md:block md:w-[248px]" aria-hidden />
+          <div className="hidden shrink-0 md:block md:w-[220px]" aria-hidden />
 
           <div className="flex min-w-0 flex-1 justify-center">
             <button

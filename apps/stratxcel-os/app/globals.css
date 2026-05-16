@@ -22,13 +22,10 @@
   }
 }
 
-/* Sidebar nav — Linear-style active glow */
+/* Sidebar nav — quiet active state (no dashboard glow) */
 .nav-item-active {
-  background: color-mix(in oklab, var(--color-accent) 16%, var(--color-card));
-  box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--color-accent) 30%, #243049),
-    0 10px 28px -16px rgb(0 0 0 / 0.78),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  background: color-mix(in oklab, var(--color-accent) 9%, transparent);
+  box-shadow: inset 2px 0 0 0 color-mix(in oklab, var(--color-accent) 55%, #8c97aa);
 }
 
 /* Premium enterprise panels */

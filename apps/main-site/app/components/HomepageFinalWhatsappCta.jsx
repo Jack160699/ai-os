@@ -14,12 +14,11 @@ function waHref(prefill) {
   return digits ? `https://wa.me/${digits}${q}` : "#";
 }
 
-/** WhatsApp primary — matches hero weight so it clearly dominates. */
-const waPrimaryClass =
-  "inline-flex min-h-[54px] w-full max-w-[min(100%,20rem)] items-center justify-center rounded-full bg-[#1a7f4a] px-6 text-[15px] font-semibold tracking-[-0.02em] text-white shadow-[0_1px_0_rgba(255,255,255,0.12)_inset,0_10px_32px_-10px_rgba(22,101,52,0.5)] transition-[transform,box-shadow,filter] duration-200 ease-out hover:brightness-[1.03] hover:shadow-[0_1px_0_rgba(255,255,255,0.14)_inset,0_14px_36px_-12px_rgba(22,101,52,0.55)] active:translate-y-px sm:mx-auto sm:min-w-[15rem]";
+const waBtnClass =
+  "sx-btn-wa inline-flex min-h-[52px] w-full items-center justify-center rounded-full px-6 text-[15px] font-semibold tracking-[-0.02em] no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sx-green-mid)_55%,transparent)] focus-visible:ring-offset-2 sm:max-w-md sm:mx-auto";
 
-const secondaryClass =
-  "inline-flex min-h-[46px] w-full max-w-[min(100%,20rem)] items-center justify-center rounded-full border border-stone-300/80 bg-white/85 px-6 text-[14px] font-semibold tracking-[-0.015em] text-stone-700 shadow-[0_1px_0_rgba(255,255,255,0.95)_inset] transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out hover:border-stone-400/90 hover:bg-white active:translate-y-px sm:mx-auto sm:min-w-[11.5rem]";
+const formLinkClass =
+  "inline-flex min-h-[48px] w-full items-center justify-center rounded-full text-[14px] font-semibold text-[var(--sx-ink-secondary)] underline decoration-stone-300/75 underline-offset-[6px] transition-colors hover:text-[var(--sx-ink)] hover:decoration-stone-400 sm:max-w-md sm:mx-auto";
 
 export function HomepageFinalWhatsappCta() {
   const { experience } = useLanguagePreference();
@@ -29,56 +28,45 @@ export function HomepageFinalWhatsappCta() {
 
   const copy = isHinglish
     ? {
-        title: "Chalo, business ko aage badhate hain.",
-        sub: "Batado kis cheez mein help chahiye.",
-        cta: "WhatsApp pe baat karein",
-        start: "Shuru karein",
-        prefill: "Hi, StratXcel se baat karni hai. Mujhe help chahiye: ",
+        title: "Ab baat shuru karein?",
+        sub: "Neeche WhatsApp — ya contact page pe chhota form, jo aapko comfortable lage.",
+        cta: "WhatsApp khol do",
+        prefill: "Hi, StratXcel site se. Mujhe help chahiye: ",
+        form: "Form wala option",
       }
     : {
-        title: "Let's grow your business.",
-        sub: "Tell us what you need help with.",
-        cta: "Chat on WhatsApp",
-        start: "Get Started",
-        prefill: "Hi — I'd like help from StratXcel with: ",
+        title: "Prefer to type it once?",
+        sub: "WhatsApp opens in one tap — or use the short form if that's easier on mobile.",
+        cta: "Open WhatsApp",
+        prefill: "Hi — I'm on the StratXcel site and would like help with: ",
+        form: "Go to the contact form",
       };
 
   return (
     <section
       id="final-cta"
-      className="relative scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] overflow-hidden border-b border-stone-200/80"
+      className="relative scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] border-b border-stone-200/55"
     >
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-50/35 via-[rgb(255_253_248)] to-stone-100/40"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-50/22 via-transparent to-[var(--sx-canvas-mid)]/28"
         aria-hidden
       />
-      <div
-        className="pointer-events-none absolute -top-28 left-1/2 h-[14rem] w-[min(100%,36rem)] -translate-x-1/2 rounded-full bg-gradient-to-r from-amber-100/30 via-white/50 to-emerald-50/25 blur-3xl"
-        aria-hidden
-      />
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-stone-100/30 to-transparent" aria-hidden />
 
-      <div className="relative z-10 mx-auto max-w-[var(--sx-max)] px-[var(--sx-gutter)] py-12 sm:py-16">
-        <div className="mx-auto max-w-lg rounded-[1.35rem] border border-stone-200/70 bg-white/75 px-6 py-9 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_24px_48px_-32px_rgba(41,37,36,0.12)] backdrop-blur-sm sm:px-10 sm:py-10">
-          <div className="text-center">
-            <h2 className="text-balance text-[1.35rem] font-semibold leading-snug tracking-[-0.03em] text-stone-900 sm:text-[1.5rem]">
-              {copy.title}
-            </h2>
-            <p className="mx-auto mt-3 max-w-[32ch] text-[15px] leading-relaxed text-stone-600 sm:text-[16px]">{copy.sub}</p>
-
-            <div className="mx-auto mt-9 flex w-full max-w-md flex-col items-stretch gap-3 sm:mt-10">
-              <a
-                href={waHref(copy.prefill)}
-                className={waPrimaryClass}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {copy.cta}
-              </a>
-              <Link href="/#what-we-help" className={secondaryClass}>
-                {copy.start}
-              </Link>
-            </div>
+      <div className="relative z-10 mx-auto max-w-[var(--sx-max)] px-[var(--sx-gutter)] py-9 sm:py-10">
+        <div className="sx-glass-page mx-auto max-w-md px-6 py-8 text-center sm:px-8 sm:py-9">
+          <h2 className="text-[1.28rem] font-semibold tracking-[-0.035em] text-[var(--sx-ink)] sm:text-[1.38rem]">
+            {copy.title}
+          </h2>
+          <p className="mx-auto mt-2.5 max-w-[36ch] text-[14px] leading-relaxed text-[color:var(--sx-ink-secondary)] sm:mt-3 sm:text-[15px]">
+            {copy.sub}
+          </p>
+          <div className="mt-7 flex flex-col items-stretch gap-3 sm:mt-8">
+            <a href={waHref(copy.prefill)} className={waBtnClass} target="_blank" rel="noopener noreferrer">
+              {copy.cta}
+            </a>
+            <Link href="/contact" className={formLinkClass}>
+              {copy.form}
+            </Link>
           </div>
         </div>
       </div>

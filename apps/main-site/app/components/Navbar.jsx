@@ -12,21 +12,19 @@ import { StratxcelBrand } from "./StratxcelBrand";
 
 const MAIN_NAV = [
   { label: "Home", href: "/" },
-  { label: "What we help", href: "/#what-we-help" },
   { label: "Contact", href: "/contact" },
 ];
 
 const MAIN_NAV_HI = [
   { label: "Home", href: "/" },
-  { label: "Kya karte hain", href: "/#what-we-help" },
-  { label: "Contact", href: "/contact" },
+  { label: "Baat karein", href: "/contact" },
 ];
 
 function navWhatsAppHref(isHinglish) {
   const digits = String(CONTACT.whatsapp || "").replace(/[^\d]/g, "");
   if (!digits) return "/#final-cta";
   const text = isHinglish
-    ? "Hi, main StratXcel site pe hoon. Baat karni hai."
+    ? "Hi, StratXcel site se — 2 min baat ho sakti hai?"
     : "Hi — I'm on the StratXcel site and want to chat.";
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
@@ -38,11 +36,7 @@ function caseStudiesUrl() {
 
 const EXPLORE_NAV = [
   { label: "Case Studies", href: caseStudiesUrl(), external: true },
-  { label: "Insights", href: "/insights", external: false },
-  { label: "News", href: "/news", external: false },
   { label: "Careers", href: "/careers", external: false },
-  { label: "Join Us", href: "/careers#join", external: false },
-  { label: "Research", href: "/research", external: false },
 ];
 
 function NavItem({ href, external, className, children, onNavigate }) {
@@ -105,8 +99,8 @@ export function Navbar() {
   }, [menuOpen, exploreOpen]);
 
   const headerSurface = scrolled
-    ? "border-b border-stone-200/90 bg-white/80 shadow-[0_12px_40px_-28px_rgb(28_25_23_/_0.08)] backdrop-blur-md"
-    : "border-b border-transparent bg-white/45 backdrop-blur-md";
+    ? "border-b border-stone-200/70 bg-[color-mix(in_srgb,var(--sx-surface-muted)_88%,transparent)] shadow-[var(--sx-shadow-md)] backdrop-blur-xl backdrop-saturate-150"
+    : "border-b border-stone-200/35 bg-[color-mix(in_srgb,var(--sx-surface-muted)_72%,transparent)] shadow-[0_1px_0_rgb(255_255_255_/_0.55)_inset] backdrop-blur-xl backdrop-saturate-150";
 
   const mainLinkClass =
     "py-1 text-[13px] font-medium tracking-[-0.015em] text-stone-600 transition-colors duration-300 ease-out hover:text-stone-900";
@@ -117,7 +111,7 @@ export function Navbar() {
   const exploreHeading = "text-[10px] font-semibold uppercase tracking-[0.22em] text-stone-500";
 
   const ctaDesktopClass =
-    "sx-cta-primary inline-flex h-[40px] min-h-[44px] items-center justify-center rounded-full border border-stone-800/25 bg-stone-900 px-[1.15rem] text-[13px] font-semibold tracking-[-0.01em] text-stone-50 active:scale-[0.98]";
+    "sx-btn-wa inline-flex h-9 min-h-[40px] shrink-0 items-center justify-center rounded-full px-4 text-[12px] font-semibold tracking-[-0.01em] sm:px-[1.05rem] sm:text-[13px]";
 
   const exploreBtnClass =
     "inline-flex h-10 items-center gap-1.5 rounded-full border border-stone-300/90 bg-white/80 px-3.5 text-[13px] font-medium tracking-[-0.01em] text-stone-700 shadow-sm transition-[border-color,background-color,color] duration-300 hover:border-stone-400 hover:bg-white hover:text-stone-900";
@@ -134,7 +128,7 @@ export function Navbar() {
         ].join(" ")}
       >
         <div className="relative mx-auto flex h-[var(--sx-nav-h)] max-w-[var(--sx-max)] items-center justify-between gap-3 px-[var(--sx-gutter)]">
-          <StratxcelBrand tone="hero" />
+          <StratxcelBrand tone="hero" compact />
 
           <nav className="hidden items-center gap-7 lg:flex" aria-label="Primary">
             {mainNav.map((item) => (
@@ -152,7 +146,7 @@ export function Navbar() {
               className={exploreBtnClass}
               onClick={() => setExploreOpen((v) => !v)}
             >
-              {isHinglish ? "Aur padhein" : "Explore"}
+              {isHinglish ? "Aur" : "Explore"}
               <span className="text-[10px] text-stone-500" aria-hidden>
                 {exploreOpen ? "▾" : "▸"}
               </span>
@@ -229,7 +223,7 @@ export function Navbar() {
           ].join(" ")}
         >
           <div className="flex h-[var(--sx-nav-h)] items-center justify-between border-b border-stone-200/80 px-5">
-            <p className={exploreHeading}>{isHinglish ? "Aur padhein" : "Explore"}</p>
+            <p className={exploreHeading}>{isHinglish ? "Aur" : "Explore"}</p>
             <button
               type="button"
               aria-label="Close"
@@ -285,7 +279,7 @@ export function Navbar() {
           ].join(" ")}
         >
           <div className="flex h-[var(--sx-nav-h)] items-center justify-between border-b border-stone-200/80 px-[var(--sx-gutter)]">
-            <StratxcelBrand tone="hero" />
+            <StratxcelBrand tone="hero" compact />
             <button
               type="button"
               aria-label="Close menu"
@@ -313,7 +307,7 @@ export function Navbar() {
                 </li>
               ))}
             </ul>
-            <p className={`${exploreHeading} mt-10`}>{isHinglish ? "Aur padhein" : "Explore"}</p>
+            <p className={`${exploreHeading} mt-10`}>{isHinglish ? "Aur" : "Explore"}</p>
             <ul className="mt-3 flex flex-col gap-0.5">
               {EXPLORE_NAV.map((item) => (
                 <li key={item.label} className="border-b border-stone-200/70">
@@ -338,12 +332,12 @@ export function Navbar() {
                 }}
               >
                 <span>{isHinglish ? "Bhasha" : "Language"}</span>
-                <span className="text-[12px] text-stone-500">{isHinglish ? "Badlein" : "Change"}</span>
+                <span className="text-[12px] text-stone-500">{isHinglish ? "Badlo" : "Change"}</span>
               </button>
               <a
                 href={navWhatsAppHref(isHinglish)}
                 onClick={() => setMenuOpen(false)}
-                className="sx-cta-primary flex h-[52px] w-full items-center justify-center rounded-full border border-stone-800/25 bg-stone-900 text-[15px] font-semibold text-stone-50"
+                className="sx-btn-wa flex min-h-[52px] w-full items-center justify-center rounded-full text-[15px] font-semibold no-underline"
                 target="_blank"
                 rel="noopener noreferrer"
               >

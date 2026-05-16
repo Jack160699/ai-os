@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Logo } from "@/app/components/Logo";
 import { AdminTopBar } from "@/app/admin/_components/AdminTopBar";
 import { ADMIN_NAV } from "@/app/admin/_lib/nav";
 import { logoutAction } from "@/app/admin/_lib/auth";
@@ -7,9 +6,9 @@ import { getCurrentRole, getVisibleAdminNav } from "@/lib/roles";
 
 function navLinkClass(active) {
   if (active) {
-    return "relative bg-white/[0.08] text-white shadow-[0_12px_40px_rgba(0,0,0,0.28)] before:pointer-events-none before:absolute before:left-0 before:top-1/2 before:h-6 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-sky-400 before:content-['']";
+    return "relative border border-white/[0.05] bg-white/[0.05] text-slate-100 before:pointer-events-none before:absolute before:left-0 before:top-1/2 before:h-5 before:w-px before:-translate-y-1/2 before:bg-sky-400/80 before:content-['']";
   }
-  return "relative border border-transparent text-slate-400 before:pointer-events-none before:absolute before:left-0 before:top-1/2 before:h-0 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-sky-400/0 before:opacity-0 before:transition-all before:duration-200 before:content-[''] hover:border-white/[0.06] hover:bg-white/[0.04] hover:text-slate-100 hover:before:h-4 hover:before:bg-sky-400/55 hover:before:opacity-100";
+  return "relative border border-transparent text-slate-500 transition-colors duration-200 hover:border-white/[0.04] hover:bg-white/[0.02] hover:text-slate-200";
 }
 
 export function AdminShell({ activePath = "/admin", title, subtitle, children, headerRight = null }) {
@@ -22,7 +21,7 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children, h
     <form action={logoutAction}>
       <button
         type="submit"
-        className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[12px] font-semibold text-slate-200 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] transition-[border-color,background-color,box-shadow,color] duration-150 hover:border-white/[0.12] hover:bg-white/[0.07] hover:text-white hover:shadow-[0_10px_36px_rgba(0,0,0,0.35)]"
+        className="rounded-lg border border-white/[0.06] bg-transparent px-3 py-2 text-[12px] font-medium text-slate-400 transition-colors duration-200 hover:border-white/[0.1] hover:bg-white/[0.04] hover:text-slate-100"
       >
         Log out
       </button>
@@ -32,18 +31,21 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children, h
   return (
     <main className="admin-app min-h-screen overflow-x-hidden bg-[#05070c] pb-20 text-slate-100 sm:pb-0">
       <div className="mx-auto flex min-w-0 w-full max-w-[min(100%,1380px)] gap-4 px-3 py-3 sm:gap-5 sm:px-4 sm:py-4 lg:gap-6 lg:px-6 lg:py-6">
-        <aside className="sticky top-4 hidden h-[calc(100vh-32px)] w-[min(252px,100%)] max-w-[252px] shrink-0 flex-col rounded-2xl border border-white/[0.06] bg-[#0c0f16] p-5 shadow-[var(--admin-shadow-panel)] lg:flex lg:flex-col">
-          <div className="flex items-center gap-2">
-            <Logo variant="dark" />
+        <aside className="sticky top-4 hidden h-[calc(100vh-32px)] w-[min(220px,100%)] max-w-[220px] shrink-0 flex-col border border-white/[0.06] bg-[#0c0f16] px-4 py-6 lg:flex lg:flex-col">
+          <div className="border-b border-white/[0.05] pb-5">
+            <Link href="/admin" className="group block outline-none transition-colors hover:text-white">
+              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-600">Stratxcel</span>
+              <span className="mt-1 block text-[13px] font-medium tracking-[-0.02em] text-slate-300">Admin</span>
+            </Link>
           </div>
-          <nav className="mt-8 space-y-1" aria-label="Primary">
+          <nav className="mt-6 flex flex-col gap-0.5" aria-label="Primary">
             {primaryNavItems.map((item) => {
               const active = activePath === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`block rounded-xl px-3 py-2.5 pl-[11px] text-[13px] font-medium tracking-tight transition-[background-color,border-color,color,box-shadow] duration-150 ${navLinkClass(active)}`}
+                  className={`block rounded-lg px-3 py-2.5 pl-[13px] text-[13px] font-normal tracking-[-0.01em] transition-[background-color,border-color,color] duration-200 ${navLinkClass(active)}`}
                 >
                   {item.label}
                 </Link>
@@ -51,19 +53,17 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children, h
             })}
           </nav>
           {secondaryNavItems.length ? (
-            <details className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2">
-              <summary className="cursor-pointer list-none rounded-lg px-2 py-2 text-[12px] font-semibold text-slate-300 hover:bg-white/[0.05]">
-                More
-              </summary>
-              <nav className="mt-2 space-y-1 px-1 pb-1" aria-label="Secondary">
+            <div className="mt-6 border-t border-white/[0.05] pt-5">
+              <p className="px-1 text-[10px] font-medium uppercase tracking-[0.18em] text-slate-600">More</p>
+              <nav className="mt-2 flex flex-col gap-0.5" aria-label="Secondary">
                 {secondaryNavItems.map((item) => {
                   const active = activePath === item.href;
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`block rounded-lg px-2 py-2 text-[12px] font-medium transition-[background-color,color] ${
-                        active ? "bg-white/[0.09] text-white" : "text-slate-400 hover:bg-white/[0.05] hover:text-slate-100"
+                      className={`block rounded-lg px-3 py-2 text-[12px] font-normal tracking-[-0.01em] transition-colors duration-200 ${
+                        active ? "text-white" : "text-slate-500 hover:text-slate-300"
                       }`}
                     >
                       {item.label}
@@ -71,14 +71,11 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children, h
                   );
                 })}
               </nav>
-            </details>
+            </div>
           ) : null}
-          <div className="mt-auto rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 shadow-[0_1px_0_rgba(255,255,255,0.03)_inset]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">System</p>
-            <p className="mt-2 text-[12px] leading-relaxed text-slate-400">
-              Ingestion is live. Numbers refresh when you open a page—pull to navigate for the latest slice.
-            </p>
-          </div>
+          <p className="mt-auto border-t border-white/[0.05] pt-5 text-[11px] leading-relaxed text-slate-600">
+            Data refreshes when you open a page.
+          </p>
         </aside>
 
         <div className="min-w-0 flex-1 rounded-2xl border border-white/[0.06] bg-[#0c0f16] shadow-[var(--admin-shadow-panel)]">
@@ -91,7 +88,7 @@ export function AdminShell({ activePath = "/admin", title, subtitle, children, h
               logoutSlot={logoutSlot}
             />
             <div className="mt-6 flex flex-col gap-1 sm:mt-7">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-slate-500">Console</p>
+              <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-slate-600">Console</p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
                 <div className="min-w-0">
                   <h1 className="text-2xl font-semibold tracking-[-0.035em] text-white sm:text-[1.7rem]">{title}</h1>

@@ -3,55 +3,48 @@ import { CONTACT_EMAIL } from "@stratxcel/config";
 import { PageLayout } from "@/app/components/PageLayout";
 
 export const metadata = {
-  title: "Careers & Internships — Stratxcel",
+  title: "Careers — Stratxcel",
 };
 
 export default function CareersPage() {
   const roles = [
-    { title: "Business Development Intern", slug: "business-development-intern", body: "Sales communication, lead generation, and growth systems." },
-    { title: "Marketing Intern", slug: "marketing-intern", body: "Brand campaigns, content systems, and performance basics." },
-    { title: "Operations Intern", slug: "operations-intern", body: "Workflow systems, execution discipline, and coordination." },
-    { title: "IT / Tech Intern", slug: "it-tech-intern", body: "Web systems, dashboards, automation tools, and AI workflows." },
-    { title: "Finance Intern", slug: "finance-intern", body: "GST basics, invoicing, reporting, and finance operations." },
-    { title: "HR / Talent Intern", slug: "hr-talent-intern", body: "Hiring basics, people systems, and team coordination." },
-    { title: "Founder's Associate", slug: "founders-associate", body: "Cross-functional execution support across strategy, ops, and delivery." },
-    { title: "Business Development Associate (Full-time)", slug: "business-development-associate", body: "Own outbound + pipeline discipline with clear targets and coaching." },
+    { title: "Business Development Intern", slug: "business-development-intern", body: "Outreach, leads, clear follow-ups." },
+    { title: "Marketing Intern", slug: "marketing-intern", body: "Campaigns, content, performance basics." },
+    { title: "Operations Intern", slug: "operations-intern", body: "Coordination, execution, clean handoffs." },
+    { title: "IT / Tech Intern", slug: "it-tech-intern", body: "Websites, dashboards, practical tools." },
+    { title: "Finance Intern", slug: "finance-intern", body: "GST basics, invoicing, reporting." },
+    { title: "HR / Talent Intern", slug: "hr-talent-intern", body: "Hiring basics, scheduling, coordination." },
+    { title: "Execution Associate", slug: "founders-associate", body: "High ownership support across delivery." },
+    { title: "Business Development Associate (Full-time)", slug: "business-development-associate", body: "Outbound, pipeline, coaching." },
   ];
 
   return (
-    <PageLayout title="Build real-world skills, not just certificates." eyebrow="Careers & internships">
-      <p>
-        At Stratxcel, students and freshers gain practical business experience, real project exposure,
-        mentorship, field learning, and industry discipline.
+    <PageLayout title="Careers" eyebrow="Work with us">
+      <p className="text-[15px] text-[color:var(--sx-ink-secondary)]">
+        Open roles for interns and one full-time track. Email your CV and the role title — we reply when we can.
       </p>
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 sm:gap-4">
         {roles.map((r) => (
           <Link
             key={r.slug}
             href={`/careers/${r.slug}`}
-            className="sx-card-space sx-card--interactive sx-card--lift block rounded-xl px-4 py-4"
+            className="sx-card-space sx-card--interactive sx-card--lift block rounded-xl px-4 py-3.5"
           >
-            <h2 className="text-[15px] font-semibold text-stone-900">{r.title}</h2>
-            <p className="mt-2 text-sm text-stone-600">{r.body}</p>
+            <h2 className="text-[15px] font-semibold text-[var(--sx-ink)]">{r.title}</h2>
+            <p className="mt-1.5 text-sm text-[color:var(--sx-ink-secondary)]">{r.body}</p>
           </Link>
         ))}
       </div>
-      <p className="mt-8 text-sm text-stone-600">
-        Eligible: BBA, MBA, BCA, MCA, B.Com, M.Com, CS, IT, Sales, Commerce, and serious learners.
-      </p>
-      <p className="mt-2 text-sm text-stone-600">
-        Benefits: Real work, mentorship, live projects, certificates, professional growth, and industry readiness.
-      </p>
-      <div id="join" className="mt-8 flex flex-wrap gap-3 scroll-mt-[calc(var(--sx-nav-h)+0.75rem)]">
+      <div className="mt-8 flex flex-wrap gap-3">
         <a
-          href={`mailto:${CONTACT_EMAIL}?subject=Internship%20Application%20%E2%80%94%20Stratxcel`}
-          className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-stone-800/20 bg-stone-900 px-7 text-[15px] font-semibold text-stone-50 shadow-md transition hover:bg-stone-800"
+          href={`mailto:${CONTACT_EMAIL}?subject=Application%20%E2%80%94%20Stratxcel`}
+          className="sx-cta-primary inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-stone-800/25 px-7 text-[15px] font-semibold text-stone-50"
         >
-          Apply for Internship
+          Email your application
         </a>
         <Link
           href="/contact"
-          className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-stone-300/90 bg-white px-7 text-[15px] font-semibold text-stone-900 shadow-sm transition hover:border-stone-400 hover:bg-stone-50"
+          className="sx-btn-secondary-elegant inline-flex h-12 min-h-[48px] items-center justify-center rounded-full px-7 text-[15px] font-semibold"
         >
           Let&apos;s talk about your business
         </Link>

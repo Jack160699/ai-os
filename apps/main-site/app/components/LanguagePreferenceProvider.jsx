@@ -27,9 +27,19 @@ function readStored() {
     const raw = localStorage.getItem(LANGUAGE_STORAGE_KEY);
     if (raw === LANGUAGE_HINGLISH || raw === LANGUAGE_ENGLISH) return raw;
   } catch {
-    /* ignore */
+    /* private mode / blocked storage */
   }
   return null;
+}
+
+function writeStored(value) {
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, value);
+    const verify = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    return verify === value;
+  } catch {
+    return false;
+  }
 }
 
 /** Client-only snapshot for UI (e.g. hero copy). Returns null on server. */
@@ -46,39 +56,43 @@ export function useLanguagePreference() {
   return ctx;
 }
 
+/** Two rAFs so the card opacity/transform transition always has a committed “from” frame (no stuck animation). */
+function raf2(fn) {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(fn);
+  });
+}
+
 /**
- * First-visit language gate: premium overlay, localStorage, reopen from nav.
+ * First-visit language gate: reliable localStorage read in useLayoutEffect (no queueMicrotask),
+ * backdrop visible immediately, card animates in. z-index above all chrome.
  */
 export function LanguagePreferenceProvider({ children }) {
   const titleId = useId();
   const descId = useId();
   const primaryRef = useRef(null);
+  const closeTimerRef = useRef(0);
 
   const [hydrated, setHydrated] = useState(false);
   const [experience, setExperienceState] = useState(null);
   const [overlayOpen, setOverlayOpen] = useState(false);
-  const [visualEnter, setVisualEnter] = useState(false);
+  /** Card / panel motion only — backdrop stays solid while open. */
+  const [panelEnter, setPanelEnter] = useState(false);
   const [allowDismiss, setAllowDismiss] = useState(false);
 
-  const closeTimerRef = useRef(0);
-
   const finishClose = useCallback(() => {
-    setVisualEnter(false);
+    setPanelEnter(false);
     window.clearTimeout(closeTimerRef.current);
     closeTimerRef.current = window.setTimeout(() => {
       setOverlayOpen(false);
-    }, 260);
+    }, 240);
   }, []);
 
   const commitChoice = useCallback(
     (value) => {
       window.clearTimeout(closeTimerRef.current);
       closeTimerRef.current = 0;
-      try {
-        localStorage.setItem(LANGUAGE_STORAGE_KEY, value);
-      } catch {
-        /* ignore quota / private mode */
-      }
+      writeStored(value);
       setExperienceState(value);
       applyExperienceToDocument(value);
       setAllowDismiss(true);
@@ -91,52 +105,68 @@ export function LanguagePreferenceProvider({ children }) {
     window.clearTimeout(closeTimerRef.current);
     closeTimerRef.current = 0;
     setAllowDismiss(readStored() !== null);
+    setPanelEnter(false);
     setOverlayOpen(true);
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => setVisualEnter(true));
-    });
+    raf2(() => setPanelEnter(true));
   }, []);
 
+  // Initial gate: synchronous read inside layout effect so first paint after commit can include overlay (no microtask delay).
+  /* Language gate: read localStorage and open overlay before first paint (avoid queueMicrotask / effect race). */
+  /* eslint-disable react-hooks/set-state-in-effect -- intentional batched layout sync; not a post-paint “effect”. */
   useLayoutEffect(() => {
     const stored = readStored();
-    queueMicrotask(() => {
-      setHydrated(true);
-      if (stored) {
-        setExperienceState(stored);
-        applyExperienceToDocument(stored);
-        setAllowDismiss(true);
-        setOverlayOpen(false);
-        return;
-      }
-      setAllowDismiss(false);
-      setOverlayOpen(true);
-    });
-  }, []);
+    setHydrated(true);
 
-  useEffect(() => {
-    if (!overlayOpen) {
-      const id = window.requestAnimationFrame(() => setVisualEnter(false));
-      return () => window.cancelAnimationFrame(id);
+    if (stored) {
+      setExperienceState(stored);
+      applyExperienceToDocument(stored);
+      setAllowDismiss(true);
+      setOverlayOpen(false);
+      setPanelEnter(false);
+      return;
     }
-    const id = window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => setVisualEnter(true));
-    });
-    return () => window.cancelAnimationFrame(id);
-  }, [overlayOpen]);
+
+    setAllowDismiss(false);
+    setOverlayOpen(true);
+    setPanelEnter(false);
+    raf2(() => setPanelEnter(true));
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Cross-tab: if language is set elsewhere, apply without breaking first-visit gate logic.
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key !== null && e.key !== LANGUAGE_STORAGE_KEY) return;
+      const next = readStored();
+      if (next) {
+        setExperienceState(next);
+        applyExperienceToDocument(next);
+        setAllowDismiss(true);
+        setPanelEnter(false);
+        setOverlayOpen(false);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   useEffect(() => {
     if (!overlayOpen) return;
+    document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
     return () => {
+      document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
+      document.body.style.touchAction = "";
     };
   }, [overlayOpen]);
 
   useEffect(() => {
-    if (!overlayOpen || !visualEnter) return;
-    const t = window.setTimeout(() => primaryRef.current?.focus(), 80);
+    if (!overlayOpen || !panelEnter) return;
+    const t = window.setTimeout(() => primaryRef.current?.focus(), 60);
     return () => window.clearTimeout(t);
-  }, [overlayOpen, visualEnter]);
+  }, [overlayOpen, panelEnter]);
 
   useEffect(() => {
     if (!overlayOpen) return;
@@ -150,7 +180,9 @@ export function LanguagePreferenceProvider({ children }) {
   }, [overlayOpen, allowDismiss, finishClose]);
 
   useEffect(() => {
-    return () => window.clearTimeout(closeTimerRef.current);
+    return () => {
+      window.clearTimeout(closeTimerRef.current);
+    };
   }, []);
 
   const onBackdropPointerDown = useCallback(() => {
@@ -161,7 +193,6 @@ export function LanguagePreferenceProvider({ children }) {
   const ctx = {
     experience: hydrated ? experience : null,
     openLanguageSelector,
-    /** hinglish | english once chosen */
     isHinglish: experience === LANGUAGE_HINGLISH,
   };
 
@@ -170,18 +201,18 @@ export function LanguagePreferenceProvider({ children }) {
       {children}
       {overlayOpen ? (
         <div
-          className="fixed inset-0 z-[220] flex items-end justify-center sm:items-center sm:p-5"
+          className="fixed inset-0 z-[600] flex items-end justify-center overscroll-none sm:items-center sm:p-5"
           role="presentation"
+          style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
-          {/* Light veil — homepage stays visible with subtle blur */}
+          {/* Backdrop: no fade tied to panel — visible immediately to avoid “empty” first frame */}
           <div
             role={allowDismiss ? "button" : undefined}
             tabIndex={allowDismiss ? 0 : -1}
             aria-label={allowDismiss ? "Close language selection" : undefined}
             className={[
-              "absolute inset-0 bg-stone-100/50 transition-opacity duration-200 ease-out motion-reduce:transition-none",
-              "backdrop-blur-[4px] sm:backdrop-blur-[6px] motion-reduce:backdrop-blur-none",
-              visualEnter ? "opacity-100" : "opacity-0",
+              "absolute inset-0 bg-stone-100/55 backdrop-blur-[5px] sm:bg-stone-100/50 sm:backdrop-blur-[7px]",
+              "motion-reduce:backdrop-blur-none",
               allowDismiss ? "cursor-pointer" : "cursor-default",
             ].join(" ")}
             onClick={onBackdropPointerDown}
@@ -196,9 +227,9 @@ export function LanguagePreferenceProvider({ children }) {
 
           <div
             className={[
-              "relative z-10 mx-auto w-full max-w-[min(100%,24rem)] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1 sm:px-0 sm:pb-0 sm:pt-0",
-              "transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none",
-              visualEnter ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0 sm:translate-y-1",
+              "relative z-10 mx-auto w-full max-w-[min(100%,24rem)] px-3 pt-1 sm:px-0 sm:pt-0",
+              "transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-150",
+              panelEnter ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0 sm:translate-y-2",
             ].join(" ")}
             role="dialog"
             aria-modal="true"
@@ -208,11 +239,10 @@ export function LanguagePreferenceProvider({ children }) {
             <div
               className={[
                 "relative overflow-hidden rounded-t-[1.75rem] border border-white/70 sm:rounded-[2rem]",
-                "bg-white/85 p-7 shadow-[0_32px_64px_-28px_rgba(28,25,23,0.14),0_0_0_1px_rgba(255,255,255,0.85)_inset]",
+                "bg-white/90 p-7 shadow-[0_32px_64px_-28px_rgba(28,25,23,0.16),0_0_0_1px_rgba(255,255,255,0.88)_inset]",
                 "backdrop-blur-sm sm:p-9 sm:backdrop-blur-md",
               ].join(" ")}
             >
-              {/* Very soft warmth behind content — not a heavy scene */}
               <div
                 className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-amber-100/35 blur-3xl"
                 aria-hidden
@@ -227,17 +257,16 @@ export function LanguagePreferenceProvider({ children }) {
                   id={titleId}
                   className="text-balance text-[1.45rem] font-semibold leading-snug tracking-[-0.03em] text-stone-900 sm:text-[1.55rem]"
                 >
-                  Bas simple rakhte hain.
+                  Kaise padhna hai?
                 </h2>
                 <p
                   id={descId}
                   className="mx-auto mt-3 max-w-[34ch] text-[15px] leading-relaxed text-stone-500 sm:text-[16px]"
                 >
-                  Jo bhasha theek lage, woh chuno.
+                  Ek baar chun lo. Site usi tone pe chalegi.
                 </p>
 
                 <div className="mt-9 flex flex-col gap-3 sm:mt-10">
-                  {/* Primary: warm, approachable, human */}
                   <button
                     ref={primaryRef}
                     type="button"
@@ -249,21 +278,20 @@ export function LanguagePreferenceProvider({ children }) {
                     onClick={() => commitChoice(LANGUAGE_HINGLISH)}
                   >
                     <span className="block text-[15px] font-semibold leading-snug tracking-[-0.018em] text-[#faf6f1] sm:text-[16px]">
-                      Hindi + English — seedhi, simple baat
+                      Hinglish — jaise WhatsApp pe likhte ho
                     </span>
                   </button>
 
-                  {/* Secondary: clean, premium, lighter */}
                   <button
                     type="button"
                     className={[
-                      "w-full rounded-2xl border border-stone-200/95 bg-white/65 px-5 py-3.5 text-[14px] font-medium tracking-[-0.01em] text-stone-700 shadow-sm transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
+                      "w-full rounded-2xl border border-stone-200/95 bg-white/70 px-5 py-3.5 text-[14px] font-medium tracking-[-0.01em] text-stone-700 shadow-sm transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
                       "hover:border-stone-300 hover:bg-white hover:shadow-md",
                       "active:translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white/90",
                     ].join(" ")}
                     onClick={() => commitChoice(LANGUAGE_ENGLISH)}
                   >
-                    Sirf English mein
+                    Sirf English
                   </button>
                 </div>
               </div>

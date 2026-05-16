@@ -1,9 +1,11 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
+import { URLS } from "@stratxcel/config";
 
-export const metadata = {
-  title: "Results — Stratxcel",
-};
+function caseStudiesUrl() {
+  const base = String(URLS.aiMarketing || "https://stratxcel.ai").replace(/\/+$/, "");
+  return `${base}/case-studies`;
+}
 
 export default function ResultsPage() {
-  redirect("/#cases");
+  permanentRedirect(caseStudiesUrl());
 }

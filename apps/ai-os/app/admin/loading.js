@@ -1,18 +1,19 @@
 export default function AdminLoading() {
   return (
     <main className="admin-app min-h-screen bg-[var(--admin-surface-0,#05070c)] text-slate-100">
-      <div className="mx-auto flex w-full max-w-[1440px] gap-5 px-4 py-4 sm:gap-6 sm:px-5 sm:py-5 lg:gap-8 lg:px-6 lg:py-6">
-        <aside className="sticky top-4 hidden h-[calc(100vh-32px)] w-[252px] shrink-0 flex-col rounded-2xl border border-white/[0.06] bg-[var(--admin-surface-1,#0c0f16)] p-5 shadow-[var(--admin-shadow-panel,0_24px_80px_rgba(0,0,0,0.45))] lg:flex lg:flex-col">
-          <div className="admin-skeleton h-8 w-28" />
-          <div className="mt-8 space-y-2">
+      <div className="mx-auto flex w-full max-w-[min(100%,1380px)] gap-4 px-3 py-3 sm:gap-5 sm:px-4 sm:py-4 lg:gap-6 lg:px-6 lg:py-6">
+        <aside className="sticky top-4 hidden h-[calc(100vh-32px)] w-[220px] shrink-0 flex-col border border-white/[0.06] bg-[var(--admin-surface-1,#0c0f16)] px-4 py-6 lg:flex lg:flex-col">
+          <div className="space-y-2 border-b border-white/[0.05] pb-5">
+            <div className="admin-skeleton h-2.5 w-16" />
+            <div className="admin-skeleton h-4 w-24" />
+          </div>
+          <div className="mt-6 space-y-1.5">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="admin-skeleton h-10 w-full rounded-xl" />
+              <div key={i} className="admin-skeleton h-9 w-full rounded-lg" />
             ))}
           </div>
-          <div className="mt-auto rounded-xl border border-white/[0.06] p-4">
-            <div className="admin-skeleton h-3 w-24" />
-            <div className="admin-skeleton mt-3 h-3 w-full" />
-            <div className="admin-skeleton mt-2 h-3 w-[85%]" />
+          <div className="mt-auto border-t border-white/[0.05] pt-5">
+            <div className="admin-skeleton h-3 w-full" />
           </div>
         </aside>
         <div className="min-w-0 flex-1 rounded-2xl border border-white/[0.06] bg-[var(--admin-surface-1,#0c0f16)] shadow-[var(--admin-shadow-panel,0_24px_80px_rgba(0,0,0,0.45))]">

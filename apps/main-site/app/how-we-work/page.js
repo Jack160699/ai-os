@@ -1,9 +1,6 @@
 import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "How We Work — Stratxcel",
-};
-
+/** Legacy URL — homepage is intentionally minimal; start on Contact. */
 export default function HowWeWorkPage() {
-  redirect("/#how-we-work");
+  redirect("/contact");
 }

@@ -1,9 +1,5 @@
-import { redirect } from "next/navigation";
-
-export const metadata = {
-  title: "About — Stratxcel",
-};
+import { permanentRedirect } from "next/navigation";
 
 export default function AboutPage() {
-  redirect("/#why");
+  permanentRedirect("/contact");
 }

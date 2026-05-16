@@ -10,15 +10,15 @@ const geistSans = Geist({
 });
 
 export const metadata = {
-  title: "Stratxcel — Grow your business online",
+  title: "Stratxcel — Websites, ads & WhatsApp for growing businesses",
   description:
-    "Calm help with websites, marketing, and your online presence. Message us on WhatsApp — real people, straight answers.",
+    "A small team that helps with your site, marketing, and customer messages — plain language, fast WhatsApp replies.",
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#f5f2eb",
+  themeColor: "#f0ebe2",
 };
 
 export default function RootLayout({ children }) {
