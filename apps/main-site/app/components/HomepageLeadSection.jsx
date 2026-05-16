@@ -22,26 +22,26 @@ export function HomepageLeadSection() {
 
   const copy = isHinglish
     ? {
-        eyebrow: "Baat shuru",
-        title: "Bas batao issue kya chal raha hai.",
-        sub: "Chhota form. Ya seedha WhatsApp — jaisa comfortable ho. Dono theek hain.",
-        calm: "WhatsApp pe baat easy rahegi. Koi awkward sales call nahi.",
-        wa: "Pehle WhatsApp?",
-        waNote: "Hi — pehle hi seedhi baat karni thi.",
+        eyebrow: "Bas itna",
+        title: "Bas problem bata do.",
+        sub: "Chhota form. Ya seedha WhatsApp — jo easy lage.",
+        calm: "Khud reply karenge. Koi pressure pitch nahi.",
+        wa: "WhatsApp Karein",
+        waNote: "Hi — seedhi baat karni thi.",
       }
     : {
-        eyebrow: "Start here",
-        title: "Tell us what's going wrong.",
-        sub: "Short form — or WhatsApp first if that feels easier. Both are fine.",
-        calm: "We’ll keep it conversational. No awkward sales call.",
-        wa: "WhatsApp first?",
-        waNote: "Hi — wanted a quick human chat before I type anything.",
+        eyebrow: "Quick one",
+        title: "Just say what’s going wrong.",
+        sub: "Small form. Or WhatsApp — whatever’s easier.",
+        calm: "We reply ourselves. No pressure pitch.",
+        wa: "WhatsApp",
+        waNote: "Hi — wanted a quick chat, nothing formal.",
       };
 
   return (
     <section
       id="lead"
-      className="relative scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] border-b border-stone-200/50 bg-[var(--sx-surface)] py-11 sm:py-[3.25rem]"
+      className="relative scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] border-b border-stone-200/55 bg-[var(--sx-surface)] py-12 sm:py-[3.65rem]"
     >
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_72%_48%_at_0%_100%,color-mix(in_srgb,var(--sx-glow-amber)_24%,transparent),transparent)]"
@@ -51,10 +51,10 @@ export function HomepageLeadSection() {
         <div className="grid gap-10 lg:grid-cols-12 lg:items-start lg:gap-14">
           <div className="lg:col-span-5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">{copy.eyebrow}</p>
-            <h2 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.032em] text-[var(--sx-ink)] sm:text-[1.48rem]">
+            <h2 className="mt-2.5 text-[1.38rem] font-semibold leading-[1.18] tracking-[-0.032em] text-[var(--sx-ink)] sm:text-[1.52rem]">
               {copy.title}
             </h2>
-            <p className="mt-3 max-w-[44ch] text-[15px] leading-[1.62] text-[var(--sx-ink-secondary)]">{copy.sub}</p>
+            <p className="mt-3 max-w-[44ch] text-[15px] leading-[1.66] text-[var(--sx-ink-secondary)]">{copy.sub}</p>
             <p className="mt-3 max-w-[42ch] text-[13px] leading-relaxed text-stone-500 sm:text-[14px]">{copy.calm}</p>
 
             <div className="mt-6">

@@ -10,20 +10,20 @@ import {
 
 const COPY = {
   en: {
-    eyebrow: "Trust",
-    title: "You talk. We listen.",
+    eyebrow: "For real",
+    title: "You message. We read it properly.",
     reassurance:
-      "No corporate fog. We read what you send, ask sane questions, and reply in normal words — usually the same day.",
-    quote: "I didn’t need a deck. I needed clarity. That’s what I got.",
-    by: "Operator · India",
+      "No corporate fog. We reply in normal words — usually the same day. No weird sales script.",
+    quote: "Didn’t need fancy slides. Just needed someone who actually got it.",
+    by: "Retail · India",
     linkedIn: "LinkedIn",
   },
   hi: {
-    eyebrow: "Vishwas",
-    title: "Yahan samajh ke baat hoti hai.",
+    eyebrow: "Seedhi baat",
+    title: "Message karo — seedhi baat.",
     reassurance:
-      "Aap message karoge. Samne actual banda reply karega — seedha, same day zyada tar. Koi pressure pitch nahi.",
-    quote: "Pehle lagta tha kaun samjhega. Yahan clearly samajh aa gaya.",
+      "Same day jawab zyada tar. Koi awkward sales call nahi. Seedha banda reply karega.",
+    quote: "Pehle lagta tha kaun samjhega. Yahan baat seedhi ho gayi.",
     by: "Retail · India",
     linkedIn: "LinkedIn",
   },
@@ -40,20 +40,20 @@ export function HomepageTrustBrief() {
   return (
     <section
       id="trust"
-      className="relative scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] border-b border-stone-200/50 bg-[color-mix(in_srgb,var(--sx-surface-warm)_52%,var(--sx-canvas))] py-11 sm:py-12"
+      className="relative scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] border-b border-stone-200/55 bg-[color-mix(in_srgb,var(--sx-surface-warm)_45%,var(--sx-canvas))] py-12 sm:py-14"
     >
       <div
         className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,white_40%,transparent)_0%,transparent_50%)]"
         aria-hidden
       />
       <div className="sx-container relative">
-        <div className="grid gap-9 lg:grid-cols-12 lg:items-end lg:gap-11">
+        <div className="grid gap-10 lg:grid-cols-12 lg:items-end lg:gap-12">
           <div className="lg:col-span-5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">{c.eyebrow}</p>
-            <h2 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.032em] text-[var(--sx-ink)] sm:text-[1.48rem]">
+            <h2 className="mt-2.5 text-[1.38rem] font-semibold leading-[1.18] tracking-[-0.032em] text-[var(--sx-ink)] sm:text-[1.52rem]">
               {c.title}
             </h2>
-            <p className="mt-3 max-w-[44ch] text-[15px] leading-[1.62] text-[color:var(--sx-ink-secondary)]">
+            <p className="mt-3 max-w-[44ch] text-[15px] leading-[1.66] text-[color:var(--sx-ink-secondary)]">
               {c.reassurance}
             </p>
             {linkedIn ? (

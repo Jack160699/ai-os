@@ -24,7 +24,7 @@ export async function POST(request) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const result = validateAuditLeadPayload(body);
+  const result = validateAuditLeadPayload(body, body?.locale === "hi" ? "hi" : "en");
   if (!result.ok) {
     return NextResponse.json({ error: "validation_failed", errors: result.errors }, { status: 422 });
   }

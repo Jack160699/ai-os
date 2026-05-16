@@ -6,43 +6,37 @@ import {
   useLanguagePreference,
 } from "./LanguagePreferenceProvider";
 
-/** @type {{ id: string; tint: string; en: { label: string; out: string }; hi: { label: string; out: string } }[]} */
+/** @type {{ id: string; en: { label: string; out: string }; hi: { label: string; out: string } }[]} */
 const CASES = [
   {
     id: "gym",
-    tint: "from-amber-50/92 to-orange-50/35",
-    en: { label: "Gym", out: "More trials. WhatsApp booking that actually feels easy." },
-    hi: { label: "Gym", out: "Trial badhao. WhatsApp se booking easy karo." },
+    en: { label: "Gym", out: "More trials? People ask a lot — walk in less?" },
+    hi: { label: "Gym", out: "Trial lene wale badhane hain? Log poochhte bahut hain, aate kam?" },
   },
   {
     id: "clinic",
-    tint: "from-emerald-50/92 to-teal-50/32",
-    en: { label: "Clinic", out: "Fewer random calls. Timings + booking crystal clear." },
-    hi: { label: "Clinic", out: "Calls kam. Timing aur booking clear." },
+    en: { label: "Clinic", out: "Same questions on loop? Patients don’t get how to book?" },
+    hi: { label: "Clinic", out: "Baar baar same calls aa rahe? Patient ko booking samajh nahi aati?" },
   },
   {
     id: "coach",
-    tint: "from-violet-50/85 to-indigo-50/28",
-    en: { label: "Coach", out: "Keep the offer simple so people don’t get lost." },
-    hi: { label: "Coach", out: "Offer simple rakho. Log confuse na ho." },
+    en: { label: "Coach", out: "People still don’t get what you actually do?" },
+    hi: { label: "Coach", out: "Log samajh hi nahi pa rahe aap karte kya ho?" },
   },
   {
     id: "re",
-    tint: "from-sky-50/88 to-blue-50/32",
-    en: { label: "Real estate", out: "Listings that build trust on mobile — fast scan, clear CTA." },
-    hi: { label: "Real estate", out: "Listing mobile pe trust build kare." },
+    en: { label: "Real estate", out: "Property has to feel genuine. Trust on mobile matters." },
+    hi: { label: "Real estate", out: "Property genuine lagni chahiye. Mobile pe dekh ke trust banna chahiye." },
   },
   {
     id: "d2c",
-    tint: "from-rose-50/88 to-pink-50/28",
-    en: { label: "D2C", out: "Site + ads tell the same story — no mixed signals." },
-    hi: { label: "D2C", out: "Site aur ads same story bole." },
+    en: { label: "D2C", out: "Ad shows one thing — site shows something else?" },
+    hi: { label: "D2C", out: "Ad pe kuch aur dikhta hai, site pe kuch aur?" },
   },
   {
     id: "local",
-    tint: "from-stone-100/95 to-amber-50/22",
-    en: { label: "Local business", out: "Show up on Google. Let customers reach you in one tap." },
-    hi: { label: "Local", out: "Google pe milo. Customer seedha contact kare." },
+    en: { label: "Local business", out: "Folks should find you on Google — without digging forever." },
+    hi: { label: "Local", out: "Google pe milna easy hona chahiye." },
   },
 ];
 
@@ -51,32 +45,32 @@ export function HomepageIndustryCases() {
   const stored = getStoredLanguageExperience();
   const isHinglish =
     experience != null ? experience === LANGUAGE_HINGLISH : stored === LANGUAGE_HINGLISH;
-  const eyebrow = isHinglish ? "Kaun-sa business" : "Your kind of business";
-  const title = isHinglish ? "Lagta hai hum tumhara type samajhte hain" : "We usually get your kind of business";
+  const eyebrow = isHinglish ? "Kaun sa kaam" : "What you do";
+  const title = isHinglish ? "Aise scenes mein help karte hain" : "Where we usually plug in";
 
   return (
     <section
       id="cases"
-      className="relative scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] border-b border-stone-200/50 bg-[color-mix(in_srgb,var(--sx-canvas)_72%,white)] py-11 sm:py-[3.25rem]"
+      className="relative scroll-mt-[calc(var(--sx-nav-h)+0.5rem)] border-b border-stone-200/55 bg-[color-mix(in_srgb,var(--sx-canvas)_78%,white)] py-12 sm:py-[3.65rem]"
     >
       <div className="sx-container">
         <div className="max-w-xl">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">{eyebrow}</p>
-          <h2 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.032em] text-[var(--sx-ink)] sm:text-[1.48rem]">
+          <h2 className="mt-2.5 text-[1.38rem] font-semibold leading-[1.18] tracking-[-0.032em] text-[var(--sx-ink)] sm:text-[1.52rem]">
             {title}
           </h2>
         </div>
 
-        <ul className="mt-9 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
+        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-[1.05rem] lg:mt-12">
           {CASES.map((row, idx) => {
             const c = isHinglish ? row.hi : row.en;
             return (
               <li
                 key={row.id}
                 className={[
-                  "relative flex min-h-[9.25rem] flex-col justify-between rounded-[1.1rem] border border-stone-200/65 bg-gradient-to-br p-4 shadow-[var(--sx-shadow-sm)] transition-[transform,box-shadow,border-color] duration-300 ease-out motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-stone-300/70 motion-safe:hover:shadow-[var(--sx-shadow-md)] sm:min-h-[9.75rem] sm:p-[1.15rem]",
-                  row.tint,
-                  idx % 3 === 1 ? "lg:translate-y-2" : "",
+                  "relative flex min-h-[8.75rem] flex-col justify-between rounded-xl border border-stone-200/75 bg-white/92 p-4 shadow-[var(--sx-shadow-sm)] transition-[transform,box-shadow,border-color] duration-300 ease-out motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-stone-300/80 motion-safe:hover:shadow-[var(--sx-shadow-md)] sm:min-h-[9.15rem] sm:p-5",
+                  idx % 2 === 1 ? "bg-stone-50/72" : "",
+                  idx % 3 === 1 ? "lg:translate-y-1.5" : "",
                 ].join(" ")}
               >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-600/90">{c.label}</p>

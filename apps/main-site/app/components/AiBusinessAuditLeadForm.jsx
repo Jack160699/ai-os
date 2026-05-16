@@ -19,44 +19,44 @@ const INITIAL = {
 
 const COPY = {
   en: {
-    biz: "Business name",
-    bizPh: "How we should say hi back",
-    site: "Website",
-    sitePh: "Link or domain — whatever you have",
-    ig: "Instagram",
-    igPh: "Only if it matters for you",
-    phone: "Phone / WhatsApp",
-    phonePh: "Where we can text you",
-    help: "What’s going wrong?",
-    helpPh: "Short is fine — messy is fine too",
-    send: "Send details",
+    biz: "Name",
+    bizPh: "Shop or brand name",
+    site: "Website or Instagram",
+    sitePh: "Link or @handle — either is fine",
+    ig: "Instagram only if separate",
+    igPh: "Optional",
+    phone: "WhatsApp number",
+    phonePh: "Where we can message you",
+    help: "What’s bothering you?",
+    helpPh: "Whatever comes to mind — messy is OK",
+    send: "Send message",
     sending: "Sending…",
-    foot: "We reply personally. No weird funnel. WhatsApp stays easy.",
-    waFollowup: "Hi — I just shared my details on your site. Can we chat when you’re free?",
-    successTitle: "Got it 👍",
-    successBody: "We’ll reply personally — soon.",
-    successCta: "Open WhatsApp now",
-    successHint: "Tap below anytime — or we’ll open WhatsApp for you in a moment.",
+    foot: "We reply ourselves. No pressure pitch.",
+    waFollowup: "Hi — I just sent details from your site. Free to chat when you are?",
+    successTitle: "Got it",
+    successBody: "We’ll reply soon.",
+    successCta: "Open WhatsApp",
+    successHint: "Tap below — or we’ll open it in a moment.",
   },
   hi: {
-    biz: "Business ka naam",
-    bizPh: "Jisse hum tumko bulaen",
-    site: "Website",
-    sitePh: "Jo link hai wahi — chahe adhura ho",
-    ig: "Instagram",
-    igPh: "Agar brand wahan zyada dikhta ho",
-    phone: "Phone / WhatsApp",
-    phonePh: "Jahan message kar sakien",
-    help: "Sabse zyada dikkat kis cheez mein aa rahi hai?",
-    helpPh: "Bas short mein bata do — jitna yaad aaye utna likh do",
-    send: "Bhej do",
+    biz: "Naam",
+    bizPh: "Dukaan / brand ka naam",
+    site: "Website ya Instagram",
+    sitePh: "Link ho ya @handle — jo bhi hai",
+    ig: "Alag se sirf Instagram",
+    igPh: "Zarurat ho to",
+    phone: "WhatsApp number",
+    phonePh: "Jahan message aaye",
+    help: "Problem kya aa rahi hai?",
+    helpPh: "Jo yaad aaye likh do — likha jaisa bhi ho",
+    send: "Message Bhejo",
     sending: "Bhej rahe hain…",
-    foot: "Khud reply karenge. Koi pressure pitch nahi. WhatsApp easy rahega.",
-    waFollowup: "Hi — site pe details bheji hain. Jab free ho, ek baar dekh lena.",
-    successTitle: "Mil gaya 👍",
-    successBody: "Hum jaldi reply karte hain — personally.",
-    successCta: "Abhi WhatsApp khol do",
-    successHint: "Neeche dabao — ya thodi der mein khud khul jayega.",
+    foot: "Khud reply karenge. Koi pressure pitch nahi.",
+    waFollowup: "Hi — site se details bheji hain. Jab time ho ek baar dekh lena.",
+    successTitle: "Mil gaya",
+    successBody: "Jaldi reply karenge.",
+    successCta: "WhatsApp Kholo",
+    successHint: "Neeche dabao — ya thodi der mein khul jayega.",
   },
 };
 
@@ -180,7 +180,7 @@ export function AiBusinessAuditLeadForm({ className = "", variant = "compact" })
       const res = await fetch("/api/audit-lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(local.data),
+        body: JSON.stringify({ ...local.data, locale: isHinglish ? "hi" : "en" }),
       });
 
       const json = await res.json().catch(() => ({}));
@@ -360,10 +360,9 @@ export function AiBusinessAuditLeadForm({ className = "", variant = "compact" })
           <input
             id={`${baseId}-website`}
             name="website"
-            type="url"
-            inputMode="url"
+            type="text"
+            inputMode="text"
             autoComplete="url"
-            required
             disabled={submitting}
             value={values.website}
             onChange={(e) => setField("website", e.target.value)}
@@ -408,7 +407,7 @@ export function AiBusinessAuditLeadForm({ className = "", variant = "compact" })
         <div className={`flex flex-col ${gapLabel}`}>
           <label className={labelClass} htmlFor={`${baseId}-instagram`}>
             {t.ig}{" "}
-            <span className="font-normal text-stone-400/95">{isHinglish ? "(agar ho)" : "(optional)"}</span>
+            <span className="font-normal text-stone-400/95">{isHinglish ? "(optional)" : "(optional)"}</span>
           </label>
           <input
             id={`${baseId}-instagram`}
