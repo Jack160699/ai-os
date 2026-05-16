@@ -15,6 +15,12 @@ export const metadata = {
     "Stratxcel designs and ships revenue systems: AI, automation, and operating infrastructure for operators who need execution, not noise.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#000000",
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>

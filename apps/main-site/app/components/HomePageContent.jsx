@@ -1,40 +1,25 @@
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { CONTACT, SOCIAL } from "@stratxcel/config";
-import { ConnectedBuildRail } from "./ConnectedBuildRail";
 import { HeroCinematic } from "./HeroCinematic";
-import { PricingGate } from "./PricingGate";
 import { SectionReveal } from "./SectionReveal";
 import { SectionSystemGraphic } from "./SectionSystemGraphic";
+
+const TrustCredibilitySection = dynamic(() =>
+  import("./TrustCredibilitySection").then((m) => ({ default: m.TrustCredibilitySection }))
+);
+const ServicesSection = dynamic(() => import("./ServicesSection").then((m) => ({ default: m.ServicesSection })));
+const WhoWeHelpSection = dynamic(() => import("./WhoWeHelpSection").then((m) => ({ default: m.WhoWeHelpSection })));
+const HowWeWorkSection = dynamic(() => import("./HowWeWorkSection").then((m) => ({ default: m.HowWeWorkSection })));
+const FinalConversionCta = dynamic(() => import("./FinalConversionCta").then((m) => ({ default: m.FinalConversionCta })));
+const PricingGate = dynamic(() => import("./PricingGate").then((m) => ({ default: m.PricingGate })), {
+  loading: () => <div className="min-h-[220px] rounded-2xl border border-white/[0.06] bg-[#0B0F19]/15" aria-hidden />,
+});
 
 const ctaPrimaryClass =
   "sx-cta-primary inline-flex h-[52px] min-h-[50px] items-center justify-center rounded-full border border-sky-500/28 bg-[#0B0F19]/95 px-8 text-[14px] font-semibold tracking-[-0.015em] text-[#E5E7EB] active:translate-y-0";
 
 export function HomePageContent() {
-  const fullTimeRoles = [
-    {
-      title: "Founder’s Associate",
-      slug: "founders-associate",
-      body: "For people who solve fast, think clearly, and enjoy high ownership across priorities.",
-      bestFor: "22+ yrs · high-agency individuals",
-      growthPath: "Strategy / Operations / Leadership",
-    },
-    {
-      title: "Business Development Associate",
-      slug: "business-development-associate",
-      body: "For strong communicators who enjoy sales, relationships, persuasion, and growth.",
-      bestFor: "22+ yrs",
-      growthPath: "Sales Leadership / Growth / Partnerships",
-    },
-  ];
-  const internshipTracks = [
-    { title: "Marketing Intern", slug: "marketing-intern" },
-    { title: "Sales Intern", slug: "business-development-intern" },
-    { title: "Operations Intern", slug: "operations-intern" },
-    { title: "Finance Intern", slug: "finance-intern" },
-    { title: "HR / Talent Intern", slug: "hr-talent-intern" },
-    { title: "Tech / IT Intern", slug: "it-tech-intern" },
-    { title: "Founder Office Intern", slug: "founders-associate" },
-  ];
   const socialRows = [
     ["LinkedIn", SOCIAL.linkedin],
     ["Instagram", SOCIAL.instagram],
@@ -57,36 +42,12 @@ export function HomePageContent() {
     { tag: "11", title: "Consultant dependent on founder brand", body: "Authority funnel built so demand generation is not personality-dependent." },
     { tag: "12", title: "Business growing but leaking profit", body: "Inefficiency diagnosis run and corrected through operational system fixes." },
   ];
-  const trustSignals = [
-    "Registered Indian Company",
-    "Founder-led execution",
-    "Selective partnerships",
-    "Long-term systems focus",
-    "India focused operations",
-  ];
-
   return (
     <>
       <HeroCinematic />
 
-      <section id="trust-signals" className="sx-section-space pt-10 pb-8 sm:pt-12 sm:pb-10">
-        <SectionReveal>
-          <div className="sx-container">
-            <div className="rounded-2xl border border-white/[0.08] bg-[#0B0F19]/34 p-2 backdrop-blur-xl">
-              <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-                {trustSignals.map((item) => (
-                  <li
-                    key={item}
-                    className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-center text-[11px] font-medium tracking-[0.08em] text-zinc-300"
-                  >
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </SectionReveal>
-      </section>
+      <div className="sx-page-below-hero">
+      <TrustCredibilitySection />
 
       <section id="pain" className="sx-section-space">
         <SectionReveal>
@@ -145,42 +106,11 @@ export function HomePageContent() {
         </SectionReveal>
       </section>
 
-      <section id="systems" className="sx-section-space">
-        <SectionReveal>
-          <div className="sx-container">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">What We Build</p>
-            <h2 className="sx-heading-space mt-3">
-              We don&apos;t sell services.
-              <br />
-              We build growth systems.
-            </h2>
-            <p className="sx-prose-space sx-prose-space--wide">
-              Every business bottleneck is usually a systems issue in disguise.
-            </p>
-            <ConnectedBuildRail
-              modules={[
-                "Lead Generation Systems",
-                "Sales Conversion Systems",
-                "Operations Systems",
-                "Growth Intelligence Systems",
-              ]}
-            />
-            <div className="mt-8 grid gap-3 md:grid-cols-4">
-              {[
-                ["Lead Generation Systems", "Build predictable inbound and outbound lead flow with clear signal quality."],
-                ["Sales Conversion Systems", "Improve follow-up speed, tracking discipline, and closing consistency."],
-                ["Operations Systems", "Reduce founder dependency and eliminate execution chaos in day-to-day delivery."],
-                ["Growth Intelligence Systems", "Install dashboards, tracking, and decision visibility that teams can act on."],
-              ].map(([title, body]) => (
-                <div key={title} className="rounded-xl border border-white/[0.08] bg-[#0B0F19]/35 p-4 backdrop-blur-md">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-sky-300/65">{title}</p>
-                  <p className="mt-3 text-[13px] leading-relaxed text-zinc-400">{body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </SectionReveal>
-      </section>
+      <ServicesSection />
+
+      <WhoWeHelpSection />
+
+      <HowWeWorkSection />
 
       <section id="why" className="sx-section-space">
         <SectionReveal>
@@ -206,7 +136,7 @@ export function HomePageContent() {
               ].map(([title, body]) => (
                 <div
                   key={title}
-                  className="rounded-2xl border border-white/[0.08] bg-[#0B0F19]/45 p-6 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,0,0,0.45)_inset] transition-[border-color,box-shadow,transform] duration-[600ms] ease-out hover:-translate-y-0.5 hover:border-sky-500/18 hover:shadow-[0_0_40px_-22px_rgba(59,130,246,0.16)] sm:p-7"
+                  className="rounded-2xl border border-white/[0.08] bg-[#0B0F19]/45 p-6 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,0,0,0.45)_inset] transition-[border-color,box-shadow,transform] duration-300 ease-out hover:-translate-y-0.5 hover:border-sky-500/18 hover:shadow-[0_0_40px_-22px_rgba(59,130,246,0.16)] sm:p-7"
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-400/55">{title}</p>
                   <p className="mt-4 text-[14px] leading-relaxed text-zinc-400">{body}</p>
@@ -253,7 +183,7 @@ export function HomePageContent() {
               {useCases.map((c) => (
                 <li
                   key={c.title}
-                  className="flex flex-col rounded-xl border border-white/[0.08] bg-[#0B0F19]/40 p-5 backdrop-blur-md transition-[border-color,box-shadow,transform] duration-[600ms] ease-out hover:-translate-y-0.5 hover:border-sky-500/18 hover:shadow-[0_0_44px_-20px_rgba(59,130,246,0.14)]"
+                  className="flex flex-col rounded-xl border border-white/[0.08] bg-[#0B0F19]/40 p-5 backdrop-blur-md transition-[border-color,box-shadow,transform] duration-300 ease-out hover:-translate-y-0.5 hover:border-sky-500/18 hover:shadow-[0_0_44px_-20px_rgba(59,130,246,0.14)]"
                 >
                   <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
                     <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">Case {c.tag}</span>
@@ -319,27 +249,11 @@ export function HomePageContent() {
       <section id="consultation" className="sx-section-space sx-section-space--ridge">
         <SectionReveal>
           <div className="sx-container">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">How We Work</p>
-            <h2 className="sx-heading-space mt-3">Diagnosis first. Build second.</h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Next step</p>
+            <h2 className="sx-heading-space mt-3">Ready for a focused diagnosis?</h2>
             <p className="sx-prose-space sx-prose-space--wide">
-              Every engagement starts with a structured diagnosis to map flow, reveal constraints, and determine fit.
+              When you want depth beyond a quick chat, we start with one structured session to map priorities and fit.
             </p>
-            <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">Selective engagements only.</p>
-            <ol className="mt-8 grid list-none gap-4 pl-0 md:grid-cols-3">
-              {[
-                ["1 - Request", 'You submit business context, bottlenecks, and what "fixed" means in the next 90 days.'],
-                ["2 - Diagnose", "We map current-state systems, identify breakpoints, and define sequence priorities."],
-                ["3 - Execute (optional)", "If fit is strong, we design and implement your execution architecture together."],
-              ].map(([t, d]) => (
-                <li
-                  key={t}
-                  className="rounded-xl border border-white/[0.08] bg-[#0B0F19]/35 px-5 py-5 backdrop-blur-md transition-[border-color,transform] duration-[520ms] ease-out hover:-translate-y-0.5 hover:border-white/14"
-                >
-                  <p className="text-[13px] font-semibold text-zinc-200">{t}</p>
-                  <p className="mt-2 text-[14px] leading-relaxed text-zinc-500">{d}</p>
-                </li>
-              ))}
-            </ol>
             <p className="mt-10 max-w-[60ch] border-l border-sky-500/20 pl-5 text-[14px] leading-relaxed text-zinc-400">
               <span className="font-semibold text-[#E5E7EB]">Only serious enquiries.</span> We decline requests that are
               vague, purely exploratory, or misaligned with how we work. If you are ready to operate at a higher standard,
@@ -367,187 +281,7 @@ export function HomePageContent() {
         </SectionReveal>
       </section>
 
-      <section id="final-cta" className="sx-section-space sx-cta-focus-zone">
-        <SectionReveal>
-          <div className="sx-container sx-container--narrow text-center">
-            <h2 className="sx-heading-space text-[1.45rem] leading-snug sm:text-[1.7rem]">
-              Growth becomes easier when systems become stronger.
-            </h2>
-            <p className="mx-auto mt-4 max-w-[56ch] text-[15px] leading-relaxed text-zinc-400">
-              Most businesses don&apos;t need more pressure.
-              <br />
-              They need better structure.
-            </p>
-            <div className="mt-10 flex flex-col items-center gap-4">
-              <Link href="/#pricing" className={ctaPrimaryClass}>
-                Request Business Diagnosis
-              </Link>
-            </div>
-            <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">Limited monthly availability.</p>
-          </div>
-        </SectionReveal>
-      </section>
-
-      <section id="careers" className="sx-section-space">
-        <SectionReveal>
-          <div className="sx-container">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Careers</p>
-            <h2 className="sx-heading-space mt-3">Join the people building better systems.</h2>
-            <p className="sx-prose-space sx-prose-space--wide mt-4">
-              We don&apos;t hire for headcount.
-              <br />
-              We bring in people who want responsibility, growth, and real-world leverage.
-            </p>
-
-            <div className="mt-10">
-              <h3 className="text-[13px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Full-Time Roles</h3>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                {fullTimeRoles.map((role) => (
-                  <div
-                    key={role.slug}
-                    className="rounded-2xl border border-white/[0.08] bg-[#0B0F19]/42 p-6 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,0,0,0.45)_inset] transition-[border-color,box-shadow,transform] duration-[600ms] ease-out hover:-translate-y-0.5 hover:border-sky-500/20 hover:shadow-[0_0_44px_-22px_rgba(59,130,246,0.16)]"
-                  >
-                    <p className="text-[16px] font-semibold tracking-[-0.02em] text-zinc-100">{role.title}</p>
-                    <p className="mt-3 text-[14px] leading-relaxed text-zinc-400">{role.body}</p>
-                    <p className="mt-4 text-[12px] text-zinc-400">
-                      <span className="font-semibold text-zinc-200">Best for:</span> {role.bestFor}
-                    </p>
-                    <p className="mt-2 text-[12px] text-zinc-400">
-                      <span className="font-semibold text-zinc-200">Growth path:</span> {role.growthPath}
-                    </p>
-                    <div className="mt-5">
-                      <Link href={`/careers/${role.slug}`} className={ctaPrimaryClass}>
-                        Apply Now
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-12">
-              <h3 className="text-[13px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Internship Tracks</h3>
-              <p className="sx-prose-space sx-prose-space--wide mt-4">Learn faster than classrooms allow.</p>
-              <p className="mt-3 text-[14px] leading-relaxed text-zinc-400">
-                Work on real systems, real business problems, and real execution.
-              </p>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {internshipTracks.map((track) => (
-                  <Link
-                    key={track.title}
-                    href={`/careers/${track.slug}`}
-                    className="sx-card-space sx-card--interactive sx-card--lift block rounded-xl"
-                  >
-                    <p className="text-[14px] font-semibold tracking-[-0.02em] text-zinc-100">{track.title}</p>
-                    <p className="mt-2 text-[12px] leading-relaxed text-zinc-400">
-                      Real exposure · Mentorship · Hands-on projects · Systems thinking · Certificate on performance ·
-                      Industry readiness
-                    </p>
-                  </Link>
-                ))}
-              </div>
-              <p className="mt-5 text-[12px] tracking-[0.02em] text-zinc-400">Best for: 18–22 yrs students / freshers</p>
-              <div className="mt-5">
-                <Link href="/careers" className={ctaPrimaryClass}>
-                  Apply for Internship
-                </Link>
-              </div>
-            </div>
-
-            <div className="mt-12">
-              <h3 className="text-[13px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Why Join Stratxcel</h3>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {[
-                  "Work directly on real business challenges",
-                  "Learn execution, not theory",
-                  "Build communication and ownership",
-                  "Grow with a serious team",
-                  "Fast learning curve",
-                  "Visible contribution",
-                ].map((item) => (
-                  <div
-                    key={item}
-                    className="rounded-xl border border-white/[0.08] bg-[#0B0F19]/35 px-4 py-4 text-[13px] font-medium tracking-[-0.01em] text-zinc-200 backdrop-blur-md"
-                  >
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-8 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.12em] text-zinc-400">
-              {[
-                "High ownership",
-                "Fast learners win",
-                "Ideas matter",
-                "Execution matters more",
-                "Respectful intensity",
-              ].map((signal) => (
-                <span key={signal} className="rounded-full border border-white/[0.1] bg-white/[0.02] px-3 py-1.5">
-                  {signal}
-                </span>
-              ))}
-            </div>
-
-            <div className="mt-12 rounded-2xl border border-white/[0.08] bg-[#0B0F19]/40 p-6 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,0,0,0.45)_inset] sm:p-7">
-              <h3 className="text-[16px] font-semibold tracking-[-0.02em] text-zinc-100">Application</h3>
-              <form
-                className="mt-5 grid gap-3 sm:grid-cols-2"
-                action={`mailto:${CONTACT.email}?subject=Career%20Application%20-%20Stratxcel`}
-                method="post"
-                encType="text/plain"
-              >
-                <input
-                  name="Name"
-                  required
-                  placeholder="Name"
-                  className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-[14px] text-zinc-100 outline-none transition focus:border-sky-400/35"
-                />
-                <input
-                  name="Role interested in"
-                  required
-                  placeholder="Role interested in"
-                  className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-[14px] text-zinc-100 outline-none transition focus:border-sky-400/35"
-                />
-                <input
-                  name="College / Experience"
-                  required
-                  placeholder="College / Experience"
-                  className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-[14px] text-zinc-100 outline-none transition focus:border-sky-400/35"
-                />
-                <input
-                  name="LinkedIn"
-                  placeholder="LinkedIn (optional)"
-                  className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-[14px] text-zinc-100 outline-none transition focus:border-sky-400/35"
-                />
-                <input
-                  name="Email"
-                  type="email"
-                  required
-                  placeholder="Email"
-                  className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-[14px] text-zinc-100 outline-none transition focus:border-sky-400/35 sm:col-span-2"
-                />
-                <textarea
-                  name="Why do you want to join?"
-                  required
-                  placeholder="Why do you want to join?"
-                  rows={5}
-                  className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-[14px] text-zinc-100 outline-none transition focus:border-sky-400/35 sm:col-span-2"
-                />
-                <div className="sm:col-span-2">
-                  <button type="submit" className={ctaPrimaryClass}>
-                    Submit Application
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            <p className="mt-8 text-sm leading-relaxed text-zinc-500">
-              This is a selective environment. Apply early if you are serious about fast growth and real responsibility.
-            </p>
-          </div>
-        </SectionReveal>
-      </section>
+      <FinalConversionCta />
 
       <section id="contact" className="sx-section-space">
         <SectionReveal>
@@ -563,7 +297,7 @@ export function HomePageContent() {
               </Link>
               <a
                 href={`https://wa.me/${String(CONTACT.whatsapp || "").replace(/[^\d]/g, "")}`}
-                className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.04] px-8 text-[14px] font-semibold tracking-[-0.015em] text-[#E5E7EB] backdrop-blur-md transition-[border-color,background-color,transform] duration-[520ms] ease-out hover:-translate-y-0.5 hover:border-white/22 hover:bg-white/[0.08] active:translate-y-0"
+                className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.04] px-8 text-[14px] font-semibold tracking-[-0.015em] text-[#E5E7EB] backdrop-blur-md transition-[border-color,background-color,transform] duration-300 ease-out hover:-translate-y-0.5 hover:border-white/22 hover:bg-white/[0.08] active:translate-y-0"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -596,6 +330,7 @@ export function HomePageContent() {
           </div>
         </SectionReveal>
       </section>
+    </div>
     </>
   );
 }

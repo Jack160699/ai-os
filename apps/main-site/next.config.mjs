@@ -10,6 +10,12 @@ const nextConfig = {
   turbopack: {
     root: monorepoRoot,
   },
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
+  experimental: {
+    optimizePackageImports: ["@stratxcel/ui"],
+  },
 };
 
 export default nextConfig;

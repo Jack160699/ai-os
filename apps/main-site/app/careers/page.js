@@ -42,7 +42,7 @@ export default function CareersPage() {
       <p className="mt-2 text-sm text-zinc-500">
         Benefits: Real work, mentorship, live projects, certificates, professional growth, and industry readiness.
       </p>
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div id="join" className="mt-8 flex flex-wrap gap-3 scroll-mt-[calc(var(--sx-nav-h)+0.75rem)]">
         <a
           href={`mailto:${CONTACT_EMAIL}?subject=Internship%20Application%20%E2%80%94%20Stratxcel`}
           className="inline-flex h-12 min-h-[48px] items-center justify-center rounded-full border border-white/12 bg-white px-7 text-[15px] font-semibold text-[var(--sx-navy)] shadow-[0_0_32px_-12px_rgba(96,165,250,0.3)] transition hover:bg-zinc-100"

@@ -27,6 +27,8 @@ export function SpaceFieldBackground() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    let cancelled = false;
+
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const isSmallViewport = window.matchMedia("(max-width: 420px)").matches;
     const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
@@ -142,6 +144,7 @@ export function SpaceFieldBackground() {
     }
 
     function paint(now) {
+      if (cancelled) return;
       if (!isVisible) return;
       if (!reduced && now - lastDraw < targetFrameMs) {
         rafRef.current = requestAnimationFrame(paint);
@@ -314,10 +317,19 @@ export function SpaceFieldBackground() {
     if (reduced) {
       paint(start);
     } else {
-      rafRef.current = requestAnimationFrame(paint);
+      const schedule =
+        typeof window.requestIdleCallback === "function"
+          ? (cb) => window.requestIdleCallback(cb, { timeout: 2200 })
+          : (cb) => window.setTimeout(cb, 120);
+      schedule(() => {
+        if (!cancelled) {
+          rafRef.current = requestAnimationFrame(paint);
+        }
+      });
     }
 
     return () => {
+      cancelled = true;
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       cancelAnimationFrame(rafRef.current);

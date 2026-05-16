@@ -200,15 +200,15 @@ body {
 
 .sx-reveal {
   opacity: 0;
-  transform: translateY(10px);
+  transform: translate3d(0, 10px, 0);
   transition:
-    opacity 1.42s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 1.42s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .sx-reveal--in {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate3d(0, 0, 0);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -217,6 +217,12 @@ body {
     transform: none;
     transition: none;
   }
+}
+
+/* Homepage: defer layout/paint work for content below the hero until near viewport */
+.sx-page-below-hero {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 3800px;
 }
 
 .sx-card-title {
@@ -322,10 +328,50 @@ body {
   animation-delay: 3.92s;
 }
 
+/* Hero v2 — fast, subtle entrance (conversion hero) */
+@keyframes sx-hero-soft-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sx-hero-soft-in {
+  opacity: 0;
+  animation: sx-hero-soft-in 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes sx-hero-visual-drift {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(1) translate(0, 0);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.035) translate(0.8%, -0.8%);
+  }
+}
+
+.sx-hero-visual-drift {
+  animation: sx-hero-visual-drift 18s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sx-hero-fade-up,
   .sx-hero-cta-rise,
   .sx-hero-trust-fade {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .sx-hero-soft-in,
+  .sx-hero-visual-drift {
     animation: none;
     opacity: 1;
     transform: none;
